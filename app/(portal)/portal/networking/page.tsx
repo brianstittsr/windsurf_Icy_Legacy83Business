@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ import {
   Briefcase,
   Star,
   UserPlus,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -225,10 +227,18 @@ export default function NetworkingPage() {
             Connect with other affiliates using the BNI One-to-One model
           </p>
         </div>
-        <Button onClick={() => openRequestDialog()}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Request One-to-One
-        </Button>
+        <div className="flex items-center gap-3">
+          <Link href="/portal/networking/profile">
+            <Button variant="outline">
+              <FileText className="mr-2 h-4 w-4" />
+              My Profile
+            </Button>
+          </Link>
+          <Button onClick={() => openRequestDialog()}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Request One-to-One
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
