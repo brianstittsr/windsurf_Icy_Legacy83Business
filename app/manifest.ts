@@ -13,21 +13,21 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait-primary",
     icons: [
       {
-        src: "/icons/icon-192x192.png",
+        src: "/icons/icon-192x192.svg",
         sizes: "192x192",
-        type: "image/png",
+        type: "image/svg+xml",
         purpose: "maskable",
       },
       {
-        src: "/icons/icon-512x512.png",
+        src: "/icons/icon-512x512.svg",
         sizes: "512x512",
-        type: "image/png",
+        type: "image/svg+xml",
         purpose: "any",
       },
       {
-        src: "/favicon.ico",
-        sizes: "48x48",
-        type: "image/x-icon",
+        src: "/VPlus_logo.webp",
+        sizes: "any",
+        type: "image/webp",
       },
     ],
     categories: ["business", "productivity"],
