@@ -490,11 +490,14 @@ export default function ApolloSearchPage() {
     }
   };
 
+  // Generate unique ID for messages
+  const generateMessageId = () => `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateMessageId(),
       role: "user",
       content: inputValue,
       timestamp: new Date(),
@@ -507,7 +510,7 @@ export default function ApolloSearchPage() {
     // Check connection status first
     if (connectionStatus === "no_key") {
       const noKeyResponse: ChatMessage = {
-        id: Date.now().toString(),
+        id: generateMessageId(),
         role: "assistant",
         content: "⚠️ **Apollo API key not configured**\n\nTo search for real prospects, please configure your Apollo API key in the Settings page.\n\nIn the meantime, I'll show you sample results to demonstrate the search functionality.",
         timestamp: new Date(),
@@ -517,6 +520,8 @@ export default function ApolloSearchPage() {
       // Still show mock results for demo
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const aiResponse = generateAIResponse(inputValue);
+      // Override the ID to ensure uniqueness
+      aiResponse.id = generateMessageId();
       setMessages((prev) => [...prev, aiResponse]);
       setIsLoading(false);
       return;
@@ -524,7 +529,7 @@ export default function ApolloSearchPage() {
 
     if (connectionStatus === "disconnected" || connectionStatus === "error") {
       const errorResponse: ChatMessage = {
-        id: Date.now().toString(),
+        id: generateMessageId(),
         role: "assistant",
         content: "❌ **Apollo connection failed**\n\nUnable to connect to Apollo API. Please check your API key in Settings and try again.\n\nShowing sample results for demonstration.",
         timestamp: new Date(),
@@ -533,6 +538,7 @@ export default function ApolloSearchPage() {
       
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const aiResponse = generateAIResponse(inputValue);
+      aiResponse.id = generateMessageId();
       setMessages((prev) => [...prev, aiResponse]);
       setIsLoading(false);
       return;
@@ -540,6 +546,7 @@ export default function ApolloSearchPage() {
 
     // Parse the search query
     const mockResponse = generateAIResponse(inputValue);
+    mockResponse.id = generateMessageId();
     
     // If we have a valid connection and search criteria, try real API
     if (connectionStatus === "connected" && mockResponse.searchCriteria) {
@@ -549,6 +556,7 @@ export default function ApolloSearchPage() {
         // Use real results
         const realResponse: ChatMessage = {
           ...mockResponse,
+          id: generateMessageId(),
           content: `✅ **Found ${realResults.length} prospects** from Apollo:\n\n${
             mockResponse.searchCriteria.titles ? `**Titles:** ${mockResponse.searchCriteria.titles.join(", ")}\n` : ""
           }${
@@ -562,7 +570,7 @@ export default function ApolloSearchPage() {
       } else {
         // No results from API, show message
         const noResultsResponse: ChatMessage = {
-          id: Date.now().toString(),
+          id: generateMessageId(),
           role: "assistant",
           content: "🔍 **No results found**\n\nApollo didn't return any matches for your search criteria. Try:\n\n• Broadening your search terms\n• Using different job titles\n• Expanding the location or industry filters\n\nShowing sample results for reference.",
           timestamp: new Date(),
@@ -571,6 +579,7 @@ export default function ApolloSearchPage() {
         
         // Show mock results as fallback
         await new Promise((resolve) => setTimeout(resolve, 500));
+        mockResponse.id = generateMessageId();
         setMessages((prev) => [...prev, mockResponse]);
       }
     } else {
