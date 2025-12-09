@@ -127,6 +127,263 @@ export interface ActivityDoc extends Omit<Activity, "createdAt" | "user"> {
   entityId: string;
 }
 
+// ============================================================================
+// Affiliate Networking System Types
+// ============================================================================
+
+/** Affiliate Biography/Profile document */
+export interface AffiliateBiographyDoc {
+  id: string;
+  affiliateId: string; // Reference to user
+  
+  // Business Information
+  businessName: string;
+  profession: string;
+  location: string;
+  yearsInBusiness: number;
+  previousJobs: string[];
+  
+  // Personal Information
+  spouse?: string;
+  children?: string;
+  pets?: string;
+  hobbies: string[];
+  activitiesOfInterest: string[];
+  cityOfResidence: string;
+  yearsInCity?: number;
+  
+  // Miscellaneous
+  burningDesire?: string;
+  uniqueFact?: string;
+  
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** GAINS Profile document (Goals, Accomplishments, Interests, Networks, Skills) */
+export interface GainsProfileDoc {
+  id: string;
+  affiliateId: string; // Reference to user
+  
+  goals: string; // Financial, business, educational, personal objectives
+  accomplishments: string; // Achievements, completed projects
+  interests: string; // Things they enjoy doing, talking about, collecting
+  networks: string; // Organizations, institutions, associations they belong to
+  skills: string; // Talents, abilities, assets
+  
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** Contact Sphere document */
+export interface ContactSphereDoc {
+  id: string;
+  affiliateId: string; // Reference to user
+  
+  sphereName: string; // Name of their contact sphere
+  
+  // Top 10 members in their contact sphere
+  members: {
+    name: string;
+    profession?: string;
+    company?: string;
+  }[];
+  
+  // Top 3 professions they need to round out their sphere
+  topProfessionsNeeded: {
+    profession: string;
+    description?: string;
+  }[];
+  
+  commitment?: string; // Their commitment to help fill partner's sphere
+  
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** Previous Customers document */
+export interface PreviousCustomersDoc {
+  id: string;
+  affiliateId: string; // Reference to user
+  
+  customers: {
+    name: string;
+    industry: string;
+    description: string; // What was done for them
+    isIdealClient: boolean;
+  }[];
+  
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** One-to-One Meeting document */
+export interface OneToOneMeetingDoc {
+  id: string;
+  
+  // Participants
+  initiatorId: string; // Affiliate who scheduled the meeting
+  partnerId: string; // Affiliate they're meeting with
+  
+  // Scheduling
+  scheduledDate: Timestamp;
+  scheduledTime: string; // e.g., "10:00 AM"
+  duration: number; // Minutes (typically 60)
+  
+  // Location
+  meetingType: "virtual" | "in-person";
+  location?: string; // Restaurant, office address, or video link
+  virtualPlatform?: "zoom" | "teams" | "google-meet" | "other";
+  
+  // Status
+  status: "scheduled" | "confirmed" | "completed" | "cancelled" | "no-show";
+  
+  // Pre-meeting
+  agendaItems?: string[];
+  worksheetsShared: boolean;
+  
+  // Post-meeting outcomes
+  meetingNotes?: string;
+  shortTermReferralCommitment?: string;
+  longTermReferralCommitment?: string;
+  svpReferralDiscussed: boolean;
+  svpReferralDetails?: string;
+  
+  // Follow-up
+  followUpDate?: Timestamp;
+  followUpCompleted: boolean;
+  followUpNotes?: string;
+  
+  // Next meeting
+  nextMeetingScheduled: boolean;
+  nextMeetingDate?: Timestamp;
+  
+  // AI matching data
+  matchScore?: number; // 0-100 compatibility score
+  matchReasons?: string[]; // Why AI suggested this pairing
+  
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** Referral document */
+export interface ReferralDoc {
+  id: string;
+  
+  // Who gave and received the referral
+  referrerId: string; // Affiliate who gave the referral
+  recipientId: string; // Affiliate who received the referral
+  
+  // Source meeting (if from a one-to-one)
+  oneToOneMeetingId?: string;
+  
+  // Referral details
+  referralType: "short-term" | "long-term";
+  prospectName: string;
+  prospectCompany?: string;
+  prospectEmail?: string;
+  prospectPhone?: string;
+  prospectTitle?: string;
+  
+  // Why this is a good referral
+  description: string;
+  whyGoodFit?: string;
+  
+  // Is this for SVP?
+  isSvpReferral: boolean;
+  svpServiceInterest?: string; // Which SVP service they might need
+  
+  // Pipeline status
+  status: "submitted" | "contacted" | "meeting-scheduled" | "proposal" | "negotiation" | "won" | "lost";
+  
+  // Outcome tracking
+  dealValue?: number; // In dollars, when won
+  dealClosedDate?: Timestamp;
+  lostReason?: string;
+  
+  // Activity log
+  lastContactDate?: Timestamp;
+  contactAttempts: number;
+  
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** Affiliate Stats document (aggregated metrics) */
+export interface AffiliateStatsDoc {
+  id: string;
+  affiliateId: string; // Reference to user
+  
+  // Profile completion
+  biographyComplete: boolean;
+  gainsProfileComplete: boolean;
+  contactSphereComplete: boolean;
+  customersListComplete: boolean;
+  profileCompletionPercent: number;
+  
+  // One-to-one activity
+  totalOneToOnesScheduled: number;
+  totalOneToOnesCompleted: number;
+  oneToOnesThisMonth: number;
+  oneToOnesThisQuarter: number;
+  lastOneToOneDate?: Timestamp;
+  
+  // Referral activity
+  referralsGiven: number;
+  referralsReceived: number;
+  referralsGivenThisMonth: number;
+  referralsReceivedThisMonth: number;
+  
+  // Deal outcomes
+  dealsClosedFromReferralsGiven: number;
+  dealsClosedFromReferralsReceived: number;
+  totalRevenueGenerated: number; // From referrals they gave that closed
+  totalRevenueReceived: number; // From referrals they received that closed
+  
+  // SVP-specific
+  svpReferralsGiven: number;
+  svpReferralsClosed: number;
+  svpRevenueGenerated: number;
+  
+  // Engagement score (calculated)
+  engagementScore: number; // 0-100
+  
+  // Streaks
+  currentOneToOneStreak: number; // Consecutive weeks with a one-to-one
+  longestOneToOneStreak: number;
+  
+  updatedAt: Timestamp;
+}
+
+/** AI Match Suggestion document */
+export interface AiMatchSuggestionDoc {
+  id: string;
+  affiliateId: string; // Who this suggestion is for
+  suggestedPartnerId: string; // Suggested partner
+  
+  matchScore: number; // 0-100
+  
+  // Reasons for the match
+  reasons: {
+    category: "contact-sphere" | "interests" | "skills" | "geography" | "complementary" | "rotation";
+    description: string;
+    weight: number;
+  }[];
+  
+  // Suggested talking points
+  talkingPoints: string[];
+  
+  // Has this suggestion been acted on?
+  status: "pending" | "accepted" | "declined" | "expired";
+  
+  // When was their last meeting?
+  lastMeetingDate?: Timestamp;
+  daysSinceLastMeeting?: number;
+  
+  createdAt: Timestamp;
+  expiresAt: Timestamp; // Suggestions expire after a period
+}
+
 /** Note document in Firestore */
 export interface NoteDoc extends Omit<Note, "createdAt" | "updatedAt" | "author"> {
   createdAt: Timestamp;
@@ -168,6 +425,15 @@ export const COLLECTIONS = {
   MILESTONES: "milestones",
   ROCK_MILESTONES: "rockMilestones",
   CAPABILITIES: "capabilities",
+  // Affiliate Networking Collections
+  AFFILIATE_BIOGRAPHIES: "affiliateBiographies",
+  GAINS_PROFILES: "gainsProfiles",
+  CONTACT_SPHERES: "contactSpheres",
+  PREVIOUS_CUSTOMERS: "previousCustomers",
+  ONE_TO_ONE_MEETINGS: "oneToOneMeetings",
+  REFERRALS: "referrals",
+  AFFILIATE_STATS: "affiliateStats",
+  AI_MATCH_SUGGESTIONS: "aiMatchSuggestions",
 } as const;
 
 // ============================================================================
@@ -196,6 +462,16 @@ export const documentsCollection = () => getCollection<DocumentDoc>(COLLECTIONS.
 export const servicesCollection = () => getCollection<ServiceDoc>(COLLECTIONS.SERVICES);
 export const activitiesCollection = () => getCollection<ActivityDoc>(COLLECTIONS.ACTIVITIES);
 export const notesCollection = () => getCollection<NoteDoc>(COLLECTIONS.NOTES);
+
+// Affiliate Networking collection references
+export const affiliateBiographiesCollection = () => getCollection<AffiliateBiographyDoc>(COLLECTIONS.AFFILIATE_BIOGRAPHIES);
+export const gainsProfilesCollection = () => getCollection<GainsProfileDoc>(COLLECTIONS.GAINS_PROFILES);
+export const contactSpheresCollection = () => getCollection<ContactSphereDoc>(COLLECTIONS.CONTACT_SPHERES);
+export const previousCustomersCollection = () => getCollection<PreviousCustomersDoc>(COLLECTIONS.PREVIOUS_CUSTOMERS);
+export const oneToOneMeetingsCollection = () => getCollection<OneToOneMeetingDoc>(COLLECTIONS.ONE_TO_ONE_MEETINGS);
+export const referralsCollection = () => getCollection<ReferralDoc>(COLLECTIONS.REFERRALS);
+export const affiliateStatsCollection = () => getCollection<AffiliateStatsDoc>(COLLECTIONS.AFFILIATE_STATS);
+export const aiMatchSuggestionsCollection = () => getCollection<AiMatchSuggestionDoc>(COLLECTIONS.AI_MATCH_SUGGESTIONS);
 
 // ============================================================================
 // Subcollection Helpers
@@ -290,6 +566,33 @@ export const generateId = (collectionName: string): string => {
  * 
  * /actionItems/{actionId}
  *   - ActionItemDoc (top-level for cross-entity queries)
+ * 
+ * 
+ * AFFILIATE NETWORKING SYSTEM
+ * ===========================
+ * /affiliateBiographies/{bioId}
+ *   - AffiliateBiographyDoc (Member Bio Sheet)
+ * 
+ * /gainsProfiles/{profileId}
+ *   - GainsProfileDoc (Goals, Accomplishments, Interests, Networks, Skills)
+ * 
+ * /contactSpheres/{sphereId}
+ *   - ContactSphereDoc (Contact Sphere Planning)
+ * 
+ * /previousCustomers/{customersId}
+ *   - PreviousCustomersDoc (Previous 10 Customers)
+ * 
+ * /oneToOneMeetings/{meetingId}
+ *   - OneToOneMeetingDoc (Scheduled one-to-one meetings between affiliates)
+ * 
+ * /referrals/{referralId}
+ *   - ReferralDoc (Referrals given/received, including SVP referrals)
+ * 
+ * /affiliateStats/{statsId}
+ *   - AffiliateStatsDoc (Aggregated metrics per affiliate)
+ * 
+ * /aiMatchSuggestions/{suggestionId}
+ *   - AiMatchSuggestionDoc (AI-generated partner suggestions)
  * 
  * 
  * SECURITY RULES CONSIDERATIONS
