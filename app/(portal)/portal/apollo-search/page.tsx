@@ -16,6 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Search,
   Send,
   Sparkles,
@@ -48,8 +54,19 @@ import {
   TrendingUp,
   Filter,
   Save,
+  Wifi,
+  WifiOff,
+  AlertCircle,
+  Settings,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { COLLECTIONS } from "@/lib/schema";
+
+// Connection status type
+type ConnectionStatus = "connected" | "disconnected" | "checking" | "error" | "no_key";
 
 // Apollo feature categories based on the screenshot
 const apolloFeatures = {
@@ -334,6 +351,12 @@ export default function ApolloSearchPage() {
   const [activeTab, setActiveTab] = useState("chat");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Apollo connection state
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("checking");
+  const [apolloApiKey, setApolloApiKey] = useState<string>("");
+  const [connectionError, setConnectionError] = useState<string>("");
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -342,6 +365,130 @@ export default function ApolloSearchPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  // Load Apollo API key from Firebase settings and check connection
+  useEffect(() => {
+    const loadApolloSettings = async () => {
+      setConnectionStatus("checking");
+      try {
+        if (!db) {
+          setConnectionStatus("error");
+          setConnectionError("Firebase not initialized");
+          return;
+        }
+        
+        const docRef = doc(db, COLLECTIONS.PLATFORM_SETTINGS, "main");
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const apiKey = data?.integrations?.apollo?.apiKey;
+          
+          if (apiKey && apiKey.trim() !== "") {
+            setApolloApiKey(apiKey);
+            // Test the connection
+            await testApolloConnection(apiKey);
+          } else {
+            setConnectionStatus("no_key");
+            setConnectionError("Apollo API key not configured");
+          }
+        } else {
+          setConnectionStatus("no_key");
+          setConnectionError("Settings not found. Configure Apollo in Settings.");
+        }
+      } catch (error) {
+        console.error("Error loading Apollo settings:", error);
+        setConnectionStatus("error");
+        setConnectionError("Failed to load settings");
+      }
+    };
+    
+    loadApolloSettings();
+  }, []);
+  
+  // Test Apollo API connection
+  const testApolloConnection = async (apiKey: string) => {
+    try {
+      const response = await fetch("/api/apollo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "test_connection", apiKey }),
+      });
+      
+      const data = await response.json();
+      setLastChecked(new Date());
+      
+      if (data.connected) {
+        setConnectionStatus("connected");
+        setConnectionError("");
+      } else {
+        setConnectionStatus("disconnected");
+        setConnectionError(data.error || "Connection failed");
+      }
+    } catch (error) {
+      setConnectionStatus("error");
+      setConnectionError("Network error");
+    }
+  };
+  
+  // Refresh connection status
+  const refreshConnection = () => {
+    if (apolloApiKey) {
+      setConnectionStatus("checking");
+      testApolloConnection(apolloApiKey);
+    }
+  };
+
+  // Search Apollo API
+  const searchApolloAPI = async (searchCriteria: SearchCriteria): Promise<SearchResult[]> => {
+    if (!apolloApiKey || connectionStatus !== "connected") {
+      return [];
+    }
+
+    try {
+      const response = await fetch("/api/apollo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "search_people",
+          apiKey: apolloApiKey,
+          searchParams: {
+            titles: searchCriteria.titles || [],
+            locations: searchCriteria.locations || [],
+            industries: searchCriteria.industries || [],
+            keywords: searchCriteria.keywords?.join(" ") || "",
+            employee_ranges: searchCriteria.companySize ? [searchCriteria.companySize] : [],
+          },
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.connected && data.results) {
+        // Transform Apollo results to our format
+        return data.results.map((person: any) => ({
+          id: person.id || Math.random().toString(),
+          name: `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+          title: person.title || "Unknown",
+          company: person.organization?.name || "Unknown",
+          location: person.city && person.state 
+            ? `${person.city}, ${person.state}` 
+            : person.country || "Unknown",
+          email: person.email || undefined,
+          phone: person.phone_numbers?.[0]?.sanitized_number || undefined,
+          linkedIn: person.linkedin_url || undefined,
+          companySize: person.organization?.estimated_num_employees 
+            ? `${person.organization.estimated_num_employees} employees` 
+            : undefined,
+          industry: person.organization?.industry || undefined,
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error("Apollo search error:", error);
+      return [];
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -357,11 +504,81 @@ export default function ApolloSearchPage() {
     setInputValue("");
     setIsLoading(true);
 
-    // Simulate AI processing delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Check connection status first
+    if (connectionStatus === "no_key") {
+      const noKeyResponse: ChatMessage = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "⚠️ **Apollo API key not configured**\n\nTo search for real prospects, please configure your Apollo API key in the Settings page.\n\nIn the meantime, I'll show you sample results to demonstrate the search functionality.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, noKeyResponse]);
+      
+      // Still show mock results for demo
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const aiResponse = generateAIResponse(inputValue);
+      setMessages((prev) => [...prev, aiResponse]);
+      setIsLoading(false);
+      return;
+    }
 
-    const aiResponse = generateAIResponse(inputValue);
-    setMessages((prev) => [...prev, aiResponse]);
+    if (connectionStatus === "disconnected" || connectionStatus === "error") {
+      const errorResponse: ChatMessage = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "❌ **Apollo connection failed**\n\nUnable to connect to Apollo API. Please check your API key in Settings and try again.\n\nShowing sample results for demonstration.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorResponse]);
+      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const aiResponse = generateAIResponse(inputValue);
+      setMessages((prev) => [...prev, aiResponse]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Parse the search query
+    const mockResponse = generateAIResponse(inputValue);
+    
+    // If we have a valid connection and search criteria, try real API
+    if (connectionStatus === "connected" && mockResponse.searchCriteria) {
+      const realResults = await searchApolloAPI(mockResponse.searchCriteria);
+      
+      if (realResults.length > 0) {
+        // Use real results
+        const realResponse: ChatMessage = {
+          ...mockResponse,
+          content: `✅ **Found ${realResults.length} prospects** from Apollo:\n\n${
+            mockResponse.searchCriteria.titles ? `**Titles:** ${mockResponse.searchCriteria.titles.join(", ")}\n` : ""
+          }${
+            mockResponse.searchCriteria.industries ? `**Industries:** ${mockResponse.searchCriteria.industries.join(", ")}\n` : ""
+          }${
+            mockResponse.searchCriteria.locations ? `**Locations:** ${mockResponse.searchCriteria.locations.join(", ")}\n` : ""
+          }\nThese are live results from Apollo. You can refine your search or take action on these prospects.`,
+          results: realResults,
+        };
+        setMessages((prev) => [...prev, realResponse]);
+      } else {
+        // No results from API, show message
+        const noResultsResponse: ChatMessage = {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: "🔍 **No results found**\n\nApollo didn't return any matches for your search criteria. Try:\n\n• Broadening your search terms\n• Using different job titles\n• Expanding the location or industry filters\n\nShowing sample results for reference.",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, noResultsResponse]);
+        
+        // Show mock results as fallback
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        setMessages((prev) => [...prev, mockResponse]);
+      }
+    } else {
+      // Use mock response if no criteria or clarifying questions needed
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setMessages((prev) => [...prev, mockResponse]);
+    }
+    
     setIsLoading(false);
   };
 
@@ -404,6 +621,87 @@ export default function ApolloSearchPage() {
     .filter((m) => m.results)
     .flatMap((m) => m.results || []);
 
+  // Connection status badge component
+  const ConnectionStatusBadge = () => {
+    const statusConfig = {
+      connected: {
+        icon: Wifi,
+        label: "Connected",
+        className: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+        iconClassName: "text-green-600 dark:text-green-400",
+      },
+      disconnected: {
+        icon: WifiOff,
+        label: "Disconnected",
+        className: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+        iconClassName: "text-red-600 dark:text-red-400",
+      },
+      checking: {
+        icon: Loader2,
+        label: "Checking...",
+        className: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+        iconClassName: "text-yellow-600 dark:text-yellow-400 animate-spin",
+      },
+      error: {
+        icon: AlertCircle,
+        label: "Error",
+        className: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+        iconClassName: "text-red-600 dark:text-red-400",
+      },
+      no_key: {
+        icon: Link2,
+        label: "Not Configured",
+        className: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700",
+        iconClassName: "text-gray-500 dark:text-gray-400",
+      },
+    };
+
+    const config = statusConfig[connectionStatus];
+    const StatusIcon = config.icon;
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium cursor-pointer transition-colors",
+              config.className
+            )}
+            onClick={refreshConnection}
+            >
+              <StatusIcon className={cn("h-4 w-4", config.iconClassName)} />
+              <span>Apollo: {config.label}</span>
+              {connectionStatus !== "checking" && (
+                <RefreshCw className="h-3 w-3 opacity-50 hover:opacity-100" />
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs">
+            <div className="space-y-1">
+              <p className="font-medium">Apollo API Status</p>
+              {connectionError && (
+                <p className="text-sm text-muted-foreground">{connectionError}</p>
+              )}
+              {lastChecked && (
+                <p className="text-xs text-muted-foreground">
+                  Last checked: {lastChecked.toLocaleTimeString()}
+                </p>
+              )}
+              {connectionStatus === "no_key" && (
+                <p className="text-sm">
+                  <a href="/portal/settings" className="text-blue-500 hover:underline">
+                    Configure Apollo API key in Settings →
+                  </a>
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">Click to refresh</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
@@ -425,7 +723,10 @@ export default function ApolloSearchPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Connection Status Badge */}
+          <ConnectionStatusBadge />
+          
           {selectedResults.size > 0 && (
             <Badge variant="outline" className="text-sm">
               {selectedResults.size} selected
@@ -435,9 +736,11 @@ export default function ApolloSearchPage() {
             <Filter className="h-4 w-4 mr-2" />
             Advanced Filters
           </Button>
-          <Button variant="outline" size="sm">
-            <Save className="h-4 w-4 mr-2" />
-            Save Search
+          <Button variant="outline" size="sm" asChild>
+            <a href="/portal/settings">
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </a>
           </Button>
         </div>
       </div>
