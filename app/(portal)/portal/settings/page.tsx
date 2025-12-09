@@ -447,8 +447,8 @@ export default function SettingsPage() {
                           id={`${config.id}-key`}
                           type={showKeys[config.id] ? "text" : "password"}
                           placeholder={`Enter your ${config.keyField.toLowerCase()}`}
-                          value={apiKeys[config.id]?.key || ""}
-                          onChange={(e) => updateApiKey(config.id, "key", e.target.value)}
+                          value={apiKeys[config.id]?.apiKey || ""}
+                          onChange={(e) => updateApiKey(config.id, "apiKey", e.target.value)}
                         />
                         <Button
                           variant="ghost"
