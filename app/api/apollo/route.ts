@@ -15,22 +15,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Apollo uses api_key in the request body, not headers
-    const headers = {
+    // Apollo requires X-Api-Key header for authentication
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "Cache-Control": "no-cache",
+      "X-Api-Key": apiKey,
     };
 
     switch (action) {
       case "test_connection": {
         // Test connection by making a simple search request
-        // Apollo doesn't have a dedicated health endpoint, so we use a minimal search
         try {
           const response = await fetch(`${APOLLO_API_BASE}/mixed_people/search`, {
             method: "POST",
             headers,
             body: JSON.stringify({
-              api_key: apiKey,
               page: 1,
               per_page: 1,
             }),
@@ -55,9 +54,8 @@ export async function POST(request: NextRequest) {
       }
 
       case "search_people": {
-        // Search for people/contacts - Apollo requires api_key in body
+        // Search for people/contacts
         const searchBody: Record<string, unknown> = {
-          api_key: apiKey,
           page: searchParams?.page || 1,
           per_page: searchParams?.per_page || 25,
         };
@@ -103,9 +101,8 @@ export async function POST(request: NextRequest) {
       }
 
       case "search_companies": {
-        // Search for companies/organizations - Apollo requires api_key in body
+        // Search for companies/organizations
         const companySearchBody: Record<string, unknown> = {
-          api_key: apiKey,
           page: searchParams?.page || 1,
           per_page: searchParams?.per_page || 25,
         };
@@ -147,10 +144,8 @@ export async function POST(request: NextRequest) {
       }
 
       case "enrich_person": {
-        // Enrich a person's data - Apollo requires api_key in body
-        const enrichBody: Record<string, unknown> = {
-          api_key: apiKey,
-        };
+        // Enrich a person's data
+        const enrichBody: Record<string, unknown> = {};
 
         if (searchParams?.email) enrichBody.email = searchParams.email;
         if (searchParams?.first_name) enrichBody.first_name = searchParams.first_name;
