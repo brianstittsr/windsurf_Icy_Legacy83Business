@@ -211,6 +211,76 @@ function generateMockResults(searchParams: { keywords: string; location?: string
       employeeCount: "100-249",
       thomasnetUrl: "https://www.thomasnet.com/profile/castmaster-foundry",
     },
+    {
+      id: "tn-011",
+      companyName: "Rocky Mountain Electronics",
+      description: "Electronic manufacturing services including PCB assembly, cable assemblies, and box builds. Serving aerospace, defense, and telecommunications industries in Colorado.",
+      location: "Denver, CO",
+      city: "Denver",
+      state: "CO",
+      phone: "(303) 555-1234",
+      website: "www.rockymtnelectronics.com",
+      categories: ["Electronic Manufacturing", "PCB Assembly", "Cable Assembly", "Box Build"],
+      certifications: ["ISO 9001:2015", "IPC-A-610", "AS9100D"],
+      employeeCount: "50-99",
+      thomasnetUrl: "https://www.thomasnet.com/profile/rocky-mountain-electronics",
+    },
+    {
+      id: "tn-012",
+      companyName: "Colorado Precision CNC",
+      description: "High-precision CNC machining and turning services. Specializing in aerospace and medical components with tight tolerances.",
+      location: "Colorado Springs, CO",
+      city: "Colorado Springs",
+      state: "CO",
+      phone: "(719) 555-2345",
+      website: "www.coloradoprecisioncnc.com",
+      categories: ["CNC Machining", "Precision Turning", "Aerospace Parts", "Medical Components"],
+      certifications: ["ISO 9001:2015", "AS9100D", "ISO 13485"],
+      employeeCount: "25-49",
+      thomasnetUrl: "https://www.thomasnet.com/profile/colorado-precision-cnc",
+    },
+    {
+      id: "tn-013",
+      companyName: "Front Range Metal Works",
+      description: "Custom metal fabrication and welding services. Sheet metal, structural steel, and aluminum fabrication for commercial and industrial applications.",
+      location: "Boulder, CO",
+      city: "Boulder",
+      state: "CO",
+      phone: "(303) 555-3456",
+      website: "www.frontrangemetalworks.com",
+      categories: ["Metal Fabrication", "Sheet Metal", "Welding", "Structural Steel"],
+      certifications: ["ISO 9001:2015", "AWS Certified"],
+      employeeCount: "25-49",
+      thomasnetUrl: "https://www.thomasnet.com/profile/front-range-metal-works",
+    },
+    {
+      id: "tn-014",
+      companyName: "Mile High Circuit Systems",
+      description: "Full-service electronics contract manufacturer. SMT and through-hole assembly, prototyping, and production. Quick-turn capabilities available.",
+      location: "Aurora, CO",
+      city: "Aurora",
+      state: "CO",
+      phone: "(720) 555-4567",
+      website: "www.milehighcircuits.com",
+      categories: ["Electronic Manufacturing", "PCB Assembly", "SMT Assembly", "Prototyping"],
+      certifications: ["ISO 9001:2015", "IPC-A-610 Class 3", "ITAR Registered"],
+      employeeCount: "50-99",
+      thomasnetUrl: "https://www.thomasnet.com/profile/mile-high-circuits",
+    },
+    {
+      id: "tn-015",
+      companyName: "Texas Electronic Assembly",
+      description: "Electronic contract manufacturing with full turnkey capabilities. PCB assembly, testing, and fulfillment services.",
+      location: "Austin, TX",
+      city: "Austin",
+      state: "TX",
+      phone: "(512) 555-5678",
+      website: "www.texaselectronicassembly.com",
+      categories: ["Electronic Manufacturing", "PCB Assembly", "Contract Manufacturing"],
+      certifications: ["ISO 9001:2015", "IPC-A-610"],
+      employeeCount: "100-249",
+      thomasnetUrl: "https://www.thomasnet.com/profile/texas-electronic-assembly",
+    },
   ];
   
   // Filter based on keywords and location
@@ -231,18 +301,36 @@ function generateMockResults(searchParams: { keywords: string; location?: string
   
   if (location) {
     const locationLower = location.toLowerCase();
-    results = results.filter(company => 
-      company.location?.toLowerCase().includes(locationLower) ||
-      company.state?.toLowerCase().includes(locationLower) ||
-      company.city?.toLowerCase().includes(locationLower)
-    );
+    // Handle state abbreviations and full names
+    const stateMap: Record<string, string> = {
+      "colorado": "co", "co": "co",
+      "california": "ca", "ca": "ca",
+      "texas": "tx", "tx": "tx",
+      "ohio": "oh", "oh": "oh",
+      "michigan": "mi", "mi": "mi",
+      "illinois": "il", "il": "il",
+      "minnesota": "mn", "mn": "mn",
+      "kentucky": "ky", "ky": "ky",
+      "arizona": "az", "az": "az",
+      "georgia": "ga", "ga": "ga",
+      "wisconsin": "wi", "wi": "wi",
+    };
+    
+    const normalizedLocation = stateMap[locationLower] || locationLower;
+    
+    results = results.filter(company => {
+      const companyState = company.state?.toLowerCase() || "";
+      const companyCity = company.city?.toLowerCase() || "";
+      const companyLocation = company.location?.toLowerCase() || "";
+      
+      return companyState === normalizedLocation ||
+        companyState.includes(locationLower) ||
+        companyCity.includes(locationLower) ||
+        companyLocation.includes(locationLower);
+    });
   }
   
-  // If no results match, return a subset of all companies
-  if (results.length === 0) {
-    results = mockCompanies.slice(0, 5);
-  }
-  
+  // Return empty array if no matches - don't show unrelated results
   return results;
 }
 
