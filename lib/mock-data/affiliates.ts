@@ -1,5 +1,5 @@
 /**
- * Mock Affiliate Data for BNI One-to-One Simulation
+ * Mock Affiliate Data for Affiliate Networking
  */
 
 import { Timestamp } from "firebase/firestore";

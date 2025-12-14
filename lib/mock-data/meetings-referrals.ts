@@ -1,5 +1,5 @@
 /**
- * Mock One-to-One Meetings and Referrals for BNI Simulation
+ * Mock One-to-One Meetings and Referrals for Affiliate Networking
  */
 
 import type { OneToOneMeetingDoc, ReferralDoc, AffiliateStatsDoc } from "../schema";

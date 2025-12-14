@@ -1,5 +1,5 @@
 /**
- * Mock GAINS Profiles for BNI One-to-One Simulation
+ * Mock GAINS Profiles for Affiliate Networking
  * GAINS = Goals, Accomplishments, Interests, Networks, Skills
  */
 

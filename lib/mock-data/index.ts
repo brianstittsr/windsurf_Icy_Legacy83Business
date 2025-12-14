@@ -1,5 +1,5 @@
 /**
- * Mock Data Index - Export all mock data for BNI One-to-One Simulation
+ * Mock Data Index - Export all mock data for Affiliate Networking
  */
 
 // Affiliates and Biographies

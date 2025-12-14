@@ -1,5 +1,5 @@
 /**
- * Mock Contact Spheres for BNI One-to-One Simulation
+ * Mock Contact Spheres for Affiliate Networking
  */
 
 import type { ContactSphereDoc } from "../schema";

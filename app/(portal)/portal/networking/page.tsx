@@ -224,7 +224,7 @@ export default function NetworkingPage() {
         <div>
           <h1 className="text-3xl font-bold">Affiliate Networking</h1>
           <p className="text-muted-foreground">
-            Connect with other affiliates using the BNI One-to-One model
+            Connect with other affiliates through One-to-One networking meetings
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -628,7 +628,7 @@ export default function NetworkingPage() {
             </div>
 
             <div className="p-4 bg-muted rounded-lg">
-              <h4 className="font-medium text-sm mb-2">BNI One-to-One Best Practices</h4>
+              <h4 className="font-medium text-sm mb-2">One-to-One Best Practices</h4>
               <ul className="text-xs text-muted-foreground space-y-1">
                 <li>• Come prepared with specific questions</li>
                 <li>• Share your ideal referral profile</li>
