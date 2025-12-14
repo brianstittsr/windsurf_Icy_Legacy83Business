@@ -52,6 +52,7 @@ import {
   Building2,
   Search,
   Linkedin,
+  FileSignature,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -134,6 +135,11 @@ const workItems = [
     href: "/portal/traction",
     icon: Target,
     badge: "EOS",
+  },
+  {
+    title: "DocuSeal",
+    href: "/portal/docuseal",
+    icon: FileSignature,
   },
 ];
 
