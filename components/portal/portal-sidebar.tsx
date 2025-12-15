@@ -114,9 +114,14 @@ const workItems = [
     icon: FileText,
   },
   {
+    title: "Calendar",
+    href: "/portal/calendar",
+    icon: Calendar,
+  },
+  {
     title: "Meetings",
     href: "/portal/meetings",
-    icon: Calendar,
+    icon: Users,
   },
   {
     title: "Rocks",
