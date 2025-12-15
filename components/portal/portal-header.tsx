@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useUserProfile } from "@/contexts/user-profile-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +66,7 @@ const notifications = [
 
 export function PortalHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
+  const { getDisplayName, getInitials, profile } = useUserProfile();
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   return (
@@ -157,16 +159,16 @@ export function PortalHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary/20 text-primary">JD</AvatarFallback>
+                <AvatarFallback className="bg-primary/20 text-primary">{getInitials()}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col">
-                <span>John Doe</span>
+                <span>{getDisplayName()}</span>
                 <span className="text-xs font-normal text-muted-foreground">
-                  john@strategicvalueplus.com
+                  {profile.email}
                 </span>
               </div>
             </DropdownMenuLabel>

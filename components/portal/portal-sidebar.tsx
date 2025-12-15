@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { usePathname } from "next/navigation";
+import { useUserProfile } from "@/contexts/user-profile-context";
 import {
   Sidebar,
   SidebarContent,
@@ -234,6 +235,7 @@ const aiItems = [
 
 export function PortalSidebar() {
   const pathname = usePathname();
+  const { getDisplayName, getInitials, profile } = useUserProfile();
   
   // Collapsible state for each section
   const [openSections, setOpenSections] = useState({
@@ -459,12 +461,12 @@ export function PortalSidebar() {
                 <SidebarMenuButton className="w-full">
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                      JD
+                      {getInitials()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start text-sm">
-                    <span className="font-medium">John Doe</span>
-                    <span className="text-xs text-sidebar-foreground/60">Admin</span>
+                    <span className="font-medium">{getDisplayName()}</span>
+                    <span className="text-xs text-sidebar-foreground/60 capitalize">{profile.role.replace("_", " ")}</span>
                   </div>
                   <ChevronUp className="ml-auto h-4 w-4" />
                 </SidebarMenuButton>
