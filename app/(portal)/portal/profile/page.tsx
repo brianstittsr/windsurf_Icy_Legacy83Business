@@ -354,7 +354,7 @@ export default function ProfilePage() {
                 )}
                 <span className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  Member since {new Date(profile.memberSince).toLocaleDateString()}
+                  Member since {userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : "N/A"}
                 </span>
               </div>
               {/* Quick Stats */}
