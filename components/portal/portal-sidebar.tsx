@@ -64,6 +64,7 @@ import {
   FileSignature,
   Bot,
   Plug,
+  Bug,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -179,6 +180,11 @@ const workItems = [
     href: "/portal/gohighlevel",
     icon: Plug,
     badge: "CRM",
+  },
+  {
+    title: "Bug Tracker",
+    href: "/portal/bug-tracker",
+    icon: Bug,
   },
 ];
 
