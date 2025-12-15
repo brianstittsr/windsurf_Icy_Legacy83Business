@@ -69,11 +69,21 @@ interface ArticleDraft {
   scheduledFor?: Date;
 }
 
+interface GlossaryItem {
+  term: string;
+  definition: string;
+}
+
 interface GeneratedContent {
   title: string;
   content: string;
   hashtags: string[];
+  glossary: GlossaryItem[];
+  references: ReferenceLink[];
 }
+
+// Default prompt template
+const DEFAULT_ARTICLE_PROMPT = `Please write a friendly, detailed, comprehensive, thoughtful, balanced, engaging, compelling, fact-checked, conversational, long-form seo-optimized article for U.S. manufacturing executives about [TOPIC]. Do not use favicons or emoticons. Include verifiable examples, data, and statistics. At end of the article, cite true references with clean links that support the points made and include only clean links (no tracking). Expand paragraphs. Appropriately promote Strategic Value Plus Solutions (V+) Supplier Success Workshops whose website is at https://strategicvalueplus.com/supplier-success-workshops as well as the V+ alliance of experts who help small and mid-sized manufacturers modernize and become antifragile, thriving in the face of disruptions. Also, mention V+ offers CMMC readiness and certification services. The call to action is to schedule a supplier success workshop to learn (1) what is required to become a preferred provider to specific reshored OEMs and (2) how to satisfy those requirements to come out on top, and (3) to get CMMC ready, especially if the company is in the supply chain of any Defense Agency. At the end, give a glossary of unfamiliar words and acronyms, a list of resources with clean links for further research, and hash-tagged keywords in a row.`;
 
 export default function LinkedInContentPage() {
   const [activeTab, setActiveTab] = useState("create");
@@ -82,11 +92,18 @@ export default function LinkedInContentPage() {
   
   // Article creation state
   const [articleTopic, setArticleTopic] = useState("");
+  const [articlePrompt, setArticlePrompt] = useState(DEFAULT_ARTICLE_PROMPT);
+  const [showPromptEditor, setShowPromptEditor] = useState(false);
   const [articleTone, setArticleTone] = useState("professional");
   const [articleLength, setArticleLength] = useState("long");
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedContent, setEditedContent] = useState("");
+  
+  // Separate fields for structured content
+  const [editedHashtags, setEditedHashtags] = useState("");
+  const [editedGlossary, setEditedGlossary] = useState<GlossaryItem[]>([]);
+  const [editedReferences, setEditedReferences] = useState<ReferenceLink[]>([]);
   
   // Image upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -312,21 +329,44 @@ I'd love to hear your thoughts and experiences with ${topic}. What strategies ha
     };
 
     // Generate mock content based on topic
+    const generatedGlossary: GlossaryItem[] = [
+      { term: "Reshoring", definition: "The practice of bringing manufacturing and production back to the company's home country from overseas locations." },
+      { term: "OEM", definition: "Original Equipment Manufacturer - a company that produces parts or equipment that may be marketed by another manufacturer." },
+      { term: "CMMC", definition: "Cybersecurity Maturity Model Certification - a unified standard for implementing cybersecurity across the defense industrial base." },
+      { term: "Antifragile", definition: "A property of systems that increase in capability or resilience as a result of stressors, shocks, or failures." },
+      { term: "Supply Chain Resilience", definition: "The ability of a supply chain to prepare for, respond to, and recover from disruptions." },
+    ];
+    
+    const generatedReferences: ReferenceLink[] = [
+      { id: "ref-1", title: "Strategic Value+ Supplier Success Workshops", url: "https://strategicvalueplus.com/supplier-success-workshops", status: "valid" },
+      { id: "ref-2", title: "CMMC Accreditation Body", url: "https://cyberab.org", status: "valid" },
+      { id: "ref-3", title: "Reshoring Initiative", url: "https://reshorenow.org", status: "valid" },
+    ];
+    
     const generated: GeneratedContent = {
       title: `${articleTopic}: Key Insights for Industry Leaders`,
       content: generateContentByLength(articleLength),
       hashtags: [
         articleTopic.replace(/\s+/g, ""),
-        "BusinessStrategy",
-        "ProfessionalDevelopment",
-        "Leadership",
-        "Innovation",
+        "USManufacturing",
+        "Reshoring",
+        "SupplyChain",
+        "CMMC",
+        "StrategicValuePlus",
+        "SupplierSuccess",
+        "DefenseManufacturing",
+        "Antifragile",
       ],
+      glossary: generatedGlossary,
+      references: generatedReferences,
     };
     
     setGeneratedContent(generated);
     setEditedTitle(generated.title);
     setEditedContent(generated.content);
+    setEditedHashtags(generated.hashtags.map(h => `#${h}`).join(" "));
+    setEditedGlossary(generated.glossary);
+    setEditedReferences(generated.references);
     setIsGenerating(false);
   };
 
@@ -446,9 +486,41 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
     setDrafts(prev => [...prev, draft]);
   };
 
+  // Build the full article content for publishing
+  const buildFullArticle = () => {
+    let fullContent = `${editedTitle}\n\n${editedContent}`;
+    
+    // Add Glossary section
+    if (editedGlossary.length > 0) {
+      fullContent += "\n\n---\n\n**Glossary**\n\n";
+      editedGlossary.forEach((item) => {
+        if (item.term && item.definition) {
+          fullContent += `**${item.term}**: ${item.definition}\n\n`;
+        }
+      });
+    }
+    
+    // Add References section
+    if (editedReferences.length > 0) {
+      fullContent += "\n\n**References & Resources**\n\n";
+      editedReferences.forEach((ref) => {
+        if (ref.title && ref.url) {
+          fullContent += `• ${ref.title}: ${ref.url}\n`;
+        }
+      });
+    }
+    
+    // Add Hashtags at the end
+    if (editedHashtags.trim()) {
+      fullContent += `\n\n${editedHashtags}`;
+    }
+    
+    return fullContent;
+  };
+
   // Copy content to clipboard
   const copyToClipboard = () => {
-    const fullContent = `${editedTitle}\n\n${editedContent}`;
+    const fullContent = buildFullArticle();
     navigator.clipboard.writeText(fullContent);
   };
 
@@ -529,11 +601,53 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
                     <div className="space-y-2">
                       <Label>Topic or Theme</Label>
                       <Textarea
-                        placeholder="e.g., The importance of digital transformation in manufacturing, Leadership lessons from my career, How AI is changing the supply chain..."
+                        placeholder="e.g., Airbus' reshoring initiative, Digital transformation in manufacturing, Supply chain resilience..."
                         value={articleTopic}
                         onChange={(e) => setArticleTopic(e.target.value)}
-                        rows={3}
+                        rows={2}
                       />
+                    </div>
+                    
+                    {/* Prompt Editor */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Generation Prompt</Label>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setShowPromptEditor(!showPromptEditor)}
+                        >
+                          {showPromptEditor ? "Hide Prompt" : "Edit Prompt"}
+                        </Button>
+                      </div>
+                      {showPromptEditor && (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={articlePrompt}
+                            onChange={(e) => setArticlePrompt(e.target.value)}
+                            rows={8}
+                            className="font-mono text-xs"
+                            placeholder="Enter your custom prompt for article generation..."
+                          />
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setArticlePrompt(DEFAULT_ARTICLE_PROMPT)}
+                            >
+                              Reset to Default
+                            </Button>
+                            <p className="text-xs text-muted-foreground flex-1">
+                              Use [TOPIC] as a placeholder for the topic you enter above.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {!showPromptEditor && (
+                        <p className="text-xs text-muted-foreground bg-muted p-2 rounded line-clamp-2">
+                          {articlePrompt.substring(0, 150)}...
+                        </p>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
@@ -634,6 +748,164 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
                           className="font-mono text-sm"
                         />
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Hashtags Section */}
+                {editedContent && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <span className="text-blue-600">#</span>
+                        Hashtags
+                      </CardTitle>
+                      <CardDescription>
+                        Keywords for discoverability (will be appended to the article)
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        value={editedHashtags}
+                        onChange={(e) => setEditedHashtags(e.target.value)}
+                        rows={2}
+                        placeholder="#USManufacturing #Reshoring #SupplyChain #CMMC..."
+                        className="text-sm"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Glossary Section */}
+                {editedGlossary.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <FileText className="h-4 w-4" />
+                            Glossary
+                          </CardTitle>
+                          <CardDescription>
+                            Definitions of key terms (will be appended to the article)
+                          </CardDescription>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditedGlossary([...editedGlossary, { term: "", definition: "" }])}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Term
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {editedGlossary.map((item, index) => (
+                        <div key={index} className="flex gap-2 items-start">
+                          <div className="flex-1 grid grid-cols-3 gap-2">
+                            <Input
+                              value={item.term}
+                              onChange={(e) => {
+                                const updated = [...editedGlossary];
+                                updated[index] = { ...item, term: e.target.value };
+                                setEditedGlossary(updated);
+                              }}
+                              placeholder="Term"
+                              className="font-semibold"
+                            />
+                            <Input
+                              value={item.definition}
+                              onChange={(e) => {
+                                const updated = [...editedGlossary];
+                                updated[index] = { ...item, definition: e.target.value };
+                                setEditedGlossary(updated);
+                              }}
+                              placeholder="Definition"
+                              className="col-span-2"
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-destructive"
+                            onClick={() => setEditedGlossary(editedGlossary.filter((_, i) => i !== index))}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* References & Sources Section */}
+                {editedReferences.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <Link2 className="h-4 w-4" />
+                            References & Sources
+                          </CardTitle>
+                          <CardDescription>
+                            Cited sources with clean links (will be appended to the article)
+                          </CardDescription>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditedReferences([...editedReferences, { id: `ref-${Date.now()}`, title: "", url: "", status: "pending" }])}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Reference
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {editedReferences.map((ref, index) => (
+                        <div key={ref.id} className="flex gap-2 items-start">
+                          <div className="flex-1 grid grid-cols-2 gap-2">
+                            <Input
+                              value={ref.title}
+                              onChange={(e) => {
+                                const updated = [...editedReferences];
+                                updated[index] = { ...ref, title: e.target.value };
+                                setEditedReferences(updated);
+                              }}
+                              placeholder="Reference Title"
+                              className="font-medium"
+                            />
+                            <Input
+                              value={ref.url}
+                              onChange={(e) => {
+                                const updated = [...editedReferences];
+                                updated[index] = { ...ref, url: e.target.value };
+                                setEditedReferences(updated);
+                              }}
+                              placeholder="https://example.com"
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => window.open(ref.url, "_blank")}
+                            disabled={!ref.url}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-destructive"
+                            onClick={() => setEditedReferences(editedReferences.filter((_, i) => i !== index))}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </CardContent>
                   </Card>
                 )}
@@ -905,33 +1177,82 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
 
       {/* Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Article Preview</DialogTitle>
             <DialogDescription>
-              How your article will appear on LinkedIn
+              Full article as it will appear when published (with all sections)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="border rounded-lg p-4 bg-white">
+            <div className="border rounded-lg p-6 bg-white">
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
-                  <span className="text-white font-bold">SV</span>
+                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#C8A951] to-[#a08840] flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">V+</span>
                 </div>
                 <div>
                   <p className="font-semibold">Strategic Value+</p>
                   <p className="text-xs text-muted-foreground">Just now • 🌐</p>
                 </div>
               </div>
-              <h2 className="font-bold text-lg mb-2">{editedTitle}</h2>
-              <div className="whitespace-pre-wrap text-sm">{editedContent}</div>
+              
+              {/* Featured Image */}
               {uploadedImages.length > 0 && (
-                <div className="mt-4">
+                <div className="mb-4">
                   <img
                     src={uploadedImages[0]}
                     alt="Article image"
                     className="w-full rounded-lg"
                   />
+                </div>
+              )}
+              
+              {/* Title */}
+              <h2 className="font-bold text-xl mb-4">{editedTitle}</h2>
+              
+              {/* Main Content */}
+              <div className="whitespace-pre-wrap text-sm leading-relaxed prose prose-sm max-w-none">
+                {editedContent}
+              </div>
+              
+              {/* Glossary Section */}
+              {editedGlossary.length > 0 && (
+                <div className="mt-6 pt-4 border-t">
+                  <h3 className="font-bold text-base mb-3">Glossary</h3>
+                  <div className="space-y-2">
+                    {editedGlossary.map((item, index) => (
+                      item.term && item.definition && (
+                        <p key={index} className="text-sm">
+                          <strong>{item.term}</strong>: {item.definition}
+                        </p>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* References Section */}
+              {editedReferences.length > 0 && (
+                <div className="mt-6 pt-4 border-t">
+                  <h3 className="font-bold text-base mb-3">References & Resources</h3>
+                  <ul className="space-y-1">
+                    {editedReferences.map((ref) => (
+                      ref.title && ref.url && (
+                        <li key={ref.id} className="text-sm">
+                          • <strong>{ref.title}</strong>: <a href={ref.url} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{ref.url}</a>
+                        </li>
+                      )
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Hashtags */}
+              {editedHashtags.trim() && (
+                <div className="mt-6 pt-4 border-t">
+                  <p className="text-sm text-blue-600 font-medium">
+                    {editedHashtags}
+                  </p>
                 </div>
               )}
             </div>
@@ -940,9 +1261,13 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
             <Button variant="outline" onClick={() => setShowPreview(false)}>
               Close
             </Button>
+            <Button variant="outline" onClick={copyToClipboard}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Full Article
+            </Button>
             <Button className="bg-blue-600 hover:bg-blue-700">
               <Send className="h-4 w-4 mr-2" />
-              Publish
+              Publish to LinkedIn
             </Button>
           </DialogFooter>
         </DialogContent>
