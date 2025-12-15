@@ -192,6 +192,9 @@ export function Navbar() {
           <Button variant="ghost" asChild>
             <Link href="/sign-in">Sign In</Link>
           </Button>
+          <Button variant="outline" asChild>
+            <Link href="/sign-up">Sign Up</Link>
+          </Button>
           <Button asChild>
             <Link href="/contact">Get Assessment</Link>
           </Button>
@@ -267,6 +270,11 @@ export function Navbar() {
                 <Button variant="outline" className="w-full" asChild>
                   <Link href="/sign-in" onClick={() => setMobileOpen(false)}>
                     Sign In
+                  </Link>
+                </Button>
+                <Button variant="secondary" className="w-full" asChild>
+                  <Link href="/sign-up" onClick={() => setMobileOpen(false)}>
+                    Sign Up
                   </Link>
                 </Button>
                 <Button className="w-full" asChild>
