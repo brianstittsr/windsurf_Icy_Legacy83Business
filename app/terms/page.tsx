@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Terms of Service | Strategic Value+",
-  description: "Terms of Service for Strategic Value+ platform and services.",
+  title: "Terms of Service | Legacy 83 Business",
+  description: "Terms of Service for Legacy 83 Business platform and services.",
 };
 
 export default function TermsPage() {
@@ -28,14 +28,14 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using the Strategic Value Plus Solutions LLC (&quot;V+&quot;) platform and services, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
+              By accessing or using the Legacy 83 Business Inc (&quot;Legacy 83&quot;) platform and services, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">2. Description of Services</h2>
             <p>
-              V+ provides manufacturing transformation services, consulting, and a digital platform designed to help U.S. manufacturers modernize operations, achieve certifications, and connect with OEM opportunities.
+              Legacy 83 provides business coaching, strategic planning, and leadership development services designed to help entrepreneurs and business owners build sustainable wealth, develop high-performing teams, and create lasting legacies.
             </p>
           </section>
 
@@ -65,14 +65,14 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">5. Intellectual Property</h2>
             <p>
-              All content, features, and functionality of the V+ platform are owned by Strategic Value Plus Solutions LLC and are protected by intellectual property laws. You may not copy, modify, or distribute our content without permission.
+              All content, features, and functionality of the Legacy 83 platform are owned by Legacy 83 Business Inc and are protected by intellectual property laws. You may not copy, modify, or distribute our content without permission.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">6. Limitation of Liability</h2>
             <p>
-              V+ shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use our services.
+              Legacy 83 shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use our services.
             </p>
           </section>
 
@@ -89,9 +89,9 @@ export default function TermsPage() {
               If you have any questions about these Terms of Service, please contact us at:
             </p>
             <p className="mt-2">
-              <strong>Strategic Value Plus Solutions LLC</strong><br />
-              Email: legal@strategicvalueplus.com<br />
-              Website: <Link href="https://strategicvalueplus.com" className="text-primary hover:underline">strategicvalueplus.com</Link>
+              <strong>Legacy 83 Business Inc</strong><br />
+              Email: legal@legacy83business.com<br />
+              Website: <Link href="https://legacy83business.com" className="text-primary hover:underline">legacy83business.com</Link>
             </p>
           </section>
         </div>

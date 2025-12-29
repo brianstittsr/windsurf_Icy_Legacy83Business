@@ -120,6 +120,7 @@ export default function ProposalsPage() {
   const [isEnhancingDescription, setIsEnhancingDescription] = useState(false);
   const [isGeneratingMilestones, setIsGeneratingMilestones] = useState(false);
   const [isGeneratingBudget, setIsGeneratingBudget] = useState(false);
+  const [enhancingFieldId, setEnhancingFieldId] = useState<string | null>(null);
 
   // AI Enhance Description
   const enhanceDescription = async () => {
@@ -199,6 +200,45 @@ Make it clear, professional, and highlight the value proposition and expected ou
     } finally {
       setIsGeneratingMilestones(false);
     }
+  };
+
+  // AI Enhance Field Description (generic for any description field)
+  const enhanceFieldDescription = async (
+    fieldId: string,
+    currentText: string,
+    fieldType: 'entity' | 'method' | 'milestone',
+    context: { name?: string; role?: string; frequency?: string }
+  ) => {
+    if (!currentText && !context.name) {
+      alert("Please enter some text or a name first");
+      return;
+    }
+    setEnhancingFieldId(fieldId);
+    try {
+      const prompts = {
+        entity: `Enhance this organization description/responsibilities for a proposal. Organization: "${context.name || 'Unknown'}", Role: "${context.role || 'partner'}". Current text: "${currentText || 'No description yet'}". Create a professional, clear description of their responsibilities and contributions.`,
+        method: `Enhance this data collection method description. Method: "${context.name || 'Unknown'}", Frequency: "${context.frequency || 'monthly'}". Current text: "${currentText || 'No description yet'}". Create a clear, professional description of how data will be collected.`,
+        milestone: `Enhance this project milestone description. Milestone: "${context.name || 'Unknown'}". Current text: "${currentText || 'No description yet'}". Create a clear, actionable milestone description with expected deliverables.`,
+      };
+      const response = await fetch("/api/ai/enhance-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: currentText || "",
+          context: { type: `${fieldType}_description`, ...context },
+          prompt: prompts[fieldType],
+        }),
+      });
+      const result = await response.json();
+      if (result.success && result.enhancedText) {
+        return result.enhancedText;
+      }
+    } catch (error) {
+      console.error("Error enhancing description:", error);
+    } finally {
+      setEnhancingFieldId(null);
+    }
+    return null;
   };
 
   // AI Generate Budget
@@ -859,7 +899,36 @@ Make it clear, professional, and highlight the value proposition and expected ou
                           </div>
                         </div>
                         <div className="mt-4 space-y-2">
-                          <Label>Description / Responsibilities</Label>
+                          <div className="flex items-center justify-between">
+                            <Label>Description / Responsibilities</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                const enhanced = await enhanceFieldDescription(
+                                  entity.id,
+                                  entity.description,
+                                  'entity',
+                                  { name: entity.name, role: entity.role }
+                                );
+                                if (enhanced) {
+                                  const updated = proposalData.collaboratingEntities?.map((ent) =>
+                                    ent.id === entity.id ? { ...ent, description: enhanced } : ent
+                                  );
+                                  setProposalData({ ...proposalData, collaboratingEntities: updated });
+                                }
+                              }}
+                              disabled={enhancingFieldId === entity.id}
+                            >
+                              {enhancingFieldId === entity.id ? (
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                              ) : (
+                                <Sparkles className="mr-2 h-3 w-3" />
+                              )}
+                              Enhance with AI
+                            </Button>
+                          </div>
                           <Textarea
                             value={entity.description}
                             onChange={(e) => {
@@ -955,7 +1024,36 @@ Make it clear, professional, and highlight the value proposition and expected ou
                           </div>
                         </div>
                         <div className="mt-4 space-y-2">
-                          <Label>Description</Label>
+                          <div className="flex items-center justify-between">
+                            <Label>Description</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                const enhanced = await enhanceFieldDescription(
+                                  method.id,
+                                  method.description,
+                                  'method',
+                                  { name: method.name, frequency: method.frequency }
+                                );
+                                if (enhanced) {
+                                  const updated = proposalData.dataCollectionMethods?.map((m) =>
+                                    m.id === method.id ? { ...m, description: enhanced } : m
+                                  );
+                                  setProposalData({ ...proposalData, dataCollectionMethods: updated });
+                                }
+                              }}
+                              disabled={enhancingFieldId === method.id}
+                            >
+                              {enhancingFieldId === method.id ? (
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                              ) : (
+                                <Sparkles className="mr-2 h-3 w-3" />
+                              )}
+                              Enhance with AI
+                            </Button>
+                          </div>
                           <Textarea
                             value={method.description}
                             onChange={(e) => {
@@ -1078,7 +1176,36 @@ Make it clear, professional, and highlight the value proposition and expected ou
                           </div>
                         </div>
                         <div className="mt-4 space-y-2">
-                          <Label>Description</Label>
+                          <div className="flex items-center justify-between">
+                            <Label>Description</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                const enhanced = await enhanceFieldDescription(
+                                  milestone.id,
+                                  milestone.description,
+                                  'milestone',
+                                  { name: milestone.name }
+                                );
+                                if (enhanced) {
+                                  const updated = proposalData.projectMilestones?.map((m) =>
+                                    m.id === milestone.id ? { ...m, description: enhanced } : m
+                                  );
+                                  setProposalData({ ...proposalData, projectMilestones: updated });
+                                }
+                              }}
+                              disabled={enhancingFieldId === milestone.id}
+                            >
+                              {enhancingFieldId === milestone.id ? (
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                              ) : (
+                                <Sparkles className="mr-2 h-3 w-3" />
+                              )}
+                              Enhance with AI
+                            </Button>
+                          </div>
                           <Textarea
                             value={milestone.description}
                             onChange={(e) => {

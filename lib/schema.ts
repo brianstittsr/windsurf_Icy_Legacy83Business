@@ -114,6 +114,8 @@ export interface TractionScorecardMetricDoc {
   unit?: string; // $, %, #, etc.
   weekNumber?: number;
   year?: number;
+  // Linkages to other EOS components
+  linkedRockIds?: string[]; // Rocks that affect this metric
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -121,6 +123,7 @@ export interface TractionScorecardMetricDoc {
 /** Traction Issue document in Firestore (IDS: Identify, Discuss, Solve) */
 export interface TractionIssueDoc {
   id: string;
+  title: string; // Short title for the issue
   description: string;
   priority: "high" | "medium" | "low";
   identifiedDate: Timestamp;
@@ -128,6 +131,10 @@ export interface TractionIssueDoc {
   ownerName: string; // Denormalized for display
   status: "open" | "in-progress" | "solved";
   solvedDate?: Timestamp;
+  // Linkages to other EOS components
+  linkedRockId?: string; // Rock this issue is blocking or related to
+  linkedTodoIds?: string[]; // Todos created to solve this issue
+  meetingId?: string; // Meeting where this issue was identified
   notes?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -136,12 +143,16 @@ export interface TractionIssueDoc {
 /** Traction To-Do document in Firestore */
 export interface TractionTodoDoc {
   id: string;
+  title: string; // Short title for the todo
   description: string;
   ownerId: string; // Reference to team member
   ownerName: string; // Denormalized for display
   dueDate: Timestamp;
   status: "not-started" | "in-progress" | "complete";
   completedDate?: Timestamp;
+  // Linkages to other EOS components
+  linkedRockId?: string; // Rock this todo supports
+  linkedIssueId?: string; // Issue this todo helps solve
   meetingId?: string; // Reference to meeting where created
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -150,6 +161,7 @@ export interface TractionTodoDoc {
 /** Traction Level 10 Meeting document in Firestore */
 export interface TractionMeetingDoc {
   id: string;
+  title?: string; // Optional meeting title
   date: Timestamp;
   startTime: string;
   endTime: string;
@@ -160,6 +172,10 @@ export interface TractionMeetingDoc {
   rocksReviewed: boolean;
   scorecardReviewed: boolean;
   todoCompletionRate: number; // 0-100
+  // Linkages to other EOS components
+  reviewedRockIds?: string[]; // Rocks reviewed in this meeting
+  solvedIssueIds?: string[]; // Issues solved in this meeting
+  createdTodoIds?: string[]; // Todos created in this meeting
   notes?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -185,13 +201,25 @@ export interface TractionTeamMemberDoc {
 /** Traction Rock document (quarterly priorities) */
 export interface TractionRockDoc {
   id: string;
-  description: string;
+  title: string; // Short title for the rock
+  description: string; // Detailed description
   ownerId: string; // Reference to team member
   ownerName: string; // Denormalized for display
   dueDate: Timestamp;
   status: "on-track" | "at-risk" | "off-track" | "complete";
   progress: number; // 0-100
   quarter: string; // e.g., "Q1 2025"
+  // Milestones for tracking progress
+  milestones?: Array<{
+    id: string;
+    title: string;
+    completed: boolean;
+    completedAt?: Timestamp;
+  }>;
+  // Linkages to other EOS components
+  linkedIssueIds?: string[]; // Issues related to this rock
+  linkedTodoIds?: string[]; // Todos created from this rock
+  linkedMetricIds?: string[]; // Metrics this rock affects
   notes?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -559,6 +587,11 @@ export interface TeamMemberDoc {
   website?: string;
   role: "admin" | "team" | "affiliate" | "consultant";
   status: "active" | "inactive" | "pending";
+  // Leadership role flags for About/Leadership pages
+  isCEO?: boolean;
+  isCOO?: boolean;
+  isCTO?: boolean;
+  isCRO?: boolean;
   // Additional flags - Affiliates/Suppliers can also be Clients
   isClient?: boolean; // Can this affiliate/team member also be served as a client?
   clientSince?: Timestamp; // When they became a client
@@ -569,9 +602,80 @@ export interface TeamMemberDoc {
   updatedAt: Timestamp;
 }
 
+/** Book a Call Lead document in Firestore */
+export interface BookCallLeadDoc {
+  id: string;
+  // Contact Information
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  jobTitle?: string;
+  // Scheduling
+  preferredDate?: string;
+  preferredTime?: string;
+  timezone?: string;
+  // Additional Info
+  message?: string;
+  source: "contact-page" | "cta" | "popup" | "other";
+  // Status
+  status: "new" | "contacted" | "scheduled" | "completed" | "cancelled";
+  assignedTo?: string;
+  assignedToName?: string;
+  // Follow-up
+  notes?: string;
+  scheduledCallDate?: Timestamp;
+  completedAt?: Timestamp;
+  // Metadata
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** Event document in Firestore */
+export interface EventDoc {
+  id: string;
+  title: string;
+  description?: string;
+  shortDescription?: string;
+  // Date/Time
+  startDate: Timestamp;
+  endDate?: Timestamp;
+  timezone?: string;
+  isAllDay?: boolean;
+  // Location
+  locationType: "virtual" | "in-person" | "hybrid";
+  location?: string;
+  virtualLink?: string;
+  // Registration
+  registrationUrl?: string;
+  registrationDeadline?: Timestamp;
+  maxAttendees?: number;
+  currentAttendees?: number;
+  // Display
+  imageUrl?: string;
+  category?: "webinar" | "workshop" | "conference" | "networking" | "training" | "other";
+  tags?: string[];
+  // Status
+  status: "draft" | "published" | "cancelled" | "completed";
+  isFeatured?: boolean;
+  // Metadata
+  createdBy?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /** Platform Settings document in Firestore */
 export interface PlatformSettingsDoc {
   id: string;
+  // Social Links Configuration
+  socialLinks?: {
+    linkedin?: { url: string; visible: boolean };
+    twitter?: { url: string; visible: boolean };
+    youtube?: { url: string; visible: boolean };
+    facebook?: { url: string; visible: boolean };
+    instagram?: { url: string; visible: boolean };
+  };
   // API Integrations
   integrations: {
     mattermost?: {
@@ -1334,6 +1438,10 @@ export const COLLECTIONS = {
   // Mattermost Playbooks
   MATTERMOST_PLAYBOOKS: "mattermostPlaybooks",
   MATTERMOST_PLAYBOOK_RUNS: "mattermostPlaybookRuns",
+  // Book a Call Leads
+  BOOK_CALL_LEADS: "bookCallLeads",
+  // Events
+  EVENTS: "events",
 } as const;
 
 // ============================================================================

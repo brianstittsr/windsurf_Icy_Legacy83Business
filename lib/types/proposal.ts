@@ -7,7 +7,7 @@
 // PROPOSAL TYPES
 // ============================================
 
-export type ProposalType = 'grant' | 'nda' | 'rfp_response' | 'rfi_response' | 'contract' | 'agreement' | 'mou';
+export type ProposalType = 'grant' | 'nda' | 'rfp_response' | 'rfi_response' | 'contract' | 'agreement' | 'mou' | 'oem_supplier_readiness';
 export type ProposalStatus = 'draft' | 'pending_signature' | 'active' | 'inactive' | 'completed';
 export type SignatureStatus = 'not_sent' | 'pending' | 'partially_signed' | 'completed' | 'declined';
 
@@ -384,6 +384,7 @@ export const PROPOSAL_TYPES: { value: ProposalType; label: string }[] = [
   { value: 'contract', label: 'Contract' },
   { value: 'agreement', label: 'Agreement' },
   { value: 'mou', label: 'Memorandum of Understanding' },
+  { value: 'oem_supplier_readiness', label: 'OEM Supplier Readiness' },
 ];
 
 export const AGREEMENT_TYPES: { value: AgreementType; label: string }[] = [

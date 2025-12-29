@@ -5,18 +5,18 @@ export function OrganizationJsonLd() {
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "Strategic Value+ Solutions",
-    alternateName: "Strategic Value Plus",
-    url: "https://strategicvalueplus.com",
-    logo: "https://strategicvalueplus.com/logo.png",
+    name: "Legacy 83 Business Inc",
+    alternateName: "Legacy 83",
+    url: "https://legacy83business.com",
+    logo: "https://legacy83business.com/legacy83Logo.webp",
     description:
-      "We help small- and mid-sized U.S. manufacturers win OEM contracts through supplier qualification, ISO certification, and operational readiness.",
+      "Legacy 83 Business helps entrepreneurs and business owners build sustainable wealth, develop high-performing teams, and create lasting legacies through strategic coaching.",
     foundingDate: "2020",
     founders: [
       {
         "@type": "Person",
-        name: "Nel Varenas",
-        jobTitle: "CEO",
+        name: "Icy Williams",
+        jobTitle: "Founder & CEO",
       },
     ],
     address: {
@@ -26,34 +26,34 @@ export function OrganizationJsonLd() {
     contactPoint: [
       {
         "@type": "ContactPoint",
-        telephone: "+1-555-123-4567",
+        telephone: "+1-513-555-0183",
         contactType: "sales",
         availableLanguage: ["English"],
       },
       {
         "@type": "ContactPoint",
-        email: "info@strategicvalueplus.com",
+        email: "info@legacy83business.com",
         contactType: "customer service",
       },
     ],
     sameAs: [
-      "https://www.linkedin.com/company/strategicvalueplus",
-      "https://twitter.com/strategicvalueplus",
-      "https://www.youtube.com/@strategicvalueplus",
+      "https://www.linkedin.com/company/legacy83business",
+      "https://twitter.com/legacy83business",
+      "https://www.facebook.com/legacy83business",
     ],
     areaServed: {
       "@type": "Country",
       name: "United States",
     },
     knowsAbout: [
-      "Manufacturing Consulting",
-      "ISO Certification",
-      "IATF 16949",
-      "Lean Manufacturing",
-      "Industry 4.0",
-      "Digital Transformation",
-      "Supply Chain Optimization",
-      "OEM Supplier Qualification",
+      "Business Coaching",
+      "Executive Coaching",
+      "Leadership Development",
+      "Strategic Planning",
+      "Business Succession",
+      "Legacy Planning",
+      "Operational Excellence",
+      "Team Development",
     ],
   };
 
@@ -71,11 +71,11 @@ export function LocalBusinessJsonLd() {
   const localBusinessSchema = {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
-    name: "Strategic Value+ Solutions",
-    image: "https://strategicvalueplus.com/logo.png",
-    url: "https://strategicvalueplus.com",
-    telephone: "+1-555-123-4567",
-    email: "info@strategicvalueplus.com",
+    name: "Legacy 83 Business Inc",
+    image: "https://legacy83business.com/legacy83Logo.webp",
+    url: "https://legacy83business.com",
+    telephone: "+1-513-555-0183",
+    email: "info@legacy83business.com",
     priceRange: "$$$$",
     address: {
       "@type": "PostalAddress",
@@ -83,8 +83,8 @@ export function LocalBusinessJsonLd() {
     },
     geo: {
       "@type": "GeoCoordinates",
-      latitude: 35.7796,
-      longitude: -78.6382,
+      latitude: 39.1031,
+      longitude: -84.5120,
     },
     openingHoursSpecification: [
       {
@@ -123,7 +123,7 @@ export function ServiceJsonLd({
   name,
   description,
   url,
-  provider = "Strategic Value+ Solutions",
+  provider = "Legacy 83 Business Inc",
   areaServed = "United States",
 }: ServiceJsonLdProps) {
   const serviceSchema = {
@@ -135,13 +135,13 @@ export function ServiceJsonLd({
     provider: {
       "@type": "Organization",
       name: provider,
-      url: "https://strategicvalueplus.com",
+      url: "https://legacy83business.com",
     },
     areaServed: {
       "@type": "Country",
       name: areaServed,
     },
-    serviceType: "Manufacturing Consulting",
+    serviceType: "Business Coaching",
   };
 
   return (
@@ -252,10 +252,10 @@ export function ArticleJsonLd({
     },
     publisher: {
       "@type": "Organization",
-      name: "Strategic Value+ Solutions",
+      name: "Legacy 83 Business Inc",
       logo: {
         "@type": "ImageObject",
-        url: "https://strategicvalueplus.com/logo.png",
+        url: "https://legacy83business.com/legacy83Logo.webp",
       },
     },
     mainEntityOfPage: {
@@ -278,14 +278,14 @@ export function WebsiteJsonLd() {
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "Strategic Value+",
-    alternateName: "Strategic Value Plus Solutions",
-    url: "https://strategicvalueplus.com",
+    name: "Legacy 83 Business",
+    alternateName: "Legacy 83 Business Inc",
+    url: "https://legacy83business.com",
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://strategicvalueplus.com/search?q={search_term_string}",
+        urlTemplate: "https://legacy83business.com/search?q={search_term_string}",
       },
       "query-input": "required name=search_term_string",
     },

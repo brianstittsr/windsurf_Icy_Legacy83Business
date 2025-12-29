@@ -1,14 +1,19 @@
 {
-  "name": "svp-platform",
+  "name": "legacy83-platform",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint",
+    "deploy:schema": "node scripts/deploy-schema.js",
+    "deploy:schema:multi": "node scripts/deploy-schema-multi.js",
+    "cleanup:db": "node scripts/cleanup-database.js",
+    "test:db": "node test-connection.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -53,6 +58,9 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@types/pg": "^8.10.0",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

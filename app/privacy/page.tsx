@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Privacy Policy | Strategic Value+",
-  description: "Privacy Policy for Strategic Value+ platform and services.",
+  title: "Privacy Policy | Legacy 83 Business",
+  description: "Privacy Policy for Legacy 83 Business platform and services.",
 };
 
 export default function PrivacyPage() {
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
             <p>
-              Strategic Value Plus Solutions LLC (&quot;V+&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) respects your privacy and is committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our platform and services.
+              Legacy 83 Business Inc (&quot;Legacy 83&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) respects your privacy and is committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our platform and services.
             </p>
           </section>
 
@@ -80,9 +80,9 @@ export default function PrivacyPage() {
               If you have any questions about this Privacy Policy, please contact us at:
             </p>
             <p className="mt-2">
-              <strong>Strategic Value Plus Solutions LLC</strong><br />
-              Email: privacy@strategicvalueplus.com<br />
-              Website: <Link href="https://strategicvalueplus.com" className="text-primary hover:underline">strategicvalueplus.com</Link>
+              <strong>Legacy 83 Business Inc</strong><br />
+              Email: privacy@legacy83business.com<br />
+              Website: <Link href="https://legacy83business.com" className="text-primary hover:underline">legacy83business.com</Link>
             </p>
           </section>
         </div>

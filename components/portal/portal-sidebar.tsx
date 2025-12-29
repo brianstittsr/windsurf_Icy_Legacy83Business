@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { usePathname } from "next/navigation";
+import { db } from "@/lib/firebase";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { COLLECTIONS } from "@/lib/schema";
 import { useUserProfile } from "@/contexts/user-profile-context";
 import {
   Sidebar,
@@ -67,6 +70,8 @@ import {
   Plug,
   Bug,
   Heart,
+  Phone,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -217,6 +222,11 @@ const adminItems = [
     href: "/portal/admin/popup",
     icon: MessageSquare,
   },
+  {
+    title: "Events",
+    href: "/portal/admin/events",
+    icon: CalendarClock,
+  },
 ];
 
 const initiativeItems = [
@@ -243,6 +253,23 @@ const aiItems = [
 export function PortalSidebar() {
   const pathname = usePathname();
   const { getDisplayName, getInitials, profile } = useUserProfile();
+  const [bookCallLeadsCount, setBookCallLeadsCount] = useState(0);
+
+  // Subscribe to BookCallLeads count (new leads only)
+  useEffect(() => {
+    if (!db) return;
+    
+    const q = query(
+      collection(db, COLLECTIONS.BOOK_CALL_LEADS),
+      where("status", "==", "new")
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setBookCallLeadsCount(snapshot.size);
+    });
+    
+    return () => unsubscribe();
+  }, []);
   
   // Collapsible state for each section
   const [openSections, setOpenSections] = useState({
@@ -403,6 +430,24 @@ export function PortalSidebar() {
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
+                  {/* Book Call Leads - with dynamic count */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === "/portal/admin/book-call-leads"}
+                      tooltip="Book Call Leads"
+                    >
+                      <Link href="/portal/admin/book-call-leads">
+                        <Phone className="h-4 w-4" />
+                        <span>Book Call Leads</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    {bookCallLeadsCount > 0 && (
+                      <SidebarMenuBadge className="bg-red-500 text-white">
+                        {bookCallLeadsCount}
+                      </SidebarMenuBadge>
+                    )}
+                  </SidebarMenuItem>
                   {adminItems.map((item) => (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
