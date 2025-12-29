@@ -64,7 +64,7 @@ export function createServerClient() {
   
   return createClient(
     supabaseUrl!,
-    serviceRoleKey || supabaseAnonKey,
+    serviceRoleKey || supabaseAnonKey!,
     {
       db: {
         schema: 'legacy83' as any,

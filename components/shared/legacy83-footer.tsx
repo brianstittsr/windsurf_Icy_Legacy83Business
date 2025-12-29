@@ -14,7 +14,7 @@ const footerLinks = {
   company: [
     { title: "About Icy Williams", href: "/about" },
     { title: "Success Stories", href: "/success-stories" },
-    { title: "The Legacy Journal", href: "/blog" },
+    { title: "The Legacy Journal", href: "/legacy-journal" },
     { title: "Events & Community", href: "/events" },
     { title: "Contact", href: "/contact" },
   ],

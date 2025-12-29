@@ -56,7 +56,7 @@ const services = [
 ];
 
 const resources = [
-  { title: "The Legacy Journal", href: "/blog", icon: BookOpen },
+  { title: "The Legacy Journal", href: "/legacy-journal", icon: BookOpen },
   { title: "Events & Community", href: "/events", icon: Calendar },
   { title: "Success Stories", href: "/success-stories", icon: ClipboardCheck },
   { title: "FAQ", href: "/faq", icon: HelpCircle },
