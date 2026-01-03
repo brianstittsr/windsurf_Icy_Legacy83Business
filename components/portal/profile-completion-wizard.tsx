@@ -75,7 +75,7 @@ const steps = [
 ];
 
 export function ProfileCompletionWizard() {
-  const { profile, updateProfile, profileCompletion, showProfileWizard, setShowProfileWizard } = useUserProfile();
+  const { profile, updateProfile, saveProfileToFirestore, linkedTeamMember, profileCompletion, showProfileWizard, setShowProfileWizard } = useUserProfile();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     firstName: profile.firstName || "",
@@ -104,17 +104,28 @@ export function ProfileCompletionWizard() {
     }
   };
 
-  const handleComplete = () => {
-    updateProfile({
+  const handleComplete = async () => {
+    const updates = {
       ...formData,
       profileCompletedAt: new Date().toISOString(),
-    });
+    };
+    
+    // If linked to a team member, persist to Firestore
+    if (linkedTeamMember) {
+      await saveProfileToFirestore(updates);
+    } else {
+      updateProfile(updates);
+    }
     setShowProfileWizard(false);
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     // Save what we have so far
-    updateProfile(formData);
+    if (linkedTeamMember) {
+      await saveProfileToFirestore(formData);
+    } else {
+      updateProfile(formData);
+    }
     setShowProfileWizard(false);
   };
 

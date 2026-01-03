@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -118,7 +119,7 @@ const industries = [
   "Defense",
 ];
 
-// SVP Tools list with role-based access
+// L83 Tools list with role-based access
 interface SVPTool {
   id: string;
   name: string;
@@ -157,29 +158,16 @@ const premiumAITools: SVPTool[] = [
 ];
 
 // Mock meeting recordings
-const mockRecordings = [
-  { id: "1", title: "Affiliate Orientation Call", date: "2024-12-10", duration: "45 min", type: "onboarding" },
-  { id: "2", title: "One-to-One with Sarah Chen", date: "2024-12-05", duration: "30 min", type: "networking" },
-  { id: "3", title: "Monthly Affiliate Meeting", date: "2024-12-01", duration: "60 min", type: "group" },
-  { id: "4", title: "ISO Training Workshop", date: "2024-11-28", duration: "90 min", type: "training" },
-];
+const mockRecordings: { id: string; title: string; date: string; duration: string; type: string }[] = [];
 
 // Mock certifications
-const mockCertifications = [
-  { id: "1", name: "ISO 9001 Lead Auditor", issuer: "IRCA", date: "2023-06-15", expires: "2026-06-15", status: "active" },
-  { id: "2", name: "Six Sigma Black Belt", issuer: "ASQ", date: "2022-03-20", expires: null, status: "active" },
-  { id: "3", name: "Lean Practitioner", issuer: "SME", date: "2021-09-10", expires: "2024-09-10", status: "expiring" },
-];
+const mockCertifications: { id: string; name: string; issuer: string; date: string; expires: string | null; status: string }[] = [];
 
 // Mock One-to-One history
-const mockOneToOnes = [
-  { id: "1", partner: "Sarah Chen", date: "2024-12-05", status: "completed", notes: "Discussed lean manufacturing collaboration" },
-  { id: "2", partner: "Michael Rodriguez", date: "2024-12-12", status: "scheduled", notes: "ISO certification referral opportunities" },
-  { id: "3", partner: "Jennifer Park", date: "2024-12-15", status: "pending", notes: "AI solutions for manufacturing" },
-];
+const mockOneToOnes: { id: string; partner: string; date: string; status: string; notes: string }[] = [];
 
 export default function ProfilePage() {
-  const { profile: userProfile, getDisplayName, getInitials } = useUserProfile();
+  const { profile: userProfile, getDisplayName, getInitials, saveProfileToFirestore, linkedTeamMember } = useUserProfile();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   
@@ -306,9 +294,38 @@ export default function ProfilePage() {
 
   const saveProfile = async () => {
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    alert("Profile saved successfully!");
+    
+    try {
+      // Map local profile state to UserProfile fields for Firestore update
+      const updates = {
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        email: profile.email,
+        phone: profile.phone,
+        company: profile.company,
+        jobTitle: profile.title,
+        location: profile.location,
+        bio: profile.bio,
+      };
+      
+      if (linkedTeamMember) {
+        const success = await saveProfileToFirestore(updates);
+        if (success) {
+          toast.success("Profile saved successfully!");
+        } else {
+          toast.error("Failed to save profile. Please try again.");
+        }
+      } else {
+        // No linked team member - just show success (local state only)
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        toast.success("Profile saved successfully!");
+      }
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast.error("Failed to save profile. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -356,7 +373,7 @@ export default function ProfilePage() {
         <div>
           <h1 className="text-3xl font-bold">My Profile</h1>
           <p className="text-muted-foreground">
-            Manage your profile, networking preferences, and SVP tools
+            Manage your profile, networking preferences, and L83 tools
           </p>
         </div>
         <Button onClick={saveProfile} disabled={isSaving}>
@@ -476,7 +493,7 @@ export default function ProfilePage() {
           </TabsTrigger>
           <TabsTrigger value="tools" className="text-xs sm:text-sm">
             <Wrench className="h-4 w-4 mr-1 hidden sm:inline" />
-            SVP Tools
+            L83 Tools
           </TabsTrigger>
           <TabsTrigger value="recordings" className="text-xs sm:text-sm">
             <Video className="h-4 w-4 mr-1 hidden sm:inline" />
@@ -1110,11 +1127,11 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        {/* SVP Tools Tab */}
+        {/* L83 Tools Tab */}
         <TabsContent value="tools" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>SVP Tools</CardTitle>
+              <CardTitle>L83 Tools</CardTitle>
               <CardDescription>
                 Access Strategic Value+ platform tools based on your role
                 {(profile.role === "team_member" || profile.role === "admin") && (

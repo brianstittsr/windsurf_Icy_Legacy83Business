@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -128,7 +129,7 @@ export default function PopupManagementPage() {
 
   const saveConfig = () => {
     console.log("Saving popup config:", config);
-    alert("Popup configuration saved successfully!");
+    toast.success("Popup configuration saved successfully!");
   };
 
   return (

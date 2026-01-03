@@ -25,6 +25,8 @@ import {
   Info,
   Phone,
   ClipboardCheck,
+  LogIn,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +58,7 @@ const services = [
 ];
 
 const resources = [
+  { title: "Academy", href: "/academy", icon: BookOpen },
   { title: "The Legacy Journal", href: "/legacy-journal", icon: BookOpen },
   { title: "Events & Community", href: "/events", icon: Calendar },
   { title: "Success Stories", href: "/success-stories", icon: ClipboardCheck },
@@ -147,6 +150,19 @@ export function Legacy83Navbar() {
 
         {/* CTA Buttons */}
         <div className="hidden lg:flex items-center gap-3">
+          <Link 
+            href="/sign-in" 
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Sign In
+          </Link>
+          <Link 
+            href="/sign-up" 
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Register
+          </Link>
+          <div className="w-px h-6 bg-border mx-1" />
           <Button variant="outline" asChild>
             <Link href="/quiz-intro">Take the Quiz</Link>
           </Button>
@@ -206,6 +222,25 @@ export function Legacy83Navbar() {
                 >
                   <Phone className="h-5 w-5 text-amber-600" />
                   <span className="font-medium">Contact</span>
+                </Link>
+              </div>
+
+              <div className="border-t pt-4 space-y-2">
+                <Link
+                  href="/sign-in"
+                  className="flex items-center gap-3 py-2"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <LogIn className="h-5 w-5 text-amber-600" />
+                  <span className="font-medium">Sign In</span>
+                </Link>
+                <Link
+                  href="/sign-up"
+                  className="flex items-center gap-3 py-2"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <UserPlus className="h-5 w-5 text-amber-600" />
+                  <span className="font-medium">Register</span>
                 </Link>
               </div>
 

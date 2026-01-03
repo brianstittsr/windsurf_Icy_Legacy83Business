@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUserProfile } from "@/contexts/user-profile-context";
+import { auth } from "@/lib/firebase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,8 +68,30 @@ const notifications = [
 
 export function PortalHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
+  const router = useRouter();
   const { getDisplayName, getInitials, profile } = useUserProfile();
   const unreadCount = notifications.filter((n) => n.unread).length;
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      if (auth) {
+        await auth.signOut();
+      }
+      sessionStorage.removeItem("svp_authenticated");
+      sessionStorage.removeItem("svp_user_email");
+      sessionStorage.removeItem("svp_firebase_uid");
+      sessionStorage.removeItem("svp_user_name");
+      sessionStorage.removeItem("svp_team_member_id");
+      sessionStorage.removeItem("svp_user_role");
+      localStorage.removeItem("svp_remembered_email");
+      localStorage.removeItem("svp_remember_me");
+      router.push("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      router.push("/");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -186,7 +210,7 @@ export function PortalHeader() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </DropdownMenuItem>

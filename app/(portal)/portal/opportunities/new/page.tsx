@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -232,7 +233,7 @@ export default function NewOpportunityPage() {
   // AI Enhancement for Description
   const enhanceDescription = async () => {
     if (!form.description.trim() && !form.name.trim()) {
-      alert("Please enter some text in the description or opportunity name first");
+      toast.error("Please enter some text in the description or opportunity name first");
       return;
     }
     
@@ -258,11 +259,11 @@ export default function NewOpportunityPage() {
         const data = await response.json();
         setForm((prev) => ({ ...prev, description: data.enhancedText }));
       } else {
-        alert("Failed to enhance description. Please try again.");
+        toast.error("Failed to enhance description. Please try again.");
       }
     } catch (error) {
       console.error("Error enhancing description:", error);
-      alert("Error enhancing description. Check console for details.");
+      toast.error("Error enhancing description. Check console for details.");
     } finally {
       setIsEnhancingDescription(false);
     }
@@ -271,7 +272,7 @@ export default function NewOpportunityPage() {
   // AI Enhancement for Notes
   const enhanceNotes = async () => {
     if (!form.notes.trim() && !form.name.trim()) {
-      alert("Please enter some text in the notes or opportunity name first");
+      toast.error("Please enter some text in the notes or opportunity name first");
       return;
     }
     
@@ -297,11 +298,11 @@ export default function NewOpportunityPage() {
         const data = await response.json();
         setForm((prev) => ({ ...prev, notes: data.enhancedText }));
       } else {
-        alert("Failed to enhance notes. Please try again.");
+        toast.error("Failed to enhance notes. Please try again.");
       }
     } catch (error) {
       console.error("Error enhancing notes:", error);
-      alert("Error enhancing notes. Check console for details.");
+      toast.error("Error enhancing notes. Check console for details.");
     } finally {
       setIsEnhancingNotes(false);
     }
@@ -309,12 +310,12 @@ export default function NewOpportunityPage() {
 
   const handleSave = async () => {
     if (!db) {
-      alert("Firebase not initialized");
+      toast.error("Firebase not initialized");
       return;
     }
 
     if (!form.name.trim()) {
-      alert("Please enter an opportunity name");
+      toast.error("Please enter an opportunity name");
       return;
     }
 
@@ -353,7 +354,7 @@ export default function NewOpportunityPage() {
       router.push("/portal/opportunities");
     } catch (error) {
       console.error("Error creating opportunity:", error);
-      alert("Error creating opportunity. Check console for details.");
+      toast.error("Error creating opportunity. Check console for details.");
     } finally {
       setIsSaving(false);
     }

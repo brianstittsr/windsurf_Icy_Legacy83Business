@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -445,7 +446,7 @@ export default function TBMNCSupplierReadinessPage() {
       }
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
+      toast.error('Error generating PDF. Please try again.');
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -454,7 +455,7 @@ export default function TBMNCSupplierReadinessPage() {
   // Send email with registration form
   const sendRegistrationEmail = async () => {
     if (!emailTo) {
-      alert('Please enter an email address');
+      toast.error('Please enter an email address');
       return;
     }
     setIsSendingEmail(true);
@@ -466,7 +467,7 @@ export default function TBMNCSupplierReadinessPage() {
       setEmailTo('');
     } catch (error) {
       console.error('Error sending email:', error);
-      alert('Error opening email client. Please try again.');
+      toast.error('Error opening email client. Please try again.');
     } finally {
       setIsSendingEmail(false);
     }

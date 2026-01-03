@@ -76,7 +76,7 @@ export default function QuizIntroPage() {
               className="text-lg px-10 py-6 bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold"
               asChild
             >
-              <Link href="https://quiz.legacy83business.com" target="_blank">
+              <Link href="/quiz">
                 Start the Quiz Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
@@ -232,7 +232,7 @@ export default function QuizIntroPage() {
               className="text-lg px-10 py-6 bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold"
               asChild
             >
-              <Link href="https://quiz.legacy83business.com" target="_blank">
+              <Link href="/quiz">
                 Start the Free Quiz
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>

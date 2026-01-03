@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { auth } from "@/lib/firebase";
+import { auth, reconnectFirestore } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { findAndLinkTeamMember } from "@/lib/auth-team-member-link";
 
@@ -62,20 +62,32 @@ export default function SignInPage() {
       // Try Firebase Auth sign-in if available
       if (auth) {
         try {
+          console.log("Attempting Firebase sign-in for:", email);
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           firebaseUid = userCredential.user.uid;
           userName = userCredential.user.displayName;
+          console.log("Firebase sign-in successful:", firebaseUid);
 
-          // Check if this email matches an existing Team Member and link them
-          // This handles the case where a Team Member exists but hasn't been linked yet
-          const teamMember = await findAndLinkTeamMember(email, firebaseUid);
-          if (teamMember) {
-            console.log(`Linked to Team Member: ${teamMember.firstName} ${teamMember.lastName}`);
-            sessionStorage.setItem("svp_team_member_id", teamMember.id);
-            sessionStorage.setItem("svp_user_role", teamMember.role);
-            sessionStorage.setItem("svp_user_name", `${teamMember.firstName} ${teamMember.lastName}`);
-          }
+          // Team member linking is optional - do it in background without blocking sign-in
+          // This prevents Firestore offline errors from blocking login
+          const userEmail = email;
+          const userUid = firebaseUid;
+          setTimeout(async () => {
+            try {
+              await reconnectFirestore();
+              const teamMember = await findAndLinkTeamMember(userEmail, userUid);
+              if (teamMember) {
+                console.log(`Linked to Team Member: ${teamMember.firstName} ${teamMember.lastName}`);
+                sessionStorage.setItem("svp_team_member_id", teamMember.id);
+                sessionStorage.setItem("svp_user_role", teamMember.role);
+                sessionStorage.setItem("svp_user_name", `${teamMember.firstName} ${teamMember.lastName}`);
+              }
+            } catch (linkError) {
+              console.warn("Team member linking failed (non-blocking):", linkError);
+            }
+          }, 100);
         } catch (authError: any) {
+          console.error("Firebase Auth error:", authError.code, authError.message);
           // Handle specific Firebase Auth errors
           if (authError.code === "auth/user-not-found") {
             setError("No account found with this email. Please sign up first.");
@@ -87,9 +99,26 @@ export default function SignInPage() {
             setIsLoading(false);
             return;
           }
-          console.error("Firebase Auth error:", authError);
-          // Fall through to session-based auth for demo
+          if (authError.code === "auth/too-many-requests") {
+            setError("Too many failed attempts. Please try again later or reset your password.");
+            setIsLoading(false);
+            return;
+          }
+          if (authError.code === "auth/network-request-failed") {
+            setError("Network error. Please check your connection and try again.");
+            setIsLoading(false);
+            return;
+          }
+          // For any other error, show a generic message
+          setError(`Sign in failed: ${authError.message || "Please try again."}`);
+          setIsLoading(false);
+          return;
         }
+      } else {
+        console.warn("Firebase Auth not initialized - check your environment variables");
+        setError("Authentication service not available. Please contact support.");
+        setIsLoading(false);
+        return;
       }
 
       // Store session info
@@ -102,11 +131,14 @@ export default function SignInPage() {
         sessionStorage.setItem("svp_user_name", userName);
       }
       
-      // Redirect to portal
-      router.push("/portal");
+      console.log("Sign-in complete, redirecting to portal...");
+      
+      // Redirect to portal - use replace to prevent back button issues
+      router.replace("/portal");
+      return; // Exit early to prevent finally from setting isLoading to false
     } catch (err) {
+      console.error("Sign-in error:", err);
       setError("An error occurred during sign in. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -120,21 +152,14 @@ export default function SignInPage() {
         {/* Logo and Branding */}
         <div className="flex flex-col items-center mb-8">
           <Link href="/" className="flex flex-col items-center gap-3 group">
-            <div className="relative">
-              <div className="absolute -inset-2 bg-gradient-to-r from-[#C8A951] to-[#a08840] rounded-full blur-lg opacity-30 group-hover:opacity-50 transition-opacity" />
-              <Image
-                src="/VPlus_logo.webp"
-                alt="Strategic Value+ Logo"
-                width={80}
-                height={80}
-                className="relative h-20 w-auto"
-                priority
-              />
-            </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-foreground">Strategic Value+</h1>
-              <p className="text-sm text-muted-foreground">Transforming U.S. Manufacturing</p>
-            </div>
+            <Image
+              src="/legacy83Logo.webp"
+              alt="Legacy 83 Business Inc"
+              width={200}
+              height={67}
+              className="h-16 w-auto"
+              priority
+            />
           </Link>
         </div>
 
@@ -143,7 +168,7 @@ export default function SignInPage() {
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
             <CardDescription className="text-center">
-              Sign in to access your V+ Portal
+              Sign in to access your portal
             </CardDescription>
           </CardHeader>
           <CardContent>

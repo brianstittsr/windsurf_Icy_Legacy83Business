@@ -585,7 +585,7 @@ export interface TeamMemberDoc {
   avatar?: string;
   linkedIn?: string;
   website?: string;
-  role: "admin" | "team" | "affiliate" | "consultant";
+  role: "superadmin" | "admin" | "team" | "affiliate" | "consultant";
   status: "active" | "inactive" | "pending";
   // Leadership role flags for About/Leadership pages
   isCEO?: boolean;
@@ -729,6 +729,39 @@ export interface PlatformSettingsDoc {
     inAppEnabled: boolean;
     browserEnabled: boolean;
     soundEnabled: boolean;
+  };
+  // SuperAdmin Visibility Controls
+  sidebarVisibility?: {
+    navigation?: boolean;
+    work?: boolean;
+    intelligence?: boolean;
+    admin?: boolean;
+    initiatives?: boolean;
+    commandCenter?: boolean;
+    opportunities?: boolean;
+    projects?: boolean;
+    affiliates?: boolean;
+    organizations?: boolean;
+    calendar?: boolean;
+    meetings?: boolean;
+    rocks?: boolean;
+    proposals?: boolean;
+    goHighLevel?: boolean;
+    askIntellEdge?: boolean;
+    teamMembers?: boolean;
+    strategicPartners?: boolean;
+    bookCallLeads?: boolean;
+    settings?: boolean;
+    activityLog?: boolean;
+  };
+  l83ToolsVisibility?: {
+    transcription?: boolean;
+    imageGen?: boolean;
+    headshot?: boolean;
+    youtube?: boolean;
+    tts?: boolean;
+    crawler?: boolean;
+    pdfOcr?: boolean;
   };
   updatedAt: Timestamp;
   updatedBy?: string;
@@ -1364,6 +1397,141 @@ export interface MattermostPlaybookRunDoc {
 }
 
 // ============================================================================
+// Legacy Growth IQ Quiz
+// ============================================================================
+
+/** Quiz Question document in Firestore */
+export interface QuizQuestionDoc {
+  id: string;
+  questionNumber: number;
+  question: string;
+  category: 'independence' | 'vision' | 'leadership' | 'operations' | 'succession' | 'legacy';
+  isActive: boolean;
+  order: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy?: string;
+}
+
+/** Quiz Answer option */
+export interface QuizAnswerOption {
+  value: number;
+  label: string;
+}
+
+/** Quiz Submission document in Firestore */
+export interface QuizSubmissionDoc {
+  id: string;
+  // Respondent info (optional - can be anonymous)
+  respondentName?: string;
+  respondentEmail?: string;
+  respondentCompany?: string;
+  respondentPhone?: string;
+  // Answers - key is question ID, value is answer value (1-5)
+  answers: Record<string, number>;
+  // Calculated results
+  totalScore: number;
+  maxScore: number;
+  percentage: number;
+  scoreLevel: string; // "Critical" | "Vulnerable" | "Developing" | "Legacy-Ready"
+  // Category scores
+  categoryScores: {
+    category: string;
+    score: number;
+    maxScore: number;
+    percentage: number;
+  }[];
+  // Metadata
+  completedAt: Timestamp;
+  ipAddress?: string;
+  userAgent?: string;
+  referrer?: string;
+  // Follow-up tracking
+  followUpStatus?: 'pending' | 'contacted' | 'scheduled' | 'completed' | 'not_interested';
+  followUpNotes?: string;
+  assignedTo?: string;
+  // Report delivery
+  reportSentAt?: Timestamp;
+  reportPdfUrl?: string;
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+/** Quiz Report Template Configuration */
+export interface QuizReportTemplateDoc {
+  id: string;
+  name: string;
+  isActive: boolean;
+  // Executive Summary Section
+  executiveSummary: {
+    enabled: boolean;
+    title: string;
+    showOverallScore: boolean;
+    showKeyStrengths: boolean;
+    showDevelopmentAreas: boolean;
+    customIntroText?: string;
+  };
+  // Detailed Analysis Sections
+  detailedSections: {
+    id: string;
+    title: string;
+    enabled: boolean;
+    order: number;
+    category: string; // maps to quiz category
+    description: string;
+    scoringCriteria: {
+      low: { min: number; max: number; label: string; description: string };
+      medium: { min: number; max: number; label: string; description: string };
+      high: { min: number; max: number; label: string; description: string };
+    };
+  }[];
+  // Recommendations Section
+  recommendations: {
+    enabled: boolean;
+    title: string;
+    showPrioritizedInitiatives: boolean;
+    showImplementationGuidance: boolean;
+    showExpectedOutcomes: boolean;
+    // Custom recommendations per score level
+    byScoreLevel: {
+      critical: string[];
+      vulnerable: string[];
+      developing: string[];
+      legacyReady: string[];
+    };
+  };
+  // Call to Action
+  callToAction: {
+    enabled: boolean;
+    title: string;
+    description: string;
+    buttonText: string;
+    buttonUrl: string;
+  };
+  // Branding
+  branding: {
+    logoUrl?: string;
+    primaryColor: string;
+    secondaryColor: string;
+    companyName: string;
+    contactEmail: string;
+    contactPhone: string;
+    website: string;
+  };
+  // Email Settings
+  emailSettings: {
+    subject: string;
+    fromName: string;
+    replyTo: string;
+    introText: string;
+    signatureText: string;
+  };
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy?: string;
+}
+
+// ============================================================================
 // Collection Names
 // ============================================================================
 
@@ -1442,6 +1610,10 @@ export const COLLECTIONS = {
   BOOK_CALL_LEADS: "bookCallLeads",
   // Events
   EVENTS: "events",
+  // Legacy Growth IQ Quiz
+  QUIZ_QUESTIONS: "quizQuestions",
+  QUIZ_SUBMISSIONS: "quizSubmissions",
+  QUIZ_REPORT_TEMPLATES: "quizReportTemplates",
 } as const;
 
 // ============================================================================

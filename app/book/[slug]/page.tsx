@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -179,7 +180,7 @@ export default function BookingPage() {
   const handleSubmitBooking = async () => {
     if (!db || !availability || !selectedMeetingType || !selectedDate || !selectedTime) return;
     if (!bookingDetails.name || !bookingDetails.email) {
-      alert("Please fill in your name and email");
+      toast.error("Please fill in your name and email");
       return;
     }
     
@@ -270,7 +271,7 @@ export default function BookingPage() {
       
     } catch (error) {
       console.error("Error creating booking:", error);
-      alert("Error creating booking. Please try again.");
+      toast.error("Error creating booking. Please try again.");
     } finally {
       setSubmitting(false);
     }

@@ -19,6 +19,7 @@ const footerLinks = {
     { title: "Contact", href: "/contact" },
   ],
   resources: [
+    { title: "Academy", href: "/academy" },
     { title: "Legacy Growth IQ™ Quiz", href: "/quiz-intro" },
     { title: "Schedule a Call", href: "/schedule-a-call" },
     { title: "FAQ", href: "/faq" },

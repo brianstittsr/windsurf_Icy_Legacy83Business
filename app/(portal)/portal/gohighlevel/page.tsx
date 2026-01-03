@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -511,10 +512,10 @@ export default function GoHighLevelPage() {
       if (data.success) {
         fetchWorkflows();
       } else {
-        alert(`Error: ${data.error}`);
+        toast.error(`Error: ${data.error}`);
       }
     } catch (error) {
-      alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      toast.error(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
 
@@ -527,13 +528,13 @@ export default function GoHighLevelPage() {
       });
       const data = await response.json();
       if (data.success) {
-        alert(`✅ Imported ${data.imported || 0} workflows from GoHighLevel`);
+        toast.success(`Imported ${data.imported || 0} workflows from GoHighLevel`);
         fetchImportedWorkflows();
       } else {
-        alert(`Error: ${data.error}`);
+        toast.error(`Error: ${data.error}`);
       }
     } catch (error) {
-      alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      toast.error(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setImporting(false);
     }
@@ -550,13 +551,13 @@ export default function GoHighLevelPage() {
       });
       const data = await response.json();
       if (data.success) {
-        alert(`✅ Converted!\n\nPlain Language:\n${data.plainLanguage}`);
+        toast.success("Workflow converted successfully!");
         fetchImportedWorkflows();
       } else {
-        alert(`Error: ${data.error}`);
+        toast.error(`Error: ${data.error}`);
       }
     } catch (error) {
-      alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      toast.error(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setConverting(null);
     }
@@ -1408,7 +1409,7 @@ export default function GoHighLevelPage() {
             <Button variant="outline" onClick={() => {
               if (generatedWorkflow) {
                 navigator.clipboard.writeText(JSON.stringify(generatedWorkflow, null, 2));
-                alert("Workflow JSON copied to clipboard!");
+                toast.success("Workflow JSON copied to clipboard!");
               }
             }}>
               <Copy className="h-4 w-4 mr-2" />

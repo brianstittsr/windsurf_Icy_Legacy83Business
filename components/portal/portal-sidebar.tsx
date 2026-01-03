@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { usePathname } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { usePathname, useRouter } from "next/navigation";
+import { auth, db } from "@/lib/firebase";
+import { isSuperAdmin } from "@/lib/permissions";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
 import { useUserProfile } from "@/contexts/user-profile-context";
@@ -227,6 +228,11 @@ const adminItems = [
     href: "/portal/admin/events",
     icon: CalendarClock,
   },
+  {
+    title: "Growth IQ Quiz",
+    href: "/portal/admin/quiz",
+    icon: CheckSquare,
+  },
 ];
 
 const initiativeItems = [
@@ -252,8 +258,36 @@ const aiItems = [
 
 export function PortalSidebar() {
   const pathname = usePathname();
-  const { getDisplayName, getInitials, profile } = useUserProfile();
+  const router = useRouter();
+  const { getDisplayName, getInitials, profile, linkedTeamMember } = useUserProfile();
   const [bookCallLeadsCount, setBookCallLeadsCount] = useState(0);
+  const currentUserRole = linkedTeamMember?.role || "affiliate";
+  const showSuperAdminLink = isSuperAdmin(currentUserRole);
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      // Sign out from Firebase Auth
+      if (auth) {
+        await auth.signOut();
+      }
+      // Clear session storage
+      sessionStorage.removeItem("svp_authenticated");
+      sessionStorage.removeItem("svp_user_email");
+      sessionStorage.removeItem("svp_firebase_uid");
+      sessionStorage.removeItem("svp_user_name");
+      sessionStorage.removeItem("svp_team_member_id");
+      sessionStorage.removeItem("svp_user_role");
+      // Clear local storage remember me
+      localStorage.removeItem("svp_remembered_email");
+      localStorage.removeItem("svp_remember_me");
+      // Redirect to home page
+      router.push("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      router.push("/");
+    }
+  };
 
   // Subscribe to BookCallLeads count (new leads only)
   useEffect(() => {
@@ -289,16 +323,12 @@ export function PortalSidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <Link href="/portal" className="flex items-center gap-2 px-2 py-4">
           <NextImage
-            src="/VPlus_logo.webp"
-            alt="Strategic Value+ Logo"
-            width={40}
-            height={40}
-            style={{ width: 'auto', height: 'auto' }}
+            src="/legacy83Logo.webp"
+            alt="Legacy 83 Business Inc"
+            width={160}
+            height={53}
+            className="h-10 w-auto"
           />
-          <div className="flex flex-col">
-            <span className="text-lg font-bold leading-none">Strategic Value+</span>
-            <span className="text-xs text-sidebar-foreground/60">Business Portal</span>
-          </div>
         </Link>
       </SidebarHeader>
 
@@ -462,6 +492,21 @@ export function PortalSidebar() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
+                  {/* SuperAdmin Controls - Only visible to superadmins */}
+                  {showSuperAdminLink && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === "/portal/admin/superadmin"}
+                        tooltip="SuperAdmin Controls"
+                      >
+                        <Link href="/portal/admin/superadmin">
+                          <Shield className="h-4 w-4" />
+                          <span>SuperAdmin Controls</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
@@ -545,7 +590,7 @@ export function PortalSidebar() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive cursor-pointer" onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
                 </DropdownMenuItem>

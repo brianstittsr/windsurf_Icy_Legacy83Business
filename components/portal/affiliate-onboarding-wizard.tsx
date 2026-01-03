@@ -130,7 +130,7 @@ const steps = [
 ];
 
 export function AffiliateOnboardingWizard() {
-  const { profile, updateProfile, networkingCompletion, showAffiliateOnboarding, setShowAffiliateOnboarding } = useUserProfile();
+  const { profile, updateProfile, saveProfileToFirestore, linkedTeamMember, networkingCompletion, showAffiliateOnboarding, setShowAffiliateOnboarding } = useUserProfile();
   const [currentStep, setCurrentStep] = useState(1);
   const [acknowledgedCommitments, setAcknowledgedCommitments] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(profile.networkingProfile.categories || []);
@@ -175,7 +175,31 @@ export function AffiliateOnboardingWizard() {
     setIsSaving(true);
     
     try {
-      // Create Team Member document in Firebase
+      // If already linked to a team member, update their profile
+      if (linkedTeamMember) {
+        // Update the existing team member's expertise field
+        await saveProfileToFirestore({
+          bio: profile.bio,
+        });
+        
+        console.log("Updated existing Team Member:", linkedTeamMember.id);
+        
+        // Update local profile state
+        updateProfile({
+          affiliateOnboardingComplete: true,
+          networkingProfile: {
+            ...profile.networkingProfile,
+            categories: selectedCategories,
+            expertise: expertise.split(",").map((e) => e.trim()).filter((e) => e),
+            ...networkingData,
+          },
+        });
+        
+        setShowAffiliateOnboarding(false);
+        return;
+      }
+      
+      // Create new Team Member document in Firebase (for users not yet linked)
       const teamMemberData = {
         firstName: profile.firstName,
         lastName: profile.lastName,

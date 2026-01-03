@@ -20,6 +20,29 @@ Legacy 83 delivers value through four core service offerings. Strategic Planning
 
 ---
 
+## Platform Capabilities
+
+The Legacy 83 digital platform extends service delivery through integrated technology solutions designed to maximize client engagement, streamline operations, and scale impact.
+
+**GoHighLevel (GHL) Marketing & CRM Integration:** The platform leverages GoHighLevel as its central marketing automation and customer relationship management hub. This integration enables automated lead capture from the Legacy Growth IQ™ Quiz, multi-channel follow-up sequences (email, SMS, voicemail drops), pipeline management with stage-based automation, appointment scheduling with calendar sync, reputation management and review collection, and comprehensive analytics dashboards tracking lead-to-client conversion metrics.
+
+**Proposal Creation System:** A streamlined proposal generation system allows for rapid creation of customized coaching proposals. Features include templated proposal frameworks aligned with the G.R.O.W.S. methodology, dynamic pricing calculators based on engagement scope, digital signature integration for faster close rates, proposal tracking with open/view analytics, and automated follow-up sequences for pending proposals.
+
+**Blog & Content Management:** The Legacy Journal serves as the content marketing engine, featuring SEO-optimized articles on succession planning, leadership development, and business growth. The content system supports scheduled publishing, category organization, author attribution, social sharing integration, and lead magnet embedding within articles to capture engaged readers.
+
+**Learning Management System (LMS):** A comprehensive LMS powers Legacy 83's educational offerings and client development programs:
+
+- **Course Tracking:** Progress monitoring for all enrolled courses with completion certificates and milestone recognition
+- **Subscription Management:** Tiered membership levels (Legacy Starter, Legacy Builder, Legacy Master) with automated billing and access control
+- **Pre/Post Assessments:** Diagnostic assessments before program enrollment and outcome measurements upon completion to demonstrate ROI and identify growth areas
+- **Workshops:** Live and recorded workshop sessions with registration management, attendance tracking, and resource distribution
+- **Online Training:** Self-paced video modules, downloadable workbooks, interactive exercises, and mobile-responsive learning paths
+- **Performance Tracking:** Individual and cohort analytics measuring skill development, engagement metrics, assignment completion, and business outcome correlations
+
+The LMS supports both B2C direct enrollment and B2B enterprise licensing for companies seeking to develop their leadership teams through Legacy 83's curriculum.
+
+---
+
 ## Market Opportunity
 
 The U.S. business coaching market represents a substantial opportunity, estimated at $20 billion in 2025 and growing at 4.5% annually. The global coaching industry has expanded 62% since 2019 and is projected to reach $9.5 billion by 2032. Legacy 83 is positioned to capture market share by addressing an underserved segment: small business owners with 5-50 employees generating $500,000 to $10 million in annual revenue, particularly those aged 40-65 who are concerned about succession and exit strategies.
@@ -89,6 +112,68 @@ Legacy 83 is the only business coaching firm that combines strategic growth plan
 4. **Partnership Development:** Identify and approach 5 target CPA firms, 3 business attorneys, and join 2 local business organizations while scheduling speaking opportunities.
 
 5. **Database Expansion:** Add 25 companies in Months 2-3, 50 companies in Months 4-6, and 100 companies in Months 7-12, targeting a total Year 1 database of 220 qualified prospects.
+
+---
+
+---
+
+## Legacy 83 Academy (academy.legacy83business.com)
+
+The Legacy 83 Academy serves as the digital learning hub, providing scalable education and training to extend the reach of Icy Williams' coaching methodology beyond one-on-one engagements.
+
+### Academy Structure
+
+**Course Library:** The academy hosts 35+ courses organized into five categories aligned with the G.R.O.W.S. framework:
+- Goals & Vision (8 courses) - Strategic planning, vision development, goal setting
+- Revenue & Growth (6 courses) - Sales leadership, marketing, business development
+- Operations (7 courses) - Process documentation, systems implementation, efficiency
+- Workforce & Leadership (9 courses) - Team building, hiring, leadership development
+- Succession & Legacy (5 courses) - Exit planning, valuation, knowledge transfer
+
+**Course Format:** Each course includes video lessons, downloadable workbooks, interactive exercises, quizzes, and completion certificates. Courses range from 2-8 hours in length with 8-24 lessons each.
+
+**Live Workshops:** Weekly live sessions covering timely topics with real-time Q&A. Workshops are recorded and added to the library for on-demand access. Topics include 90-day planning, exit strategy deep dives, team accountability systems, and financial dashboard mastery.
+
+**Pre/Post Assessments:** Diagnostic assessments measure baseline competency before program enrollment. Post-assessments demonstrate growth and ROI, providing tangible evidence of skill development for both individual learners and enterprise clients.
+
+**Learning Paths:** Curated sequences of courses, workshops, and assessments designed for specific outcomes (e.g., "Succession Ready in 12 Months," "First-Time CEO Accelerator," "Operations Mastery").
+
+### Subscription Tiers
+
+| Tier | Monthly | Annual | Key Features |
+|------|---------|--------|--------------|
+| Legacy Starter | $49 | $470 | Journal access, monthly newsletter, community forum, 1 workshop/quarter |
+| Legacy Builder | $149 | $1,430 | Full course library, weekly group coaching, assessments, certificates, priority workshops |
+| Legacy Master | $349 | $3,350 | 1-on-1 monthly coaching, custom learning paths, executive peer group, annual retreat |
+
+### Enterprise Licensing
+
+B2B licensing enables companies to enroll their leadership teams in Legacy 83 curriculum. Features include:
+- Bulk seat pricing with volume discounts
+- Custom learning paths aligned to company goals
+- Manager dashboards for progress tracking
+- Cohort-based learning with team discussions
+- Quarterly business reviews with Icy Williams
+
+### Academy Technology Stack
+
+The academy is built on the Legacy 83 platform with:
+- Supabase backend for user management, enrollments, and progress tracking
+- Video hosting with adaptive streaming
+- Certificate generation with unique verification URLs
+- Discussion forums per course and lesson
+- Performance analytics and learning metrics
+- Integration with GHL for lead capture and marketing automation
+
+### Academy Revenue Projections
+
+| Metric | Month 6 | Month 12 |
+|--------|---------|----------|
+| Active Subscribers | 150 | 500 |
+| Average Revenue/User | $120 | $140 |
+| Monthly Recurring Revenue | $18,000 | $70,000 |
+| Enterprise Clients | 3 | 10 |
+| Enterprise ARR | $36,000 | $150,000 |
 
 ---
 

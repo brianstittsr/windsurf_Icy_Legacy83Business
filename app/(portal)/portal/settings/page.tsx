@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -317,7 +318,7 @@ function SettingsPageContent() {
   // Save settings to Firebase
   const saveSettings = async () => {
     if (!db) {
-      alert("Firebase not initialized. Check your environment variables.");
+      toast.error("Firebase not initialized. Check your environment variables.");
       return;
     }
     setSaving(true);
@@ -375,10 +376,10 @@ function SettingsPageContent() {
       setHasChanges(false);
       // Log activity
       await logSettingsUpdated("Platform Settings");
-      alert("Settings saved successfully!");
+      toast.success("Settings saved successfully!");
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert("Error saving settings. Check console for details.");
+      toast.error("Error saving settings. Check console for details.");
     } finally {
       setSaving(false);
     }
@@ -409,7 +410,7 @@ function SettingsPageContent() {
           [configId]: result.success ? "success" : "error" 
         }));
         if (!result.success) {
-          alert(`Webhook test failed: ${result.error}`);
+          toast.error(`Webhook test failed: ${result.error}`);
         }
         return;
       }
@@ -426,11 +427,11 @@ function SettingsPageContent() {
   const handleSendToBrianStitt = async () => {
     const webhookUrl = apiKeys["mattermost"]?.webhook;
     if (!webhookUrl) {
-      alert("Please configure the Mattermost webhook URL first in the Integrations tab.");
+      toast.error("Please configure the Mattermost webhook URL first in the Integrations tab.");
       return;
     }
     if (!brianStittMessage.trim()) {
-      alert("Please enter a message.");
+      toast.error("Please enter a message.");
       return;
     }
 
@@ -442,11 +443,11 @@ function SettingsPageContent() {
     setSendingMessage(false);
 
     if (result.success) {
-      alert("Message sent to Brian Stitt successfully!");
+      toast.success("Message sent to Brian Stitt successfully!");
       setBrianStittMessage("");
       setBrianStittDialogOpen(false);
     } else {
-      alert(`Failed to send message: ${result.error}`);
+      toast.error(`Failed to send message: ${result.error}`);
     }
   };
 

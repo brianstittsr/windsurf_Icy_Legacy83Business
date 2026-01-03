@@ -26,10 +26,11 @@ import {
   MoreHorizontal,
   Plus,
 } from "lucide-react";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 import { COLLECTIONS, type OpportunityDoc, type ProjectDoc, type ActionItemDoc, type ActivityDoc, type TeamMemberDoc } from "@/lib/schema";
 import type { CalendarEventDoc } from "@/lib/schema";
+import { DataMigrationBanner } from "@/components/portal/data-migration-banner";
 
 // Types for dashboard data
 interface DashboardStats {
@@ -143,6 +144,7 @@ function getDaysRemainingInQuarter(): number {
 
 export default function CommandCenterPage() {
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     pipeline: { value: 0, change: 0, trend: "up" },
     activeProjects: { count: 0, atRisk: 0 },
@@ -154,6 +156,19 @@ export default function CommandCenterPage() {
   const [actionItems, setActionItems] = useState<ActionItemDisplay[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityDisplay[]>([]);
   const [teamMembers, setTeamMembers] = useState<{ initials: string; name: string }[]>([]);
+
+  // Get user ID from auth or session storage
+  useEffect(() => {
+    if (auth?.currentUser) {
+      setUserId(auth.currentUser.uid);
+    } else {
+      // Fallback to session storage for team member ID
+      const teamMemberId = sessionStorage.getItem("svp_team_member_id");
+      if (teamMemberId) {
+        setUserId(teamMemberId);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -383,6 +398,9 @@ export default function CommandCenterPage() {
 
   return (
     <div className="space-y-6">
+      {/* Data Migration Banner */}
+      {userId && <DataMigrationBanner userId={userId} />}
+
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>

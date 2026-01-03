@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { getTeamMemberByAuthUid, findAndLinkTeamMember } from "@/lib/auth-team-member-link";
+import { getTeamMemberByAuthUid, findAndLinkTeamMember, updateTeamMemberProfile, getTeamMemberById } from "@/lib/auth-team-member-link";
 import type { TeamMemberDoc } from "@/lib/schema";
 
 // User profile fields
@@ -153,6 +153,8 @@ interface UserProfileContextType {
   profile: UserProfile;
   setProfile: (profile: UserProfile) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
+  saveProfileToFirestore: (updates: Partial<UserProfile>) => Promise<boolean>;
+  refreshLinkedTeamMember: () => Promise<void>;
   profileCompletion: number;
   networkingCompletion: number;
   isComplete: boolean;
@@ -288,12 +290,60 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     return "U";
   };
 
+  // Save profile updates to Firestore (linked TeamMember document)
+  const saveProfileToFirestore = async (updates: Partial<UserProfile>): Promise<boolean> => {
+    if (!linkedTeamMember) {
+      console.warn("No linked Team Member to update");
+      return false;
+    }
+
+    // Map UserProfile fields to TeamMemberDoc fields
+    const teamMemberUpdates: Parameters<typeof updateTeamMemberProfile>[1] = {};
+    
+    if (updates.firstName !== undefined) teamMemberUpdates.firstName = updates.firstName;
+    if (updates.lastName !== undefined) teamMemberUpdates.lastName = updates.lastName;
+    if (updates.email !== undefined) teamMemberUpdates.emailPrimary = updates.email;
+    if (updates.phone !== undefined) teamMemberUpdates.mobile = updates.phone;
+    if (updates.company !== undefined) teamMemberUpdates.company = updates.company;
+    if (updates.jobTitle !== undefined) teamMemberUpdates.title = updates.jobTitle;
+    if (updates.location !== undefined) teamMemberUpdates.location = updates.location;
+    if (updates.bio !== undefined) teamMemberUpdates.bio = updates.bio;
+    if (updates.avatarUrl !== undefined) teamMemberUpdates.avatar = updates.avatarUrl;
+
+    const success = await updateTeamMemberProfile(linkedTeamMember.id, teamMemberUpdates);
+    
+    if (success) {
+      // Also update local state
+      updateProfile(updates);
+    }
+    
+    return success;
+  };
+
+  // Refresh the linked Team Member data from Firestore
+  const refreshLinkedTeamMember = async (): Promise<void> => {
+    if (!linkedTeamMember) return;
+    
+    const refreshedMember = await getTeamMemberById(linkedTeamMember.id);
+    if (refreshedMember) {
+      setLinkedTeamMember(refreshedMember);
+      const mappedProfile = mapTeamMemberToProfile(refreshedMember);
+      setProfile((prev) => ({
+        ...prev,
+        ...mappedProfile,
+        updatedAt: new Date().toISOString(),
+      }));
+    }
+  };
+
   return (
     <UserProfileContext.Provider
       value={{
         profile,
         setProfile,
         updateProfile,
+        saveProfileToFirestore,
+        refreshLinkedTeamMember,
         profileCompletion,
         networkingCompletion,
         isComplete,

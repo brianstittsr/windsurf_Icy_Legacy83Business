@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { toast } from "sonner";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -262,11 +263,11 @@ export default function ToolPage() {
       if (result.success) {
         setTranscript(result.transcript);
       } else {
-        alert(result.error || "Transcription failed");
+        toast.error(result.error || "Transcription failed");
       }
     } catch (error: any) {
       console.error("Transcription error:", error);
-      alert("Transcription failed. Please try again.");
+      toast.error("Transcription failed. Please try again.");
     } finally {
       setIsProcessing(false);
       setProgress(100);
@@ -295,11 +296,11 @@ export default function ToolPage() {
         setAudioUrl(url);
       } else {
         const result = await response.json();
-        alert(result.error || "Text-to-speech failed");
+        toast.error(result.error || "Text-to-speech failed");
       }
     } catch (error: any) {
       console.error("TTS error:", error);
-      alert("Text-to-speech failed. Please try again.");
+      toast.error("Text-to-speech failed. Please try again.");
     } finally {
       setIsProcessing(false);
       setProgress(100);
@@ -326,11 +327,11 @@ export default function ToolPage() {
       if (result.success) {
         setGeneratedImage(result.imageUrl);
       } else {
-        alert(result.error || "Image generation failed");
+        toast.error(result.error || "Image generation failed");
       }
     } catch (error: any) {
       console.error("Image generation error:", error);
-      alert("Image generation failed. Please try again.");
+      toast.error("Image generation failed. Please try again.");
     } finally {
       setIsProcessing(false);
       setProgress(100);
@@ -404,11 +405,11 @@ export default function ToolPage() {
       if (result.success) {
         setGeneratedHeadshot(result.imageUrl);
       } else {
-        alert(result.error || "Headshot generation failed");
+        toast.error(result.error || "Headshot generation failed");
       }
     } catch (error: any) {
       console.error("Headshot error:", error);
-      alert("Headshot generation failed. Please try again.");
+      toast.error("Headshot generation failed. Please try again.");
     } finally {
       setIsProcessing(false);
       setProgress(100);
@@ -435,11 +436,11 @@ export default function ToolPage() {
       if (result.success) {
         setCrawlResult(JSON.stringify(result, null, 2));
       } else {
-        alert(result.error || "Web crawling failed");
+        toast.error(result.error || "Web crawling failed");
       }
     } catch (error: any) {
       console.error("Crawl error:", error);
-      alert("Web crawling failed. Please try again.");
+      toast.error("Web crawling failed. Please try again.");
     } finally {
       setIsProcessing(false);
       setProgress(100);
@@ -466,11 +467,11 @@ export default function ToolPage() {
       if (result.success) {
         setYoutubeTranscript(result.transcript);
       } else {
-        alert(result.error || result.suggestion || "YouTube transcription failed");
+        toast.error(result.error || result.suggestion || "YouTube transcription failed");
       }
     } catch (error: any) {
       console.error("YouTube transcription error:", error);
-      alert("YouTube transcription failed. Please try again.");
+      toast.error("YouTube transcription failed. Please try again.");
     } finally {
       setIsProcessing(false);
       setProgress(100);
@@ -499,11 +500,11 @@ export default function ToolPage() {
       if (result.success) {
         setPdfJsonData(result.fields || []);
       } else {
-        alert(result.error || "PDF OCR failed");
+        toast.error(result.error || "PDF OCR failed");
       }
     } catch (error: any) {
       console.error("PDF OCR error:", error);
-      alert("PDF OCR failed. Please try again.");
+      toast.error("PDF OCR failed. Please try again.");
     } finally {
       setIsProcessing(false);
       setProgress(100);

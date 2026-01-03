@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -270,7 +271,7 @@ export default function AvailabilityPage() {
   // Save availability to Firebase
   const saveAvailability = async () => {
     if (!db || !selectedTeamMemberId || !currentTeamMember) {
-      alert("Please select a team member first");
+      toast.error("Please select a team member first");
       return;
     }
     
@@ -314,10 +315,10 @@ export default function AvailabilityPage() {
 
       await setDoc(doc(db, COLLECTIONS.TEAM_MEMBER_AVAILABILITY, selectedTeamMemberId), availabilityData);
       setAvailabilityDoc(availabilityData);
-      alert("Availability saved successfully!");
+      toast.success("Availability saved successfully!");
     } catch (error) {
       console.error("Error saving availability:", error);
-      alert("Error saving availability. Check console for details.");
+      toast.error("Error saving availability. Check console for details.");
     } finally {
       setSaving(false);
     }
@@ -453,7 +454,7 @@ export default function AvailabilityPage() {
   const copyBookingLink = (meetingTypeId: string) => {
     const link = `${window.location.origin}/book/${meetingTypeId}`;
     navigator.clipboard.writeText(link);
-    alert("Booking link copied to clipboard!");
+    toast.success("Booking link copied to clipboard!");
   };
 
   const updateBookingStatus = (bookingId: string, status: Booking["status"]) => {
@@ -988,7 +989,7 @@ export default function AvailabilityPage() {
                       variant="outline"
                       onClick={() => {
                         navigator.clipboard.writeText(getBookingUrl());
-                        alert("Link copied to clipboard!");
+                        toast.success("Link copied to clipboard!");
                       }}
                     >
                       <Copy className="h-4 w-4" />
@@ -1038,7 +1039,7 @@ export default function AvailabilityPage() {
                         variant="outline"
                         onClick={() => {
                           navigator.clipboard.writeText(getBookingUrl());
-                          alert("Link copied!");
+                          toast.success("Link copied!");
                         }}
                       >
                         <Share2 className="mr-2 h-4 w-4" />
@@ -1085,7 +1086,7 @@ export default function AvailabilityPage() {
                             size="icon"
                             onClick={() => {
                               navigator.clipboard.writeText(memberUrl);
-                              alert(`Link copied for ${member.firstName}!`);
+                              toast.success(`Link copied for ${member.firstName}!`);
                             }}
                           >
                             <Copy className="h-4 w-4" />
@@ -1140,7 +1141,7 @@ export default function AvailabilityPage() {
             <Button
               onClick={() => {
                 navigator.clipboard.writeText(getBookingUrl());
-                alert("Link copied to clipboard!");
+                toast.success("Link copied to clipboard!");
               }}
             >
               <Copy className="mr-2 h-4 w-4" />

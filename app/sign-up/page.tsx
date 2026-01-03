@@ -160,21 +160,14 @@ export default function SignUpPage() {
         {/* Logo and Branding */}
         <div className="flex flex-col items-center mb-8">
           <Link href="/" className="flex flex-col items-center gap-3 group">
-            <div className="relative">
-              <div className="absolute -inset-2 bg-gradient-to-r from-[#C8A951] to-[#a08840] rounded-full blur-lg opacity-30 group-hover:opacity-50 transition-opacity" />
-              <Image
-                src="/VPlus_logo.webp"
-                alt="Strategic Value+ Logo"
-                width={80}
-                height={80}
-                className="relative h-20 w-auto"
-                priority
-              />
-            </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-foreground">Strategic Value+</h1>
-              <p className="text-sm text-muted-foreground">Transforming U.S. Manufacturing</p>
-            </div>
+            <Image
+              src="/legacy83Logo.webp"
+              alt="Legacy 83 Business Inc"
+              width={200}
+              height={67}
+              className="h-16 w-auto"
+              priority
+            />
           </Link>
         </div>
 

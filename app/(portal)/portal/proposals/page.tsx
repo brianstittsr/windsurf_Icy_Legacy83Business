@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -125,7 +126,7 @@ export default function ProposalsPage() {
   // AI Enhance Description
   const enhanceDescription = async () => {
     if (!proposalData.name && !proposalData.description) {
-      alert("Please enter a proposal name or description first");
+      toast.error("Please enter a proposal name or description first");
       return;
     }
     setIsEnhancingDescription(true);
@@ -162,7 +163,7 @@ Make it clear, professional, and highlight the value proposition and expected ou
   // AI Generate Milestones
   const generateMilestones = async () => {
     if (!proposalData.name) {
-      alert("Please enter a proposal name first");
+      toast.error("Please enter a proposal name first");
       return;
     }
     setIsGeneratingMilestones(true);
@@ -210,7 +211,7 @@ Make it clear, professional, and highlight the value proposition and expected ou
     context: { name?: string; role?: string; frequency?: string }
   ) => {
     if (!currentText && !context.name) {
-      alert("Please enter some text or a name first");
+      toast.error("Please enter some text or a name first");
       return;
     }
     setEnhancingFieldId(fieldId);
@@ -244,7 +245,7 @@ Make it clear, professional, and highlight the value proposition and expected ou
   // AI Generate Budget
   const generateBudget = async () => {
     if (!proposalData.name) {
-      alert("Please enter a proposal name first");
+      toast.error("Please enter a proposal name first");
       return;
     }
     setIsGeneratingBudget(true);

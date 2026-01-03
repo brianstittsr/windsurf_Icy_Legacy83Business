@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -176,7 +177,7 @@ export default function StrategicPartnersPage() {
   // Seed initial data
   const handleSeedData = async () => {
     if (!db) {
-      alert("Firebase not initialized. Check your environment variables.");
+      toast.error("Firebase not initialized. Check your environment variables.");
       return;
     }
     setSeeding(true);
@@ -195,10 +196,10 @@ export default function StrategicPartnersPage() {
       
       await batch.commit();
       await fetchPartners();
-      alert("Strategic Partners data seeded successfully!");
+      toast.success("Strategic Partners data seeded successfully!");
     } catch (error) {
       console.error("Error seeding data:", error);
-      alert("Error seeding data. Check console for details.");
+      toast.error("Error seeding data. Check console for details.");
     } finally {
       setSeeding(false);
     }
@@ -207,7 +208,7 @@ export default function StrategicPartnersPage() {
   // Add or update partner
   const handleSavePartner = async () => {
     if (!db) {
-      alert("Firebase not initialized");
+      toast.error("Firebase not initialized");
       return;
     }
     try {
@@ -246,7 +247,7 @@ export default function StrategicPartnersPage() {
       await fetchPartners();
     } catch (error) {
       console.error("Error saving partner:", error);
-      alert("Error saving partner. Check console for details.");
+      toast.error("Error saving partner. Check console for details.");
     }
   };
 

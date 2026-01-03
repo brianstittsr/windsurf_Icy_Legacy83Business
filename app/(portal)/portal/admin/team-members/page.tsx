@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { useUserProfile } from "@/contexts/user-profile-context";
+import { canDeleteUser, canEditUser, isSuperAdmin } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +78,7 @@ const seedTeamMembers: Omit<TeamMemberDoc, "id" | "createdAt" | "updatedAt">[] =
   { firstName: "Alex", lastName: "West", emailPrimary: "alex@itscnow.com", mobile: "(518) 801-7315", expertise: "Cybersecurity Consulting", role: "affiliate", status: "active" },
   { firstName: "Alysha", lastName: "Campbell", emailPrimary: "alysha@cultureshifthr.com", expertise: "Human Resources", role: "affiliate", status: "active" },
   { firstName: "Brett", lastName: "Heyns", emailPrimary: "brett@getcompoundeffect.com", expertise: "Advanced Marketing/Bus Dev", role: "affiliate", status: "active" },
-  { firstName: "Brian", lastName: "Stitt", emailPrimary: "bstitt@strategicvalueplus.com", emailSecondary: "brianstittsr@gmail.com", mobile: "(919) 608-3415", expertise: "Advanced Technology/Robotics", role: "admin", status: "active" },
+  { firstName: "Brian", lastName: "Stitt", emailPrimary: "bstitt@strategicvalueplus.com", emailSecondary: "brianstittsr@gmail.com", mobile: "(919) 608-3415", expertise: "Advanced Technology/Robotics", role: "superadmin", status: "active" },
   { firstName: "Brian", lastName: "McCollough", emailPrimary: "bmccollough@nextstagefl.net", mobile: "(801) 719-0076", expertise: "Operations", role: "affiliate", status: "active" },
   { firstName: "Cass", lastName: "Gibson", emailPrimary: "cassgibson@coststudy.us", emailSecondary: "cass@tapeismoney.com", mobile: "(717) 858-3150", expertise: "Cost Segregation", role: "affiliate", status: "active" },
   { firstName: "Christine", lastName: "Nolan", emailPrimary: "christine.nolan@pines-optimization.com", emailSecondary: "canolan912@gmail.com", mobile: "(215) 808-0035", expertise: "Inventory/Supply Chain", role: "affiliate", status: "active" },
@@ -87,7 +90,7 @@ const seedTeamMembers: Omit<TeamMemberDoc, "id" | "createdAt" | "updatedAt">[] =
   { firstName: "Ed", lastName: "Porter", emailPrimary: "edport21@gmail.com", expertise: "Chief Revenue Officer", role: "affiliate", status: "active" },
   { firstName: "Elizabeth", lastName: "Wu", emailPrimary: "elizabeth@edd-i.com", mobile: "(404) 706-4854", expertise: "Cybergovernance for Executives", role: "affiliate", status: "active" },
   { firstName: "Gina", lastName: "Tabasso", emailPrimary: "gina@barracudab2b.com", emailSecondary: "gina.tabasso@gmail.com", mobile: "(330) 421-9185", expertise: "Project Management/Ops/Six Sigma", role: "affiliate", status: "active" },
-  { firstName: "Icy", lastName: "Williams", emailPrimary: "info@legacy83business.com", mobile: "(513) 335-1978", expertise: "Executive Consulting", role: "affiliate", status: "active" },
+  { firstName: "Icy", lastName: "Williams", emailPrimary: "info@legacy83business.com", mobile: "(513) 335-1978", expertise: "Executive Consulting", role: "admin", status: "active" },
   { firstName: "Jeremy", lastName: "Schumacher", emailPrimary: "jeremyrks@gmail.com", expertise: "CIO/Privacy", role: "affiliate", status: "active" },
   { firstName: "John", lastName: "Kloian", emailPrimary: "john@specdyn.com", emailSecondary: "john.kloian@gmail.com", expertise: "Chief Revenue Officer/Gap Assessments", role: "affiliate", status: "active" },
   { firstName: "Jose Luis", lastName: "Ferandez", emailPrimary: "joseluisfernandez88@gmail.com", emailSecondary: "josefernandez@salesfyconsulting.com", expertise: "Executive AI Training/Coaching", role: "affiliate", status: "active" },
@@ -117,6 +120,9 @@ const seedTeamMembers: Omit<TeamMemberDoc, "id" | "createdAt" | "updatedAt">[] =
 ];
 
 export default function TeamMembersPage() {
+  const { linkedTeamMember } = useUserProfile();
+  const currentUserRole = linkedTeamMember?.role || "affiliate";
+  
   const [members, setMembers] = useState<TeamMemberDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -141,7 +147,7 @@ export default function TeamMembersPage() {
     bio: "",
     linkedIn: "",
     website: "",
-    role: "affiliate" as "admin" | "team" | "affiliate" | "consultant",
+    role: "affiliate" as "superadmin" | "admin" | "team" | "affiliate" | "consultant",
     status: "active" as "active" | "inactive" | "pending",
     // Leadership flags
     isCEO: false,
@@ -208,7 +214,7 @@ export default function TeamMembersPage() {
   // Seed initial data
   const handleSeedData = async () => {
     if (!db) {
-      alert("Firebase not initialized. Check your environment variables.");
+      toast.error("Firebase not initialized. Check your environment variables.");
       return;
     }
     if (!confirm(`This will import ${seedTeamMembers.length} team members. Continue?`)) return;
@@ -229,10 +235,10 @@ export default function TeamMembersPage() {
       
       await batch.commit();
       await fetchMembers();
-      alert(`Successfully imported ${seedTeamMembers.length} team members!`);
+      toast.success(`Successfully imported ${seedTeamMembers.length} team members!`);
     } catch (error) {
       console.error("Error seeding data:", error);
-      alert("Error importing data. Check console for details.");
+      toast.error("Error importing data. Check console for details.");
     } finally {
       setSeeding(false);
     }
@@ -241,7 +247,7 @@ export default function TeamMembersPage() {
   // Add or update member
   const handleSaveMember = async () => {
     if (!db) {
-      alert("Firebase not initialized");
+      toast.error("Firebase not initialized");
       return;
     }
     try {
@@ -273,7 +279,7 @@ export default function TeamMembersPage() {
       await fetchMembers();
     } catch (error) {
       console.error("Error saving member:", error);
-      alert("Error saving member. Check console for details.");
+      toast.error("Error saving member. Check console for details.");
     }
   };
 
@@ -323,20 +329,31 @@ export default function TeamMembersPage() {
       
       if (updateCount > 0) {
         await batch.commit();
-        alert(`Updated ${updateCount} team members with website URLs.\nSkipped: ${skippedExisting} with existing websites, ${skippedPersonal} with personal emails.`);
+        toast.success(`Updated ${updateCount} team members with website URLs. Skipped: ${skippedExisting} with existing websites, ${skippedPersonal} with personal emails.`);
         await fetchMembers();
       } else {
-        alert(`No members needed website updates.\nSkipped: ${skippedExisting} with existing websites, ${skippedPersonal} with personal emails.`);
+        toast.info(`No members needed website updates. Skipped: ${skippedExisting} with existing websites, ${skippedPersonal} with personal emails.`);
       }
     } catch (error) {
       console.error("Error updating websites:", error);
-      alert("Error updating websites. Check console for details.");
+      toast.error("Error updating websites. Check console for details.");
     }
   };
 
-  // Delete member
-  const handleDeleteMember = async (id: string, memberName: string) => {
+  // Delete member with role-based permission check
+  const handleDeleteMember = async (id: string, memberName: string, memberRole: string) => {
     if (!db) return;
+    
+    // Check if current user can delete this member
+    if (!canDeleteUser(currentUserRole, memberRole)) {
+      if (memberRole === "superadmin") {
+        toast.error("Only SuperAdmins can delete other SuperAdmin accounts.");
+      } else {
+        toast.error("You don't have permission to delete this user.");
+      }
+      return;
+    }
+    
     if (!confirm("Are you sure you want to delete this team member?")) return;
     try {
       await deleteDoc(doc(db, COLLECTIONS.TEAM_MEMBERS, id));
@@ -348,14 +365,26 @@ export default function TeamMembersPage() {
         entityName: memberName,
         description: `Team member removed: ${memberName}`,
       });
+      toast.success(`${memberName} has been deleted.`);
       await fetchMembers();
     } catch (error) {
       console.error("Error deleting member:", error);
+      toast.error("Error deleting member.");
     }
   };
 
-  // Edit member
+  // Edit member with role-based permission check
   const handleEditMember = (member: TeamMemberDoc) => {
+    // Check if current user can edit this member
+    if (!canEditUser(currentUserRole, member.role)) {
+      if (member.role === "superadmin") {
+        toast.error("Only SuperAdmins can edit other SuperAdmin accounts.");
+      } else {
+        toast.error("You don't have permission to edit this user.");
+      }
+      return;
+    }
+    
     setEditingMember(member);
     setFormData({
       firstName: member.firstName,
@@ -610,7 +639,7 @@ export default function TeamMembersPage() {
                     <Label htmlFor="role">Role *</Label>
                     <Select
                       value={formData.role}
-                      onValueChange={(value: "admin" | "team" | "affiliate" | "consultant") => 
+                      onValueChange={(value: "superadmin" | "admin" | "team" | "affiliate" | "consultant") => 
                         setFormData({ ...formData, role: value })
                       }
                     >
@@ -618,6 +647,7 @@ export default function TeamMembersPage() {
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="superadmin">Super Admin</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="team">Team</SelectItem>
                         <SelectItem value="affiliate">Affiliate</SelectItem>
@@ -860,6 +890,7 @@ export default function TeamMembersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="superadmin">Super Admin</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="team">Team</SelectItem>
                 <SelectItem value="affiliate">Affiliate</SelectItem>
@@ -1054,7 +1085,7 @@ export default function TeamMembersPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDeleteMember(member.id, `${member.firstName} ${member.lastName}`)}
+                            onClick={() => handleDeleteMember(member.id, `${member.firstName} ${member.lastName}`, member.role)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -1154,7 +1185,7 @@ export default function TeamMembersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteMember(member.id, `${member.firstName} ${member.lastName}`)}
+                      onClick={() => handleDeleteMember(member.id, `${member.firstName} ${member.lastName}`, member.role)}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>

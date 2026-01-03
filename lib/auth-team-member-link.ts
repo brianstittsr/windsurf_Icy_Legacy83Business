@@ -169,3 +169,84 @@ export async function findAndLinkTeamMember(
 
   return null;
 }
+
+/**
+ * Update a Team Member's profile data in Firestore
+ * This is used to persist profile changes made by the user
+ * @param teamMemberId - The Firestore document ID of the Team Member
+ * @param updates - Partial updates to apply to the Team Member document
+ * @returns true if successful, false otherwise
+ */
+export async function updateTeamMemberProfile(
+  teamMemberId: string,
+  updates: {
+    firstName?: string;
+    lastName?: string;
+    emailPrimary?: string;
+    mobile?: string;
+    company?: string;
+    title?: string;
+    location?: string;
+    bio?: string;
+    avatar?: string;
+    linkedIn?: string;
+    website?: string;
+    expertise?: string;
+  }
+): Promise<boolean> {
+  if (!db) {
+    console.error("Firebase not initialized");
+    return false;
+  }
+
+  try {
+    const teamMemberRef = doc(db, COLLECTIONS.TEAM_MEMBERS, teamMemberId);
+    
+    // Only include non-undefined fields in the update
+    const cleanUpdates: Record<string, any> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
+      }
+    }
+    
+    if (Object.keys(cleanUpdates).length === 0) {
+      console.log("No updates to apply");
+      return true;
+    }
+    
+    cleanUpdates.updatedAt = Timestamp.now();
+    
+    await updateDoc(teamMemberRef, cleanUpdates);
+    console.log(`Updated Team Member ${teamMemberId} with:`, cleanUpdates);
+    return true;
+  } catch (error) {
+    console.error("Error updating team member profile:", error);
+    return false;
+  }
+}
+
+/**
+ * Get Team Member by document ID
+ * @param teamMemberId - The Firestore document ID
+ * @returns TeamMemberDoc if found, null otherwise
+ */
+export async function getTeamMemberById(teamMemberId: string): Promise<TeamMemberDoc | null> {
+  if (!db) {
+    console.error("Firebase not initialized");
+    return null;
+  }
+
+  try {
+    const teamMemberRef = doc(db, COLLECTIONS.TEAM_MEMBERS, teamMemberId);
+    const docSnap = await getDoc(teamMemberRef);
+    
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as TeamMemberDoc;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting team member by ID:", error);
+    return null;
+  }
+}
