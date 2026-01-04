@@ -77,7 +77,7 @@ export default function AboutPage() {
             <div className="relative">
               <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl">
                 <Image
-                  src="/IWilliams.webp"
+                  src="/images/IcyWilliams.jpg"
                   alt="Icy Williams - Founder & Lead Coach of Legacy 83 Business"
                   fill
                   className="object-cover object-top"

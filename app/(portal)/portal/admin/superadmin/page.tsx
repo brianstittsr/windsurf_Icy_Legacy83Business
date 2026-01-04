@@ -40,9 +40,13 @@ import {
   Loader2,
   AlertTriangle,
 } from "lucide-react";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
+import { doc, getDoc, setDoc, Timestamp, collection, query, where, getDocs, updateDoc } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
+
+// SuperAdmin setup constants
+const SUPERADMIN_EMAIL = "bstitt@strategicvalueplus.com";
+const SUPERADMIN_UID = "EXeWJ63xxWTxWCpeSYgBtd0a9Qy1";
 
 const SETTINGS_DOC_ID = "platform-settings";
 
@@ -222,6 +226,77 @@ export default function SuperAdminPage() {
     setHasChanges(true);
   };
 
+  // Setup SuperAdmin function
+  const setupSuperAdmin = async () => {
+    if (!db) {
+      toast.error("Firebase not initialized");
+      return;
+    }
+
+    // Check if current user is the designated superadmin
+    const currentUser = auth?.currentUser;
+    if (!currentUser || currentUser.email !== SUPERADMIN_EMAIL) {
+      toast.error("Only bstitt@strategicvalueplus.com can set up SuperAdmin");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const now = Timestamp.now();
+
+      // 1. Create/update user document with SuperAdmin role
+      const userRef = doc(db, "users", SUPERADMIN_UID);
+      await setDoc(userRef, {
+        email: SUPERADMIN_EMAIL,
+        role: "superadmin",
+        isSuperAdmin: true,
+        createdAt: now,
+        updatedAt: now,
+      }, { merge: true });
+
+      // 2. Find existing team member by email
+      const teamMembersRef = collection(db, COLLECTIONS.TEAM_MEMBERS);
+      const emailQuery = query(teamMembersRef, where("emailPrimary", "==", SUPERADMIN_EMAIL));
+      const snapshot = await getDocs(emailQuery);
+
+      if (!snapshot.empty) {
+        // Update existing team member
+        const teamMemberDoc = snapshot.docs[0];
+        await updateDoc(doc(db, COLLECTIONS.TEAM_MEMBERS, teamMemberDoc.id), {
+          authUid: SUPERADMIN_UID,
+          role: "admin",
+          isSuperAdmin: true,
+          updatedAt: now,
+        });
+        toast.success("SuperAdmin setup complete! Team member linked. Please refresh the page.");
+      } else {
+        // Create new team member
+        const newTeamMemberRef = doc(collection(db, COLLECTIONS.TEAM_MEMBERS));
+        await setDoc(newTeamMemberRef, {
+          authUid: SUPERADMIN_UID,
+          emailPrimary: SUPERADMIN_EMAIL,
+          firstName: "Brian",
+          lastName: "Stitt",
+          role: "admin",
+          isSuperAdmin: true,
+          status: "active",
+          createdAt: now,
+          updatedAt: now,
+        });
+        toast.success("SuperAdmin setup complete! New team member created. Please refresh the page.");
+      }
+
+    } catch (error) {
+      console.error("Error setting up SuperAdmin:", error);
+      toast.error(`Error: ${error}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Check if current user is the designated superadmin email but not yet set up
+  const isDesignatedSuperAdmin = auth?.currentUser?.email === SUPERADMIN_EMAIL;
+
   if (!isSuperAdmin(currentUserRole)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -229,9 +304,29 @@ export default function SuperAdminPage() {
           <CardContent className="pt-6 text-center">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               You need SuperAdmin privileges to access this page.
             </p>
+            {isDesignatedSuperAdmin && (
+              <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+                  You are logged in as {SUPERADMIN_EMAIL}. Click below to set up your SuperAdmin account.
+                </p>
+                <Button onClick={setupSuperAdmin} disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Setting up...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="mr-2 h-4 w-4" />
+                      Setup SuperAdmin Account
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

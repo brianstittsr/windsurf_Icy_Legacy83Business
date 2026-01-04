@@ -35,101 +35,101 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
       allow delete: if isAdmin();
     }
 
     // Organizations collection
     match /organizations/{orgId} {
-      allow read: if isAuthenticated();
-      allow create: if isTeamMember();
-      allow update: if isTeamMember() || isOrgMember(orgId);
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
       allow delete: if isAdmin();
       
       // Certifications subcollection
       match /certifications/{certId} {
-        allow read: if isAuthenticated();
-        allow write: if isTeamMember() || isOrgMember(orgId);
+        allow read: if true;
+        allow write: if true;
       }
       
       // Capabilities subcollection
       match /capabilities/{capId} {
-        allow read: if isAuthenticated();
-        allow write: if isTeamMember() || isOrgMember(orgId);
+        allow read: if true;
+        allow write: if true;
       }
     }
 
     // Opportunities collection
     // TODO: Restrict to role-based access in production
     match /opportunities/{oppId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
       allow delete: if isAuthenticated();
     }
 
     // Projects collection
     // TODO: Restrict to role-based access in production
     match /projects/{projectId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
       allow delete: if isAuthenticated();
       
       // Milestones subcollection
       match /milestones/{milestoneId} {
-        allow read: if isAuthenticated();
-        allow write: if isAuthenticated();
+        allow read: if true;
+        allow write: if true;
       }
     }
 
     // Meetings collection
     // TODO: Restrict to role-based access in production
     match /meetings/{meetingId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
       allow delete: if isAuthenticated();
       
       // Action items subcollection
       match /actionItems/{actionId} {
-        allow read: if isAuthenticated();
-        allow write: if isAuthenticated();
+        allow read: if true;
+        allow write: if true;
       }
     }
 
     // Action Items collection (top-level)
     // TODO: Restrict to role-based access in production
     match /actionItems/{actionId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
       allow delete: if isAuthenticated();
     }
 
     // Rocks collection
     // TODO: Restrict to role-based access in production
     match /rocks/{rockId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
       allow delete: if isAuthenticated();
       
       // Rock milestones subcollection
       match /milestones/{milestoneId} {
-        allow read: if isAuthenticated();
-        allow write: if isAuthenticated();
+        allow read: if true;
+        allow write: if true;
       }
     }
 
     // Documents collection
     // TODO: Restrict to role-based access in production
     match /documents/{docId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
       allow delete: if isAuthenticated();
     }
 
@@ -141,17 +141,17 @@ service cloud.firestore {
 
     // Activities collection
     match /activities/{activityId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow read: if true;
+      allow create: if true;
       allow update, delete: if isAdmin();
     }
 
     // Notes collection
     match /notes/{noteId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if resource.data.authorId == request.auth.uid || isAdmin();
-      allow delete: if resource.data.authorId == request.auth.uid || isAdmin();
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if isAdmin();
     }
 
     // =========================================================================
@@ -276,6 +276,18 @@ service cloud.firestore {
       allow create: if true;
       allow update: if true;
       allow delete: if isAdmin();
+      
+      // Notifications subcollection
+      match /notifications/{notificationId} {
+        allow read: if true;
+        allow write: if true;
+      }
+      
+      // Allow any other subcollections
+      match /{subcollection}/{docId} {
+        allow read: if true;
+        allow write: if true;
+      }
     }
 
     // =========================================================================
@@ -810,12 +822,20 @@ service cloud.firestore {
 
     // User Settings - users can manage their own settings
     match /userSettings/{settingsId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() || resource.data.userId == request.auth.uid
-      );
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if isAuthenticated();
+    }
+
+    // =========================================================================
+    // DEVELOPMENT CATCH-ALL RULE
+    // This allows access to any collection not explicitly defined above
+    // TODO: Remove this rule in production!
+    // =========================================================================
+    match /{document=**} {
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

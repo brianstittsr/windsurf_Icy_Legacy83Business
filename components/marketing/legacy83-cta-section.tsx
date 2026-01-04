@@ -42,7 +42,7 @@ export function Legacy83CTASection() {
             <Button 
               size="lg" 
               variant="outline"
-              className="text-lg px-8 border-white/30 hover:bg-white/10 text-white" 
+              className="text-lg px-8 border-amber-400 text-amber-400 hover:bg-amber-400/20 hover:text-amber-300" 
               asChild
             >
               <Link href="/schedule-a-call">

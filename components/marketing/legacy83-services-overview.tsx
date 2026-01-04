@@ -199,7 +199,7 @@ export function Legacy83ServicesOverview() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="text-lg border-white/30 text-white hover:bg-white/10" asChild>
+            <Button size="lg" variant="outline" className="text-lg border-amber-400 text-amber-400 hover:bg-amber-400/20 hover:text-amber-300" asChild>
               <Link href="/schedule-a-call">
                 Schedule a Free Strategy Call
               </Link>

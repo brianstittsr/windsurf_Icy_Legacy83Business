@@ -70,6 +70,9 @@ import {
   requestNotificationPermission, 
   getBrowserNotificationStatus 
 } from "@/lib/notifications";
+import { FeatureVisibilitySettings } from "@/components/portal/feature-visibility-settings";
+import { useUserProfile } from "@/contexts/user-profile-context";
+import { isSuperAdmin } from "@/lib/permissions";
 
 interface ApiKeyConfig {
   id: string;
@@ -486,12 +489,13 @@ function SettingsPageContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="llm">LLM Configuration</TabsTrigger>
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="social">Social Links</TabsTrigger>
+          <TabsTrigger value="visibility">Feature Visibility</TabsTrigger>
         </TabsList>
 
         {/* Integrations Tab */}
@@ -1606,6 +1610,11 @@ function SettingsPageContent() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Feature Visibility Tab */}
+        <TabsContent value="visibility" className="space-y-6">
+          <FeatureVisibilitySettings />
         </TabsContent>
       </Tabs>
     </div>
