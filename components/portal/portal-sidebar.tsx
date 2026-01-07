@@ -76,6 +76,8 @@ import {
   Heart,
   Phone,
   CalendarClock,
+  GraduationCap,
+  Paintbrush,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -263,6 +265,24 @@ const adminItems: { title: string; href: string; icon: React.ElementType; featur
     href: "/portal/admin/quiz",
     icon: CheckSquare,
     featureKey: "growthIqQuiz",
+  },
+  {
+    title: "Image Manager",
+    href: "/portal/admin/images",
+    icon: ImageIcon,
+    featureKey: "imageManager",
+  },
+  {
+    title: "Academy Admin",
+    href: "/portal/admin/academy",
+    icon: GraduationCap,
+    featureKey: "academyAdmin",
+  },
+  {
+    title: "Page Designer",
+    href: "/portal/admin/page-designer",
+    icon: Paintbrush,
+    featureKey: "pageDesigner",
   },
 ];
 

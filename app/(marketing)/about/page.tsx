@@ -288,7 +288,7 @@ export default function AboutPage() {
             <Button
               size="lg"
               variant="outline"
-              className="text-lg px-8 border-white/30 hover:bg-white/10"
+              className="text-lg px-8 border-white text-white hover:bg-white hover:text-slate-900"
               asChild
             >
               <Link href="/quiz-intro">

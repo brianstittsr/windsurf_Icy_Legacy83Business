@@ -1,10 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowRight,
   Play,
@@ -19,9 +21,20 @@ import {
   CheckCircle,
   Clock,
   Star,
+  Loader2,
 } from "lucide-react";
+import {
+  getCourses,
+  getWorkshops,
+  getCategories,
+  getAcademyStats,
+  type CourseDoc,
+  type WorkshopDoc,
+  type CategoryDoc,
+} from "@/lib/firebase-lms";
 
-const featuredCourses = [
+// Fallback data for when Firebase is not available
+const fallbackCourses = [
   {
     title: "The G.R.O.W.S. Framework Masterclass",
     description: "Master the complete Legacy 83 methodology for building a business that thrives beyond you.",
@@ -65,7 +78,7 @@ const featuredCourses = [
   },
 ];
 
-const categories = [
+const fallbackCategories = [
   { name: "Goals & Vision", icon: Target, color: "bg-amber-500", count: 8 },
   { name: "Revenue & Growth", icon: TrendingUp, color: "bg-green-500", count: 6 },
   { name: "Operations", icon: Settings, color: "bg-blue-500", count: 7 },
@@ -73,7 +86,7 @@ const categories = [
   { name: "Succession & Legacy", icon: ArrowRightLeft, color: "bg-orange-500", count: 5 },
 ];
 
-const upcomingWorkshops = [
+const fallbackWorkshops = [
   {
     title: "Building Your 90-Day Action Plan",
     date: "January 15, 2025",
@@ -96,6 +109,23 @@ const upcomingWorkshops = [
     spots: 15,
   },
 ];
+
+// Category icon mapping
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  "goals-vision": Target,
+  "revenue-growth": TrendingUp,
+  "operations": Settings,
+  "workforce-leadership": Users,
+  "succession-legacy": ArrowRightLeft,
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  "goals-vision": "bg-amber-500",
+  "revenue-growth": "bg-green-500",
+  "operations": "bg-blue-500",
+  "workforce-leadership": "bg-purple-500",
+  "succession-legacy": "bg-orange-500",
+};
 
 const subscriptionTiers = [
   {
@@ -147,6 +177,40 @@ const subscriptionTiers = [
 ];
 
 export default function AcademyPage() {
+  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState<CourseDoc[]>([]);
+  const [workshops, setWorkshops] = useState<WorkshopDoc[]>([]);
+  const [categories, setCategories] = useState<CategoryDoc[]>([]);
+  const [stats, setStats] = useState({ totalCourses: 35, totalLessons: 200, totalWorkshops: 50, totalEnrollments: 500, totalCertificates: 0 });
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [coursesData, workshopsData, categoriesData, statsData] = await Promise.all([
+          getCourses({ isPublished: true, isFeatured: true, limitCount: 4 }),
+          getWorkshops({ isPublished: true, upcoming: true, limitCount: 3 }),
+          getCategories(),
+          getAcademyStats(),
+        ]);
+        setCourses(coursesData);
+        setWorkshops(workshopsData);
+        setCategories(categoriesData);
+        setStats(statsData);
+      } catch (error) {
+        console.error("Error loading academy data:", error);
+        // Use fallback data on error
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  // Use Firebase data or fallback
+  const displayCourses = courses.length > 0 ? courses : [];
+  const displayWorkshops = workshops.length > 0 ? workshops : [];
+  const displayCategories = categories.length > 0 ? categories : [];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
@@ -182,19 +246,19 @@ export default function AcademyPage() {
             {/* Stats */}
             <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
               <div>
-                <div className="text-3xl font-bold text-amber-400">35+</div>
+                <div className="text-3xl font-bold text-amber-400">{stats.totalCourses || 35}+</div>
                 <div className="text-gray-400">Courses</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-amber-400">200+</div>
+                <div className="text-3xl font-bold text-amber-400">{stats.totalLessons || 200}+</div>
                 <div className="text-gray-400">Video Lessons</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-amber-400">50+</div>
+                <div className="text-3xl font-bold text-amber-400">{stats.totalWorkshops || 50}+</div>
                 <div className="text-gray-400">Workshops</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-amber-400">500+</div>
+                <div className="text-3xl font-bold text-amber-400">{stats.totalEnrollments || 500}+</div>
                 <div className="text-gray-400">Students</div>
               </div>
             </div>
@@ -218,8 +282,62 @@ export default function AcademyPage() {
             </Button>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredCourses.map((course) => (
+          {loading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="overflow-hidden">
+                  <Skeleton className="aspect-video" />
+                  <CardHeader className="pb-2">
+                    <Skeleton className="h-4 w-20 mb-2" />
+                    <Skeleton className="h-6 w-full" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : displayCourses.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {displayCourses.map((course) => (
+                <Card key={course.id} className="group overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="aspect-video bg-slate-200 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-slate-900/40" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Play className="h-6 w-6 text-amber-600 ml-1" />
+                      </div>
+                    </div>
+                    {course.isFeatured && (
+                      <Badge className="absolute top-3 left-3 bg-amber-500 text-white">Featured</Badge>
+                    )}
+                  </div>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <Badge variant="outline" className="text-xs capitalize">{course.difficultyLevel}</Badge>
+                    </div>
+                    <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{course.shortDescription || course.description}</p>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        {course.estimatedDurationMinutes ? `${Math.round(course.estimatedDurationMinutes / 60)}h` : "TBD"}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-4 w-4" />
+                        {course.enrollmentCount} enrolled
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {fallbackCourses.map((course) => (
               <Card key={course.slug} className="group overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="aspect-video bg-slate-200 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-slate-900/40" />
@@ -252,8 +370,9 @@ export default function AcademyPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -266,21 +385,43 @@ export default function AcademyPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {categories.map((category) => (
-              <Link
-                key={category.name}
-                href={`/academy/courses?category=${category.name.toLowerCase().replace(/ & /g, '-')}`}
-                className="group"
-              >
-                <Card className="text-center p-6 hover:shadow-lg transition-all hover:-translate-y-1">
-                  <div className={`w-14 h-14 rounded-full ${category.color} flex items-center justify-center mx-auto mb-4`}>
-                    <category.icon className="h-7 w-7 text-white" />
-                  </div>
-                  <h3 className="font-semibold mb-1 group-hover:text-amber-600 transition-colors">{category.name}</h3>
-                  <p className="text-sm text-muted-foreground">{category.count} courses</p>
-                </Card>
-              </Link>
-            ))}
+            {displayCategories.length > 0 ? (
+              displayCategories.map((category) => {
+                const IconComponent = CATEGORY_ICONS[category.slug] || Target;
+                const colorClass = CATEGORY_COLORS[category.slug] || "bg-amber-500";
+                return (
+                  <Link
+                    key={category.id}
+                    href={`/academy/courses?category=${category.slug}`}
+                    className="group"
+                  >
+                    <Card className="text-center p-6 hover:shadow-lg transition-all hover:-translate-y-1">
+                      <div className={`w-14 h-14 rounded-full ${colorClass} flex items-center justify-center mx-auto mb-4`}>
+                        <IconComponent className="h-7 w-7 text-white" />
+                      </div>
+                      <h3 className="font-semibold mb-1 group-hover:text-amber-600 transition-colors">{category.name}</h3>
+                      <p className="text-sm text-muted-foreground">{category.courseCount} courses</p>
+                    </Card>
+                  </Link>
+                );
+              })
+            ) : (
+              fallbackCategories.map((category) => (
+                <Link
+                  key={category.name}
+                  href={`/academy/courses?category=${category.name.toLowerCase().replace(/ & /g, '-')}`}
+                  className="group"
+                >
+                  <Card className="text-center p-6 hover:shadow-lg transition-all hover:-translate-y-1">
+                    <div className={`w-14 h-14 rounded-full ${category.color} flex items-center justify-center mx-auto mb-4`}>
+                      <category.icon className="h-7 w-7 text-white" />
+                    </div>
+                    <h3 className="font-semibold mb-1 group-hover:text-amber-600 transition-colors">{category.name}</h3>
+                    <p className="text-sm text-muted-foreground">{category.count} courses</p>
+                  </Card>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -302,38 +443,73 @@ export default function AcademyPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {upcomingWorkshops.map((workshop) => (
-              <Card key={workshop.title} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline" className="text-amber-600 border-amber-500/50">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {workshop.type}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-xl">{workshop.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {workshop.date}
+            {displayWorkshops.length > 0 ? (
+              displayWorkshops.map((workshop) => (
+                <Card key={workshop.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline" className="text-amber-600 border-amber-500/50">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {workshop.workshopType === "live" ? "Live Workshop" : "Recorded"}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      {workshop.time}
+                    <CardTitle className="text-xl">{workshop.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {workshop.scheduledStart?.toDate().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        {workshop.scheduledStart?.toDate().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZoneName: "short" })}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        {workshop.maxParticipants ? `${workshop.maxParticipants - workshop.registrationCount} spots remaining` : "Open registration"}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      {workshop.spots} spots remaining
+                    <Button className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900">
+                      Register Now
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              fallbackWorkshops.map((workshop) => (
+                <Card key={workshop.title} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline" className="text-amber-600 border-amber-500/50">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {workshop.type}
+                      </Badge>
                     </div>
-                  </div>
-                  <Button className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900">
-                    Register Now
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                    <CardTitle className="text-xl">{workshop.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {workshop.date}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        {workshop.time}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        {workshop.spots} spots remaining
+                      </div>
+                    </div>
+                    <Button className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900">
+                      Register Now
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </section>
