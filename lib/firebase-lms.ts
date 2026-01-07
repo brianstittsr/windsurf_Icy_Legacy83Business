@@ -887,6 +887,13 @@ export async function updateWorkshop(
   });
 }
 
+export async function deleteWorkshop(workshopId: string): Promise<void> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const docRef = doc(db, LMS_COLLECTIONS.WORKSHOPS, workshopId);
+  await deleteDoc(docRef);
+}
+
 export async function registerForWorkshop(
   userId: string,
   workshopId: string

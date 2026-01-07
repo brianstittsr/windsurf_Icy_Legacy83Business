@@ -182,6 +182,7 @@ export default function AcademyPage() {
   const [workshops, setWorkshops] = useState<WorkshopDoc[]>([]);
   const [categories, setCategories] = useState<CategoryDoc[]>([]);
   const [stats, setStats] = useState({ totalCourses: 35, totalLessons: 200, totalWorkshops: 50, totalEnrollments: 500, totalCertificates: 0 });
+  const [useFallback, setUseFallback] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -196,9 +197,11 @@ export default function AcademyPage() {
         setWorkshops(workshopsData);
         setCategories(categoriesData);
         setStats(statsData);
+        setUseFallback(false);
       } catch (error) {
         console.error("Error loading academy data:", error);
         // Use fallback data on error
+        setUseFallback(true);
       } finally {
         setLoading(false);
       }
@@ -206,10 +209,10 @@ export default function AcademyPage() {
     loadData();
   }, []);
 
-  // Use Firebase data or fallback
-  const displayCourses = courses.length > 0 ? courses : [];
-  const displayWorkshops = workshops.length > 0 ? workshops : [];
-  const displayCategories = categories.length > 0 ? categories : [];
+  // Use Firebase data or fallback when there's an error or no data
+  const displayCourses = courses.length > 0 ? courses : (useFallback ? fallbackCourses : []);
+  const displayWorkshops = workshops.length > 0 ? workshops : (useFallback ? fallbackWorkshops : []);
+  const displayCategories = categories.length > 0 ? categories : (useFallback ? fallbackCategories : []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -300,8 +303,8 @@ export default function AcademyPage() {
             </div>
           ) : displayCourses.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {displayCourses.map((course) => (
-                <Card key={course.id} className="group overflow-hidden hover:shadow-lg transition-shadow">
+              {displayCourses.map((course: any) => (
+                <Card key={course.id || course.slug} className="group overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-slate-200 relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-slate-900/40" />
                     <div className="absolute inset-0 flex items-center justify-center">

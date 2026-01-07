@@ -168,7 +168,12 @@ export async function uploadImage(
     isActive: true,
   };
 
-  await setDoc(newDocRef, imageDoc);
+  // Remove undefined fields before saving (Firestore doesn't accept undefined)
+  const docToSave = Object.fromEntries(
+    Object.entries(imageDoc).filter(([_, v]) => v !== undefined)
+  );
+
+  await setDoc(newDocRef, docToSave);
   
   return imageDoc;
 }

@@ -31,15 +31,110 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   getAcademyStats,
   getCourses,
   getWorkshops,
   getCategories,
+  deleteCourse,
+  deleteWorkshop,
   type CourseDoc,
   type WorkshopDoc,
   type CategoryDoc,
 } from "@/lib/firebase-lms";
+import { Timestamp } from "firebase/firestore";
+
+// Mock data for testing when Firebase index is not ready
+const MOCK_COURSES: CourseDoc[] = [
+  {
+    id: "mock-1",
+    title: "G.R.O.W.S. Framework Fundamentals",
+    slug: "grows-framework-fundamentals",
+    description: "Master the G.R.O.W.S. methodology for business growth",
+    shortDescription: "Learn the proven framework for scaling your business",
+    thumbnailUrl: null,
+    thumbnailImageId: null,
+    previewVideoUrl: null,
+    categoryId: null,
+    instructorName: "Icy Williams",
+    instructorBio: "Business strategist and founder",
+    instructorImageUrl: null,
+    difficultyLevel: "beginner",
+    estimatedDurationMinutes: 120,
+    minSubscriptionTierId: null,
+    isFeatured: true,
+    isPublished: true,
+    publishedAt: Timestamp.now(),
+    tags: ["business", "growth", "strategy"],
+    learningOutcomes: ["Understand the G.R.O.W.S. framework", "Apply strategies to your business"],
+    prerequisites: [],
+    enrollmentCount: 45,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  },
+  {
+    id: "mock-2",
+    title: "Strategic Value Planning",
+    slug: "strategic-value-planning",
+    description: "Create and execute strategic plans for maximum value",
+    shortDescription: "Build strategic plans that deliver results",
+    thumbnailUrl: null,
+    thumbnailImageId: null,
+    previewVideoUrl: null,
+    categoryId: null,
+    instructorName: "Icy Williams",
+    instructorBio: "Business strategist and founder",
+    instructorImageUrl: null,
+    difficultyLevel: "intermediate",
+    estimatedDurationMinutes: 180,
+    minSubscriptionTierId: null,
+    isFeatured: false,
+    isPublished: true,
+    publishedAt: Timestamp.now(),
+    tags: ["strategy", "planning", "value"],
+    learningOutcomes: ["Create strategic plans", "Measure value delivery"],
+    prerequisites: ["Basic business knowledge"],
+    enrollmentCount: 28,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  },
+  {
+    id: "mock-3",
+    title: "Leadership Excellence",
+    slug: "leadership-excellence",
+    description: "Develop leadership skills for the modern workplace",
+    shortDescription: "Become an effective leader",
+    thumbnailUrl: null,
+    thumbnailImageId: null,
+    previewVideoUrl: null,
+    categoryId: null,
+    instructorName: "Icy Williams",
+    instructorBio: "Business strategist and founder",
+    instructorImageUrl: null,
+    difficultyLevel: "advanced",
+    estimatedDurationMinutes: 240,
+    minSubscriptionTierId: null,
+    isFeatured: true,
+    isPublished: false,
+    publishedAt: null,
+    tags: ["leadership", "management"],
+    learningOutcomes: ["Lead teams effectively", "Drive organizational change"],
+    prerequisites: ["Management experience"],
+    enrollmentCount: 0,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  },
+];
+
+const MOCK_STATS = {
+  totalCourses: 3,
+  totalLessons: 60,
+  totalWorkshops: 2,
+  totalEnrollments: 73,
+  totalCertificates: 20,
+};
 
 export default function AcademyAdminPage() {
   const [loading, setLoading] = useState(true);
@@ -53,9 +148,19 @@ export default function AcademyAdminPage() {
   const [courses, setCourses] = useState<CourseDoc[]>([]);
   const [workshops, setWorkshops] = useState<WorkshopDoc[]>([]);
   const [categories, setCategories] = useState<CategoryDoc[]>([]);
+  const [useMockData, setUseMockData] = useState(false);
 
   useEffect(() => {
     async function loadData() {
+      if (useMockData) {
+        setStats(MOCK_STATS);
+        setCourses(MOCK_COURSES);
+        setWorkshops([]);
+        setCategories([]);
+        setLoading(false);
+        return;
+      }
+
       try {
         const [statsData, coursesData, workshopsData, categoriesData] = await Promise.all([
           getAcademyStats(),
@@ -69,13 +174,45 @@ export default function AcademyAdminPage() {
         setCategories(categoriesData);
       } catch (error) {
         console.error("Error loading academy data:", error);
-        toast.error("Failed to load academy data");
+        toast.error("Failed to load academy data. Try enabling mock data.");
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, []);
+  }, [useMockData]);
+
+  // Delete course handler
+  const handleDeleteCourse = async (courseId: string, courseTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${courseTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteCourse(courseId);
+      setCourses(prev => prev.filter(c => c.id !== courseId));
+      setStats(prev => ({ ...prev, totalCourses: prev.totalCourses - 1 }));
+      toast.success("Course deleted successfully");
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      toast.error("Failed to delete course");
+    }
+  };
+
+  // Delete workshop handler
+  const handleDeleteWorkshop = async (workshopId: string, workshopTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${workshopTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteWorkshop(workshopId);
+      setWorkshops(prev => prev.filter(w => w.id !== workshopId));
+      setStats(prev => ({ ...prev, totalWorkshops: prev.totalWorkshops - 1 }));
+      toast.success("Workshop deleted successfully");
+    } catch (error) {
+      console.error("Error deleting workshop:", error);
+      toast.error("Failed to delete workshop");
+    }
+  };
 
   if (loading) {
     return (
@@ -95,7 +232,17 @@ export default function AcademyAdminPage() {
             Manage courses, workshops, certificates, and learning content
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/50">
+            <Switch
+              id="mock-data"
+              checked={useMockData}
+              onCheckedChange={setUseMockData}
+            />
+            <Label htmlFor="mock-data" className="text-sm cursor-pointer">
+              {useMockData ? "Mock Data" : "Live Data"}
+            </Label>
+          </div>
           <Button variant="outline" asChild>
             <Link href="/academy" target="_blank">
               <Eye className="mr-2 h-4 w-4" />
@@ -210,7 +357,15 @@ export default function AcademyAdminPage() {
               {courses.map((course) => (
                 <Card key={course.id} className="overflow-hidden">
                   <div className="aspect-video bg-slate-200 relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-slate-900/40" />
+                    {course.thumbnailUrl ? (
+                      <img
+                        src={course.thumbnailUrl}
+                        alt={course.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-slate-900/40" />
+                    )}
                     {!course.isPublished && (
                       <Badge className="absolute top-2 left-2 bg-yellow-500">Draft</Badge>
                     )}
@@ -234,18 +389,21 @@ export default function AcademyAdminPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/portal/admin/academy/courses/${course.id}`}>
+                            <Link href={`/portal/admin/academy/courses/${course.id}/edit`}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/academy/courses/${course.slug}`} target="_blank">
+                            <Link href="/academy" target="_blank">
                               <Eye className="mr-2 h-4 w-4" />
                               Preview
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleDeleteCourse(course.id, course.title)}
+                          >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
                           </DropdownMenuItem>
