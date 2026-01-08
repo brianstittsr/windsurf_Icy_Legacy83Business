@@ -31,58 +31,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HeroSlide } from "@/components/marketing/hero-carousel";
+import { legacy83HeroSlides } from "@/lib/legacy83-hero-slides";
 
-// Mock data - in production this would come from a database
-const initialSlides: HeroSlide[] = [
-  {
-    id: "1",
-    badge: "Introducing EDGE-X™ — Next-Gen Manufacturing Intelligence",
-    headline: "Win OEM Contracts.",
-    highlightedText: "Transform",
-    subheadline: "We help small- and mid-sized U.S. manufacturers become qualified suppliers through ISO certification, operational readiness, and supplier development.",
-    benefits: ["OEM Supplier Qualification", "ISO/QMS Certification", "Industry 4.0 Ready"],
-    primaryCta: { text: "Get Your Free Assessment", href: "/contact" },
-    secondaryCta: { text: "See Success Stories", href: "/case-studies" },
-    isPublished: true,
-    order: 1,
-  },
-  {
-    id: "2",
-    badge: "V+ TwinEDGE™ — Digital Twin Solutions",
-    headline: "Visualize Your Factory.",
-    highlightedText: "Optimize",
-    subheadline: "Create digital replicas of your manufacturing processes to simulate, analyze, and improve operations before making costly physical changes.",
-    benefits: ["Real-time Monitoring", "Predictive Analytics", "Process Simulation"],
-    primaryCta: { text: "Explore Digital Twins", href: "/services/twinedge" },
-    secondaryCta: { text: "Watch Demo", href: "/demo" },
-    isPublished: true,
-    order: 2,
-  },
-  {
-    id: "3",
-    badge: "V+ IntellEDGE™ — AI-Powered Insights",
-    headline: "Make Smarter Decisions.",
-    highlightedText: "Faster",
-    subheadline: "Leverage artificial intelligence to gain actionable insights from your manufacturing data, predict maintenance needs, and optimize production schedules.",
-    benefits: ["AI-Driven Analytics", "Predictive Maintenance", "Smart Scheduling"],
-    primaryCta: { text: "Discover AI Solutions", href: "/services/intelledge" },
-    secondaryCta: { text: "Learn More", href: "/about" },
-    isPublished: true,
-    order: 3,
-  },
-  {
-    id: "4",
-    badge: "Reshoring Initiative Partner",
-    headline: "Bring Manufacturing",
-    highlightedText: "Home",
-    subheadline: "Join the reshoring movement. We help companies navigate the complexities of bringing manufacturing back to the United States with comprehensive support.",
-    benefits: ["Supply Chain Security", "Quality Control", "Job Creation"],
-    primaryCta: { text: "Start Reshoring", href: "/services/reshoring" },
-    secondaryCta: { text: "View Case Studies", href: "/case-studies" },
-    isPublished: false,
-    order: 4,
-  },
-];
+// Use Legacy 83 Business hero slides as the initial data
+const initialSlides: HeroSlide[] = legacy83HeroSlides;
 
 const wizardSteps = [
   { id: 1, title: "Basic Info", description: "Badge and headline" },

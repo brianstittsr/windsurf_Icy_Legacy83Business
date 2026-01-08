@@ -306,7 +306,15 @@ export default function AcademyPage() {
               {displayCourses.map((course: any) => (
                 <Card key={course.id || course.slug} className="group overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-slate-200 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-slate-900/40" />
+                    {course.thumbnailUrl ? (
+                      <img
+                        src={course.thumbnailUrl}
+                        alt={course.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-slate-900/40" />
+                    )}
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center group-hover:scale-110 transition-transform">
                         <Play className="h-6 w-6 text-amber-600 ml-1" />

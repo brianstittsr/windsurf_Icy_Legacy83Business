@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore, enableNetwork, disableNetwork } from "firebase/firestore";
+import { getFirestore, Firestore, enableNetwork, disableNetwork, clearIndexedDbPersistence, terminate } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
@@ -27,6 +27,24 @@ if (hasValidConfig) {
 export const auth: Auth | null = app ? getAuth(app) : null;
 export const db: Firestore | null = app ? getFirestore(app) : null;
 export const storage: FirebaseStorage | null = app ? getStorage(app) : null;
+
+// Clear Firestore cache - use this if you encounter internal assertion errors
+export const clearFirestoreCache = async (): Promise<boolean> => {
+  if (!db) return false;
+  try {
+    await terminate(db);
+    await clearIndexedDbPersistence(db);
+    console.log("Firestore cache cleared");
+    // Reload the page to reinitialize
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+    return true;
+  } catch (error) {
+    console.error("Failed to clear Firestore cache:", error);
+    return false;
+  }
+};
 
 // Helper to reconnect Firestore if offline
 export const reconnectFirestore = async (): Promise<boolean> => {
