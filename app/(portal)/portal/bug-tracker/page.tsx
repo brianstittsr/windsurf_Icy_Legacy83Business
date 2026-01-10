@@ -18,6 +18,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -43,7 +53,6 @@ import {
   Lightbulb,
   Plus,
   Search,
-  Filter,
   MoreHorizontal,
   CheckCircle,
   Clock,
@@ -53,27 +62,49 @@ import {
   ArrowRightCircle,
   ArrowDownCircle,
   Eye,
-  Edit,
   Trash2,
   MessageSquare,
-  Calendar,
-  User,
-  Tag,
   FileText,
   Sparkles,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { useUserProfile } from "@/contexts/user-profile-context";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  Timestamp,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import {
+  COLLECTIONS,
+  type BugTrackerItemDoc,
+  type BugTrackerItemType,
+  type BugTrackerItemStatus,
+  type BugTrackerItemPriority,
+  type BugTrackerComment,
+} from "@/lib/schema";
 
-// Types
+// Local type for UI (with Date instead of Timestamp)
 interface TrackerItem {
   id: string;
-  type: "bug" | "idea" | "improvement";
+  type: BugTrackerItemType;
   title: string;
   description: string;
-  status: "open" | "in_progress" | "resolved" | "closed" | "wont_fix";
-  priority: "low" | "medium" | "high" | "critical";
+  status: BugTrackerItemStatus;
+  priority: BugTrackerItemPriority;
   page?: string;
-  reporter: string;
-  assignee?: string;
+  reporterId: string;
+  reporterName: string;
+  assigneeId?: string;
+  assigneeName?: string;
   tags: string[];
   comments: Comment[];
   createdAt: Date;
@@ -83,57 +114,10 @@ interface TrackerItem {
 interface Comment {
   id: string;
   author: string;
+  authorId: string;
   content: string;
   createdAt: Date;
 }
-
-// Mock data
-const initialItems: TrackerItem[] = [
-  {
-    id: "1",
-    type: "bug",
-    title: "Avatar images returning 404 errors",
-    description: "Multiple avatar images are missing from the /avatars/ directory causing 404 errors in the console.",
-    status: "resolved",
-    priority: "medium",
-    page: "/portal/command-center",
-    reporter: "System",
-    assignee: "Dev Team",
-    tags: ["ui", "images"],
-    comments: [
-      { id: "c1", author: "Dev Team", content: "Fixed by using initials fallback instead of images", createdAt: new Date("2024-12-14") }
-    ],
-    createdAt: new Date("2024-12-14"),
-    updatedAt: new Date("2024-12-14"),
-  },
-  {
-    id: "2",
-    type: "idea",
-    title: "Add retargeting pixel integration",
-    description: "Implement Meta Pixel and LinkedIn Insight Tag for retargeting website visitors about upcoming events and workshops.",
-    status: "open",
-    priority: "medium",
-    reporter: "Brian",
-    tags: ["marketing", "analytics", "events"],
-    comments: [],
-    createdAt: new Date("2024-12-14"),
-    updatedAt: new Date("2024-12-14"),
-  },
-  {
-    id: "3",
-    type: "improvement",
-    title: "Enhance sign-in page with SSO options",
-    description: "Add more SSO providers beyond Microsoft, such as Google Workspace for manufacturing companies that use it.",
-    status: "open",
-    priority: "low",
-    page: "/sign-in",
-    reporter: "Brian",
-    tags: ["auth", "ux"],
-    comments: [],
-    createdAt: new Date("2024-12-14"),
-    updatedAt: new Date("2024-12-14"),
-  },
-];
 
 // Page options for the dropdown
 const pageOptions = [
@@ -160,7 +144,10 @@ const pageOptions = [
 ];
 
 export default function BugTrackerPage() {
-  const [items, setItems] = useState<TrackerItem[]>(initialItems);
+  const { profile } = useUserProfile();
+  const [items, setItems] = useState<TrackerItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -169,18 +156,72 @@ export default function BugTrackerPage() {
   // Dialog states
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<TrackerItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<TrackerItem | null>(null);
   const [newComment, setNewComment] = useState("");
   
   // Form state
   const [formData, setFormData] = useState({
-    type: "bug" as "bug" | "idea" | "improvement",
+    type: "bug" as BugTrackerItemType,
     title: "",
     description: "",
-    priority: "medium" as "low" | "medium" | "high" | "critical",
+    priority: "medium" as BugTrackerItemPriority,
     page: "",
     tags: "",
   });
+
+  // Load items from Firebase
+  useEffect(() => {
+    if (!db) {
+      setIsLoading(false);
+      return;
+    }
+
+    const itemsRef = collection(db, COLLECTIONS.BUG_TRACKER_ITEMS);
+    const q = query(itemsRef, orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const loadedItems: TrackerItem[] = snapshot.docs.map((doc) => {
+          const data = doc.data() as BugTrackerItemDoc;
+          return {
+            id: doc.id,
+            type: data.type,
+            title: data.title,
+            description: data.description,
+            status: data.status,
+            priority: data.priority,
+            page: data.page,
+            reporterId: data.reporterId,
+            reporterName: data.reporterName,
+            assigneeId: data.assigneeId,
+            assigneeName: data.assigneeName,
+            tags: data.tags || [],
+            comments: (data.comments || []).map((c: BugTrackerComment) => ({
+              id: c.id,
+              author: c.author,
+              authorId: c.authorId,
+              content: c.content,
+              createdAt: c.createdAt?.toDate() || new Date(),
+            })),
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+          };
+        });
+        setItems(loadedItems);
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error("Error loading bug tracker items:", error);
+        toast.error("Failed to load items");
+        setIsLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   // Filter items
   const filteredItems = items.filter((item) => {
@@ -213,64 +254,141 @@ export default function BugTrackerPage() {
   };
 
   // Add new item
-  const handleAddItem = () => {
-    const newItem: TrackerItem = {
-      id: Date.now().toString(),
-      type: formData.type,
-      title: formData.title,
-      description: formData.description,
-      status: "open",
-      priority: formData.priority,
-      page: formData.page || undefined,
-      reporter: "Current User",
-      tags: formData.tags.split(",").map(t => t.trim()).filter(t => t),
-      comments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    setItems([newItem, ...items]);
-    setShowAddDialog(false);
-    resetForm();
+  const handleAddItem = async () => {
+    if (!db || !profile) {
+      toast.error("Unable to save. Please try again.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const itemsRef = collection(db, COLLECTIONS.BUG_TRACKER_ITEMS);
+      const newItemData: Omit<BugTrackerItemDoc, "id"> = {
+        type: formData.type,
+        title: formData.title,
+        description: formData.description,
+        status: "open",
+        priority: formData.priority,
+        page: formData.page || undefined,
+        reporterId: profile.id || "anonymous",
+        reporterName: profile.firstName && profile.lastName 
+          ? `${profile.firstName} ${profile.lastName}` 
+          : profile.email || "Anonymous User",
+        tags: formData.tags.split(",").map(t => t.trim()).filter(t => t),
+        comments: [],
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+
+      await addDoc(itemsRef, newItemData);
+      toast.success("Item created successfully!");
+      setShowAddDialog(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error adding item:", error);
+      toast.error("Failed to create item");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Update item status
-  const updateStatus = (id: string, status: TrackerItem["status"]) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, status, updatedAt: new Date() } : item
-    ));
+  const updateStatus = async (id: string, status: BugTrackerItemStatus) => {
+    if (!db) return;
+
+    try {
+      const itemRef = doc(db, COLLECTIONS.BUG_TRACKER_ITEMS, id);
+      await updateDoc(itemRef, {
+        status,
+        updatedAt: serverTimestamp(),
+      });
+      toast.success(`Status updated to ${status.replace("_", " ")}`);
+      
+      // Update selected item if viewing
+      if (selectedItem?.id === id) {
+        setSelectedItem({ ...selectedItem, status });
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status");
+    }
+  };
+
+  // Confirm delete
+  const confirmDelete = (item: TrackerItem) => {
+    setItemToDelete(item);
+    setShowDeleteDialog(true);
   };
 
   // Delete item
-  const deleteItem = (id: string) => {
-    if (confirm("Are you sure you want to delete this item?")) {
-      setItems(items.filter(item => item.id !== id));
+  const deleteItem = async () => {
+    if (!db || !itemToDelete) return;
+
+    try {
+      const itemRef = doc(db, COLLECTIONS.BUG_TRACKER_ITEMS, itemToDelete.id);
+      await deleteDoc(itemRef);
+      toast.success("Item deleted successfully!");
+      setShowDeleteDialog(false);
+      setItemToDelete(null);
+      if (showViewDialog) {
+        setShowViewDialog(false);
+        setSelectedItem(null);
+      }
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast.error("Failed to delete item");
     }
   };
 
   // Add comment
-  const addComment = () => {
-    if (!selectedItem || !newComment.trim()) return;
-    
-    const comment: Comment = {
-      id: Date.now().toString(),
-      author: "Current User",
-      content: newComment,
-      createdAt: new Date(),
-    };
-    
-    setItems(items.map(item => 
-      item.id === selectedItem.id 
-        ? { ...item, comments: [...item.comments, comment], updatedAt: new Date() }
-        : item
-    ));
-    
-    setSelectedItem({
-      ...selectedItem,
-      comments: [...selectedItem.comments, comment],
-    });
-    
-    setNewComment("");
+  const addComment = async () => {
+    if (!db || !selectedItem || !newComment.trim() || !profile) return;
+
+    try {
+      const comment: BugTrackerComment = {
+        id: Date.now().toString(),
+        author: profile.firstName && profile.lastName 
+          ? `${profile.firstName} ${profile.lastName}` 
+          : profile.email || "Anonymous User",
+        authorId: profile.id || "anonymous",
+        content: newComment,
+        createdAt: Timestamp.now(),
+      };
+
+      const itemRef = doc(db, COLLECTIONS.BUG_TRACKER_ITEMS, selectedItem.id);
+      const updatedComments = [
+        ...selectedItem.comments.map(c => ({
+          ...c,
+          createdAt: Timestamp.fromDate(c.createdAt),
+        })),
+        comment,
+      ];
+
+      await updateDoc(itemRef, {
+        comments: updatedComments,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Update local state for immediate feedback
+      const newCommentLocal: Comment = {
+        id: comment.id,
+        author: comment.author,
+        authorId: comment.authorId,
+        content: comment.content,
+        createdAt: new Date(),
+      };
+
+      setSelectedItem({
+        ...selectedItem,
+        comments: [...selectedItem.comments, newCommentLocal],
+      });
+
+      setNewComment("");
+      toast.success("Comment added!");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast.error("Failed to add comment");
+    }
   };
 
   // Reset form
@@ -333,6 +451,18 @@ export default function BugTrackerPage() {
     }
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading bug tracker...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       {/* Header */}
@@ -354,7 +484,7 @@ export default function BugTrackerPage() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setShowAddDialog(true)}>
+          <Button onClick={() => setShowAddDialog(true)} disabled={isSaving}>
             <Plus className="h-4 w-4 mr-2" />
             New Entry
           </Button>
@@ -520,7 +650,7 @@ export default function BugTrackerPage() {
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell>{item.reporter}</TableCell>
+                          <TableCell>{item.reporterName}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {item.createdAt.toLocaleDateString()}
                           </TableCell>
@@ -549,7 +679,7 @@ export default function BugTrackerPage() {
                                   Close
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
-                                  onClick={() => deleteItem(item.id)}
+                                  onClick={() => confirmDelete(item)}
                                   className="text-red-600"
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
@@ -682,14 +812,21 @@ export default function BugTrackerPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>
+            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }} disabled={isSaving}>
               Cancel
             </Button>
             <Button 
               onClick={handleAddItem}
-              disabled={!formData.title.trim() || !formData.description.trim()}
+              disabled={!formData.title.trim() || !formData.description.trim() || isSaving}
             >
-              Create Entry
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Entry"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -720,7 +857,7 @@ export default function BugTrackerPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground">Reporter</Label>
-                    <p className="mt-1">{selectedItem.reporter}</p>
+                    <p className="mt-1">{selectedItem.reporterName}</p>
                   </div>
                   {selectedItem.page && (
                     <div>
@@ -806,6 +943,24 @@ export default function BugTrackerPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{itemToDelete?.title}&quot;? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteItem} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

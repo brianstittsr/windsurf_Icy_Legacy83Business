@@ -168,6 +168,18 @@ const apiConfigs: ApiKeyConfig[] = [
     additionalFields: [],
     status: "disconnected",
   },
+  {
+    id: "stripe",
+    name: "Stripe",
+    description: "Payment processing for event tickets and subscriptions",
+    icon: Zap,
+    keyField: "Secret Key",
+    additionalFields: [
+      { name: "publishableKey", label: "Publishable Key", placeholder: "pk_live_..." },
+      { name: "webhookSecret", label: "Webhook Secret", placeholder: "whsec_..." },
+    ],
+    status: "disconnected",
+  },
 ];
 
 const llmProviders = [
@@ -275,6 +287,13 @@ function SettingsPageContent() {
                 webhookSecret: data.integrations.docuseal.webhookSecret || "",
               };
             }
+            if (data.integrations.stripe) {
+              loadedApiKeys.stripe = {
+                apiKey: data.integrations.stripe.secretKey || "",
+                publishableKey: data.integrations.stripe.publishableKey || "",
+                webhookSecret: data.integrations.stripe.webhookSecret || "",
+              };
+            }
             
             setApiKeys(loadedApiKeys);
           }
@@ -361,6 +380,12 @@ function SettingsPageContent() {
             webhookSecret: apiKeys.docuseal?.webhookSecret || "",
             status: testingStatus.docuseal === "success" ? "connected" : "disconnected",
           },
+          stripe: {
+            secretKey: apiKeys.stripe?.apiKey || "",
+            publishableKey: apiKeys.stripe?.publishableKey || "",
+            webhookSecret: apiKeys.stripe?.webhookSecret || "",
+            status: testingStatus.stripe === "success" ? "connected" : "disconnected",
+          },
         },
         llmConfig: {
           provider: llmConfig.provider,
@@ -415,6 +440,38 @@ function SettingsPageContent() {
         if (!result.success) {
           toast.error(`Webhook test failed: ${result.error}`);
         }
+        return;
+      }
+    }
+
+    if (configId === "stripe") {
+      // Test Stripe connection
+      const secretKey = apiKeys["stripe"]?.apiKey;
+      if (!secretKey) {
+        setTestingStatus(prev => ({ ...prev, [configId]: "error" }));
+        toast.error("Please enter your Stripe Secret Key");
+        return;
+      }
+      try {
+        const response = await fetch("/api/stripe/test-connection", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ secretKey }),
+        });
+        const result = await response.json();
+        setTestingStatus(prev => ({ 
+          ...prev, 
+          [configId]: result.success ? "success" : "error" 
+        }));
+        if (result.success) {
+          toast.success("Stripe connection successful!");
+        } else {
+          toast.error(`Stripe test failed: ${result.error}`);
+        }
+        return;
+      } catch (error) {
+        setTestingStatus(prev => ({ ...prev, [configId]: "error" }));
+        toast.error("Failed to test Stripe connection");
         return;
       }
     }
@@ -597,6 +654,25 @@ function SettingsPageContent() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Stripe-specific link to Event Management */}
+                  {config.id === "stripe" && (
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">Event Ticketing</p>
+                          <p className="text-xs text-muted-foreground">
+                            Stripe is used for processing event ticket payments
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href="/portal/admin/events">
+                            Manage Events
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

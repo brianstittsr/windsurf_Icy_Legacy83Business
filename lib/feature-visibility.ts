@@ -38,6 +38,7 @@ export const SIDEBAR_FEATURES = {
   gohighlevel: { label: "GoHighLevel", section: "work", href: "/portal/gohighlevel" },
   bugTracker: { label: "Bug Tracker", section: "work", href: "/portal/bug-tracker" },
   svpTools: { label: "SVP Tools", section: "work", href: "/portal/svp-tools" },
+  systemDocs: { label: "System Documentation", section: "work", href: "/portal/system-docs" },
   
   // Intelligence
   askIntelledge: { label: "Ask IntellEDGE", section: "intelligence", href: "/portal/ask" },
@@ -136,6 +137,7 @@ export const DEFAULT_ROLE_VISIBILITY: Record<UserRole, {
       gohighlevel: false,
       bugTracker: false,
       svpTools: false,
+      systemDocs: false,
       askIntelledge: true,
       bookCallLeads: false,
       teamMembers: false,
@@ -191,6 +193,7 @@ export const DEFAULT_ROLE_VISIBILITY: Record<UserRole, {
       gohighlevel: false,
       bugTracker: false,
       svpTools: true,
+      systemDocs: true,
       askIntelledge: true,
       bookCallLeads: false,
       teamMembers: false,

@@ -37,6 +37,14 @@ export interface UserProfile {
     targetClientProfile: string;
     problemsYouSolve: string;
     successStory: string;
+    // Extended networking fields
+    businessType: string;
+    industry: string[];
+    servicesOffered: string;
+    targetCustomers: string;
+    geographicFocus: string[];
+    networkingGoals: string[];
+    meetingFrequency: string;
   };
   
   // Profile completion tracking
@@ -72,6 +80,14 @@ const defaultProfile: UserProfile = {
     targetClientProfile: "",
     problemsYouSolve: "",
     successStory: "",
+    // Extended networking fields
+    businessType: "",
+    industry: [],
+    servicesOffered: "",
+    targetCustomers: "",
+    geographicFocus: [],
+    networkingGoals: [],
+    meetingFrequency: "monthly",
   },
   profileCompletedAt: null,
   createdAt: new Date().toISOString(),
@@ -163,6 +179,8 @@ interface UserProfileContextType {
   setShowProfileWizard: (show: boolean) => void;
   showAffiliateOnboarding: boolean;
   setShowAffiliateOnboarding: (show: boolean) => void;
+  showNetworkingWizard: boolean;
+  setShowNetworkingWizard: (show: boolean) => void;
   getDisplayName: () => string;
   getInitials: () => string;
   isLoading: boolean;
@@ -176,6 +194,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [showAffiliateOnboarding, setShowAffiliateOnboarding] = useState(false);
+  const [showNetworkingWizard, setShowNetworkingWizard] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [linkedTeamMember, setLinkedTeamMember] = useState<TeamMemberDoc | null>(null);
@@ -352,6 +371,8 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         setShowProfileWizard,
         showAffiliateOnboarding,
         setShowAffiliateOnboarding,
+        showNetworkingWizard,
+        setShowNetworkingWizard,
         getDisplayName,
         getInitials,
         isLoading,

@@ -77,6 +77,7 @@ import {
   FUNDING_SOURCES,
   FIELD_TYPES,
 } from "@/lib/types/proposal";
+import { DocumentWizardSelector, type DocumentType, type WizardData } from "@/components/proposal-creator/document-wizards";
 
 const WIZARD_STEPS = [
   { id: 1, title: "Basic Info", icon: FileText, description: "Document upload & basic details" },
@@ -112,6 +113,7 @@ const emptyProposal: Partial<Proposal> = {
 
 export default function ProposalsPage() {
   const [showWizard, setShowWizard] = useState(false);
+  const [showDocumentWizard, setShowDocumentWizard] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [proposalData, setProposalData] = useState<Partial<Proposal>>(emptyProposal);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -379,6 +381,21 @@ Make it clear, professional, and highlight the value proposition and expected ou
     setShowWizard(true);
   };
 
+  const handleDocumentWizardComplete = (type: DocumentType, data: WizardData) => {
+    const newProposal: Proposal = {
+      ...emptyProposal,
+      id: `proposal-${Date.now()}`,
+      name: (data as { name?: string }).name || "Untitled Document",
+      type: type as Proposal["type"],
+      description: (data as { description?: string }).description || (data as { purpose?: string }).purpose || "",
+      status: "draft",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Proposal;
+    setProposals((prev) => [newProposal, ...prev]);
+    toast.success("Document created successfully!");
+  };
+
   // Add entity
   const addEntity = () => {
     const newEntity: CollaboratingEntity = {
@@ -458,10 +475,16 @@ Make it clear, professional, and highlight the value proposition and expected ou
             AI-powered document analysis and proposal management
           </p>
         </div>
-        <Button onClick={startNewProposal}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Proposal
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowDocumentWizard(true)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            AI Document Wizard
+          </Button>
+          <Button onClick={startNewProposal}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Proposal
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -1504,6 +1527,13 @@ Make it clear, professional, and highlight the value proposition and expected ou
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Document Wizard Selector */}
+      <DocumentWizardSelector
+        open={showDocumentWizard}
+        onOpenChange={setShowDocumentWizard}
+        onComplete={handleDocumentWizardComplete}
+      />
     </div>
   );
 }

@@ -35,11 +35,19 @@ import {
   Users,
   Award,
   Loader2,
+  Handshake,
+  Network,
+  UserPlus,
+  Settings,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { COLLECTIONS, type TeamMemberDoc } from "@/lib/schema";
 import { toast } from "sonner";
+import { useUserProfile } from "@/contexts/user-profile-context";
+import { AffiliateOnboardingWizard } from "@/components/portal/affiliate-onboarding-wizard";
+import { NetworkingWizard } from "@/components/portal/networking-wizard";
+import { CreateReferralDialog } from "@/components/portal/create-referral-dialog";
 
 interface AffiliateDisplay {
   id: string;
@@ -87,12 +95,14 @@ function getAvailabilityBadge(availability: string) {
 
 export default function AffiliatesPage() {
   const router = useRouter();
+  const { setShowAffiliateOnboarding, setShowNetworkingWizard } = useUserProfile();
   const [affiliates, setAffiliates] = useState<AffiliateDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [capabilityFilter, setCapabilityFilter] = useState("All Capabilities");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // New affiliate form state
@@ -233,10 +243,24 @@ export default function AffiliatesPage() {
             Your network of affiliates, consultants, clients, and team members
           </p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Affiliate
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowReferralDialog(true)}>
+            <Handshake className="mr-2 h-4 w-4" />
+            Submit Referral
+          </Button>
+          <Button variant="outline" onClick={() => setShowAffiliateOnboarding(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Onboarding
+          </Button>
+          <Button variant="outline" onClick={() => setShowNetworkingWizard(true)}>
+            <Network className="mr-2 h-4 w-4" />
+            Networking
+          </Button>
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Member
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -508,6 +532,17 @@ export default function AffiliatesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Wizard Modals */}
+      <AffiliateOnboardingWizard />
+      <NetworkingWizard />
+
+      {/* Referral Dialog */}
+      <CreateReferralDialog
+        open={showReferralDialog}
+        onOpenChange={setShowReferralDialog}
+        sourceContext="affiliates"
+      />
     </div>
   );
 }

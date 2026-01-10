@@ -232,6 +232,108 @@ export interface DocumentDoc extends Omit<AppDocument, "createdAt" | "uploadedBy
   storagePath: string; // Firebase Storage path
 }
 
+/** Enhanced Platform Document for document management system */
+export interface PlatformDocumentDoc {
+  id: string;
+  name: string;
+  description?: string;
+  
+  // File info
+  fileType: "pdf" | "docx" | "xlsx" | "pptx" | "image" | "archive" | "other";
+  mimeType: string;
+  fileSize: number; // bytes
+  storagePath: string; // Firebase Storage path
+  downloadUrl?: string;
+  
+  // Folder/Category
+  folder: "proposals" | "templates" | "reports" | "agreements" | "projects" | "marketing" | "internal" | "other";
+  tags?: string[];
+  
+  // Source tracking
+  source: "upload" | "proposal-creator" | "growth-iq-quiz" | "ai-generated" | "docuseal" | "other";
+  sourceId?: string; // ID of the source (e.g., proposal ID, quiz submission ID)
+  
+  // Versioning
+  version: number;
+  parentDocumentId?: string; // For version tracking - points to original document
+  isLatestVersion: boolean;
+  versionNotes?: string;
+  
+  // Metadata
+  metadata: {
+    // For proposals
+    proposalId?: string;
+    proposalTitle?: string;
+    clientName?: string;
+    
+    // For templates
+    templateCategory?: string;
+    isTemplate?: boolean;
+    
+    // For GROWTH IQ reports
+    quizSubmissionId?: string;
+    reportRecipientName?: string;
+    reportRecipientEmail?: string;
+    reportRecipientCompany?: string;
+    quizScore?: number;
+    
+    // For agreements
+    agreementType?: string;
+    signedDate?: Timestamp;
+    signedBy?: string[];
+    expirationDate?: Timestamp;
+    
+    // For project links
+    linkedProjectIds?: string[];
+    linkedOrganizationId?: string;
+    
+    // Custom metadata
+    custom?: Record<string, unknown>;
+  };
+  
+  // Access control
+  visibility: "private" | "team" | "organization" | "public";
+  sharedWith?: string[]; // User IDs
+  
+  // Audit
+  uploadedById: string;
+  uploadedByName: string;
+  lastModifiedById?: string;
+  lastModifiedByName?: string;
+  
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** Document Version History entry */
+export interface DocumentVersionDoc {
+  id: string;
+  documentId: string; // Parent document ID
+  version: number;
+  storagePath: string;
+  downloadUrl?: string;
+  fileSize: number;
+  versionNotes?: string;
+  createdById: string;
+  createdByName: string;
+  createdAt: Timestamp;
+}
+
+/** AI Document Edit Request */
+export interface DocumentAiEditDoc {
+  id: string;
+  documentId: string;
+  requestType: "create" | "edit" | "summarize" | "translate" | "format";
+  prompt: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  resultDocumentId?: string; // New document created from AI edit
+  errorMessage?: string;
+  requestedById: string;
+  requestedByName: string;
+  createdAt: Timestamp;
+  completedAt?: Timestamp;
+}
+
 /** Service document in Firestore */
 export interface ServiceDoc extends Service {
   createdAt: Timestamp;
@@ -401,7 +503,9 @@ export interface ReferralDoc {
   
   // Who gave and received the referral
   referrerId: string; // Affiliate who gave the referral
-  recipientId: string; // Affiliate who received the referral
+  referrerName: string; // Cached name for display
+  recipientId: string; // Affiliate who received the referral (or SVP)
+  recipientName: string; // Cached name for display
   
   // Source meeting (if from a one-to-one)
   oneToOneMeetingId?: string;
@@ -420,19 +524,30 @@ export interface ReferralDoc {
   
   // Is this for SVP?
   isSvpReferral: boolean;
-  svpServiceInterest?: string; // Which SVP service they might need
+  svpServiceInterest?: string[]; // Which SVP services they might need
   
-  // Pipeline status
+  // Pipeline/Deal status
   status: "submitted" | "contacted" | "meeting-scheduled" | "proposal" | "negotiation" | "won" | "lost";
+  
+  // Commission tracking
+  commissionTier: "referral" | "assist" | "co-sell"; // 7%, 12%, 17%
+  estimatedValue?: number; // Estimated deal value
   
   // Outcome tracking
   dealValue?: number; // In dollars, when won
   dealClosedDate?: Timestamp;
   lostReason?: string;
+  commissionPaid?: number;
+  commissionPaidDate?: Timestamp;
   
   // Activity log
   lastContactDate?: Timestamp;
+  lastActivityNote?: string;
   contactAttempts: number;
+  
+  // Linked entities
+  linkedProjectId?: string;
+  linkedOrganizationId?: string;
   
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -511,6 +626,90 @@ export interface AiMatchSuggestionDoc {
   
   createdAt: Timestamp;
   expiresAt: Timestamp; // Suggestions expire after a period
+}
+
+// ============================================================================
+// Bug Tracker Types
+// ============================================================================
+
+/** Bug Tracker item type */
+export type BugTrackerItemType = "bug" | "idea" | "improvement";
+
+/** Bug Tracker item status */
+export type BugTrackerItemStatus = "open" | "in_progress" | "resolved" | "closed" | "wont_fix";
+
+/** Bug Tracker item priority */
+export type BugTrackerItemPriority = "low" | "medium" | "high" | "critical";
+
+/** Bug Tracker Comment */
+export interface BugTrackerComment {
+  id: string;
+  author: string;
+  authorId: string;
+  content: string;
+  createdAt: Timestamp;
+}
+
+/** Bug Tracker Item document in Firestore */
+export interface BugTrackerItemDoc {
+  id: string;
+  type: BugTrackerItemType;
+  title: string;
+  description: string;
+  status: BugTrackerItemStatus;
+  priority: BugTrackerItemPriority;
+  page?: string;
+  reporterId: string;
+  reporterName: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  tags: string[];
+  comments: BugTrackerComment[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ============================================================================
+// AI Workforce Types
+// ============================================================================
+
+/** AI Employee role types */
+export type AIEmployeeRoleType = "cfo" | "hr" | "legal" | "marketing" | "sales" | "custom";
+
+/** AI Employee document in Firestore */
+export interface AIEmployeeDoc {
+  id: string;
+  userId: string; // Owner of this AI employee
+  role: AIEmployeeRoleType;
+  name: string;
+  title: string;
+  description: string;
+  avatar: string;
+  color: string;
+  systemPrompt: string;
+  capabilities: string[];
+  sampleQuestions: string[];
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** AI Employee Chat Message */
+export interface AIEmployeeChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Timestamp;
+}
+
+/** AI Employee Chat document in Firestore */
+export interface AIEmployeeChatDoc {
+  id: string;
+  employeeId: string;
+  userId: string;
+  messages: AIEmployeeChatMessage[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 /** Note document in Firestore */
@@ -632,6 +831,78 @@ export interface BookCallLeadDoc {
   updatedAt: Timestamp;
 }
 
+/** Event Ticket Type */
+export interface EventTicketType {
+  id: string;
+  name: string;
+  description?: string;
+  price: number; // in cents
+  quantity: number;
+  quantitySold: number;
+  maxPerOrder: number;
+  salesStartDate?: Timestamp;
+  salesEndDate?: Timestamp;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+/** Event Registration/Order */
+export interface EventRegistration {
+  id: string;
+  eventId: string;
+  userId?: string;
+  // Attendee Info
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  // Tickets
+  tickets: {
+    ticketTypeId: string;
+    ticketTypeName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }[];
+  // Payment
+  subtotal: number;
+  discount: number;
+  total: number;
+  stripePaymentIntentId?: string;
+  stripeSessionId?: string;
+  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  // Status
+  status: "pending" | "confirmed" | "cancelled" | "checked_in";
+  checkInTime?: Timestamp;
+  // Metadata
+  promoCode?: string;
+  notes?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** Event Landing Page Design */
+export interface EventLandingPageDesign {
+  heroImage?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  sections: {
+    id: string;
+    type: "description" | "schedule" | "speakers" | "tickets" | "faq" | "sponsors" | "gallery" | "map";
+    title?: string;
+    content?: string;
+    isVisible: boolean;
+    order: number;
+  }[];
+  theme?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    backgroundColor?: string;
+  };
+  customCss?: string;
+}
+
 /** Event document in Firestore */
 export interface EventDoc {
   id: string;
@@ -647,11 +918,51 @@ export interface EventDoc {
   locationType: "virtual" | "in-person" | "hybrid";
   location?: string;
   virtualLink?: string;
-  // Registration
+  // Registration (legacy - for external registration)
   registrationUrl?: string;
   registrationDeadline?: Timestamp;
   maxAttendees?: number;
   currentAttendees?: number;
+  // Ticketing
+  ticketTypes?: EventTicketType[];
+  isFreeEvent?: boolean;
+  requiresPayment?: boolean;
+  // Landing Page
+  slug?: string; // URL-friendly identifier
+  landingPageDesign?: EventLandingPageDesign;
+  hasCustomLandingPage?: boolean;
+  // Speakers/Presenters
+  speakers?: {
+    id: string;
+    name: string;
+    title?: string;
+    company?: string;
+    bio?: string;
+    imageUrl?: string;
+    socialLinks?: Record<string, string>;
+  }[];
+  // Schedule/Agenda
+  agenda?: {
+    id: string;
+    time: string;
+    title: string;
+    description?: string;
+    speakerId?: string;
+  }[];
+  // Sponsors
+  sponsors?: {
+    id: string;
+    name: string;
+    logoUrl?: string;
+    websiteUrl?: string;
+    tier?: "platinum" | "gold" | "silver" | "bronze";
+  }[];
+  // FAQ
+  faq?: {
+    id: string;
+    question: string;
+    answer: string;
+  }[];
   // Display
   imageUrl?: string;
   category?: "webinar" | "workshop" | "conference" | "networking" | "training" | "other";
@@ -659,6 +970,9 @@ export interface EventDoc {
   // Status
   status: "draft" | "published" | "cancelled" | "completed";
   isFeatured?: boolean;
+  // Stripe Integration
+  stripeProductId?: string;
+  stripePriceIds?: Record<string, string>; // ticketTypeId -> stripePriceId
   // Metadata
   createdBy?: string;
   createdAt: Timestamp;
@@ -708,6 +1022,13 @@ export interface PlatformSettingsDoc {
     };
     docuseal?: {
       apiKey?: string;
+      webhookSecret?: string;
+      status: "connected" | "disconnected" | "error";
+      lastTested?: Timestamp;
+    };
+    stripe?: {
+      secretKey?: string;
+      publishableKey?: string;
       webhookSecret?: string;
       status: "connected" | "disconnected" | "error";
       lastTested?: Timestamp;
@@ -1544,6 +1865,9 @@ export const COLLECTIONS = {
   ACTION_ITEMS: "actionItems",
   ROCKS: "rocks",
   DOCUMENTS: "documents",
+  PLATFORM_DOCUMENTS: "platformDocuments",
+  DOCUMENT_VERSIONS: "documentVersions",
+  DOCUMENT_AI_EDITS: "documentAiEdits",
   SERVICES: "services",
   CERTIFICATIONS: "certifications",
   ACTIVITIES: "activities",
@@ -1610,10 +1934,16 @@ export const COLLECTIONS = {
   BOOK_CALL_LEADS: "bookCallLeads",
   // Events
   EVENTS: "events",
+  EVENT_REGISTRATIONS: "eventRegistrations",
   // Legacy Growth IQ Quiz
   QUIZ_QUESTIONS: "quizQuestions",
   QUIZ_SUBMISSIONS: "quizSubmissions",
   QUIZ_REPORT_TEMPLATES: "quizReportTemplates",
+  // AI Workforce
+  AI_EMPLOYEES: "aiEmployees",
+  AI_EMPLOYEE_CHATS: "aiEmployeeChats",
+  // Bug Tracker
+  BUG_TRACKER_ITEMS: "bugTrackerItems",
 } as const;
 
 // ============================================================================
@@ -1671,6 +2001,9 @@ export const tractionIssuesCollection = () => getCollection<TractionIssueDoc>(CO
 export const tractionTodosCollection = () => getCollection<TractionTodoDoc>(COLLECTIONS.TRACTION_TODOS);
 export const tractionMeetingsCollection = () => getCollection<TractionMeetingDoc>(COLLECTIONS.TRACTION_MEETINGS);
 export const tractionTeamMembersCollection = () => getCollection<TractionTeamMemberDoc>(COLLECTIONS.TRACTION_TEAM_MEMBERS);
+
+// Bug Tracker collection reference
+export const bugTrackerItemsCollection = () => getCollection<BugTrackerItemDoc>(COLLECTIONS.BUG_TRACKER_ITEMS);
 
 // ============================================================================
 // Subcollection Helpers

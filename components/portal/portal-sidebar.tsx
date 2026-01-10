@@ -78,29 +78,123 @@ import {
   CalendarClock,
   GraduationCap,
   Paintbrush,
+  BookOpen,
+  Database,
+  Ticket,
+  UsersRound,
+  Briefcase,
+  Network,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const mainNavItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+// System Management
+const systemManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
-    title: "Command Center",
-    href: "/portal/command-center",
-    icon: LayoutDashboard,
-    featureKey: "commandCenter",
+    title: "Bug Tracker",
+    href: "/portal/bug-tracker",
+    icon: Bug,
+    featureKey: "bugTracker",
   },
+  {
+    title: "System Documentation",
+    href: "/portal/system-docs",
+    icon: BookOpen,
+    featureKey: "systemDocs",
+  },
+];
+
+// Project Management
+const projectManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
     title: "Opportunities",
     href: "/portal/opportunities",
     icon: Target,
-    badge: "5",
     featureKey: "opportunities",
   },
   {
     title: "Projects",
     href: "/portal/projects",
     icon: FolderKanban,
-    badge: "3",
     featureKey: "projects",
+  },
+  {
+    title: "Calendar",
+    href: "/portal/calendar",
+    icon: Calendar,
+    featureKey: "calendar",
+  },
+  {
+    title: "Meetings",
+    href: "/portal/meetings",
+    icon: Users,
+    featureKey: "meetings",
+  },
+  {
+    title: "Availability",
+    href: "/portal/availability",
+    icon: CalendarDays,
+    featureKey: "availability",
+  },
+  {
+    title: "Proposal Creator",
+    href: "/portal/proposals",
+    icon: FileText,
+    badge: "AI",
+    featureKey: "proposals",
+  },
+  {
+    title: "AI Workforce",
+    href: "/portal/ai-workforce",
+    icon: Bot,
+    badge: "AI",
+    featureKey: "aiWorkforce",
+  },
+  {
+    title: "Events",
+    href: "/portal/admin/events",
+    icon: Ticket,
+    featureKey: "events",
+  },
+  {
+    title: "EOS2 Dashboard",
+    href: "/portal/eos2",
+    icon: Target,
+    badge: "EOS",
+    featureKey: "eos2",
+  },
+  {
+    title: "Rocks",
+    href: "/portal/rocks",
+    icon: CheckSquare,
+    featureKey: "rocks",
+  },
+];
+
+// Data
+const dataItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  {
+    title: "Apollo Search",
+    href: "/portal/apollo-search",
+    icon: Search,
+    badge: "AI",
+    featureKey: "apolloSearch",
+  },
+  {
+    title: "Supplier Search",
+    href: "/portal/supplier-search",
+    icon: Factory,
+    badge: "AI",
+    featureKey: "supplierSearch",
+  },
+];
+
+// People
+const peopleItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  {
+    title: "Team Members",
+    href: "/portal/admin/team-members",
+    icon: UserCog,
+    featureKey: "teamMembers",
   },
   {
     title: "Affiliates",
@@ -116,51 +210,8 @@ const mainNavItems: { title: string; href: string; icon: React.ElementType; badg
   },
 ];
 
-const workItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
-  {
-    title: "Apollo Search",
-    href: "/portal/apollo-search",
-    icon: Search,
-    badge: "AI",
-    featureKey: "apolloSearch",
-  },
-  {
-    title: "Supplier Search",
-    href: "/portal/supplier-search",
-    icon: Factory,
-    badge: "AI",
-    featureKey: "supplierSearch",
-  },
-  {
-    title: "Documents",
-    href: "/portal/documents",
-    icon: FileText,
-    featureKey: "documents",
-  },
-  {
-    title: "Calendar",
-    href: "/portal/calendar",
-    icon: Calendar,
-    featureKey: "calendar",
-  },
-  {
-    title: "Availability",
-    href: "/portal/availability",
-    icon: CalendarDays,
-    featureKey: "availability",
-  },
-  {
-    title: "Meetings",
-    href: "/portal/meetings",
-    icon: Users,
-    featureKey: "meetings",
-  },
-  {
-    title: "Rocks",
-    href: "/portal/rocks",
-    icon: CheckSquare,
-    featureKey: "rocks",
-  },
+// Productivity
+const productivityItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
     title: "Networking",
     href: "/portal/networking",
@@ -173,40 +224,42 @@ const workItems: { title: string; href: string; icon: React.ElementType; badge?:
     icon: DollarSign,
     featureKey: "deals",
   },
+];
+
+// Affiliate Center
+const affiliateCenterItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
-    title: "LinkedIn Content",
-    href: "/portal/linkedin-content",
-    icon: Linkedin,
-    badge: "AI",
-    featureKey: "linkedinContent",
+    title: "Affiliates",
+    href: "/portal/affiliates",
+    icon: UsersRound,
+    featureKey: "affiliates",
   },
   {
-    title: "EOS2 Dashboard",
-    href: "/portal/eos2",
-    icon: Target,
-    badge: "EOS",
-    featureKey: "eos2",
+    title: "Networking",
+    href: "/portal/networking",
+    icon: Network,
+    featureKey: "networking",
   },
   {
-    title: "DocuSeal",
-    href: "/portal/docuseal",
-    icon: FileSignature,
-    featureKey: "docuseal",
+    title: "Deals",
+    href: "/portal/deals",
+    icon: Briefcase,
+    featureKey: "deals",
   },
+];
+
+// Content
+const contentItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
-    title: "AI Workforce",
-    href: "/portal/ai-workforce",
-    icon: Bot,
-    badge: "AI",
-    featureKey: "aiWorkforce",
-  },
-  {
-    title: "Proposal Creator",
-    href: "/portal/proposals",
+    title: "Documents",
+    href: "/portal/documents",
     icon: FileText,
-    badge: "AI",
-    featureKey: "proposals",
+    featureKey: "documents",
   },
+];
+
+// Admin
+const adminItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
     title: "GoHighLevel",
     href: "/portal/gohighlevel",
@@ -215,98 +268,16 @@ const workItems: { title: string; href: string; icon: React.ElementType; badge?:
     featureKey: "gohighlevel",
   },
   {
-    title: "Bug Tracker",
-    href: "/portal/bug-tracker",
-    icon: Bug,
-    featureKey: "bugTracker",
-  },
-  {
-    title: "SVP Tools",
-    href: "/portal/svp-tools",
-    icon: Sparkles,
-    badge: "AI",
-    featureKey: "svpTools",
-  },
-];
-
-const adminItems: { title: string; href: string; icon: React.ElementType; featureKey: FeatureKey }[] = [
-  {
-    title: "Team Members",
-    href: "/portal/admin/team-members",
-    icon: UserCog,
-    featureKey: "teamMembers",
-  },
-  {
-    title: "Strategic Partners",
-    href: "/portal/admin/strategic-partners",
-    icon: Building2,
-    featureKey: "strategicPartners",
-  },
-  {
-    title: "Hero Management",
-    href: "/portal/admin/hero",
-    icon: ImageIcon,
-    featureKey: "heroManagement",
-  },
-  {
-    title: "Contact Popup",
-    href: "/portal/admin/popup",
-    icon: MessageSquare,
-    featureKey: "contactPopup",
-  },
-  {
-    title: "Events",
-    href: "/portal/admin/events",
-    icon: CalendarClock,
-    featureKey: "events",
-  },
-  {
-    title: "Growth IQ Quiz",
-    href: "/portal/admin/quiz",
-    icon: CheckSquare,
-    featureKey: "growthIqQuiz",
-  },
-  {
-    title: "Image Manager",
-    href: "/portal/admin/images",
-    icon: ImageIcon,
-    featureKey: "imageManager",
+    title: "Page Designer",
+    href: "/portal/admin/page-designer",
+    icon: Paintbrush,
+    featureKey: "pageDesigner",
   },
   {
     title: "Academy Admin",
     href: "/portal/admin/academy",
     icon: GraduationCap,
     featureKey: "academyAdmin",
-  },
-  {
-    title: "Page Designer",
-    href: "/portal/admin/page-designer",
-    icon: Paintbrush,
-    featureKey: "pageDesigner",
-  },
-];
-
-const initiativeItems: { title: string; href: string; icon: React.ElementType; featureKey: FeatureKey }[] = [
-  {
-    title: "Initiatives",
-    href: "/portal/admin/initiatives",
-    icon: Rocket,
-    featureKey: "initiatives",
-  },
-  {
-    title: "TBMNC Suppliers",
-    href: "/portal/admin/initiatives/tbmnc",
-    icon: Battery,
-    featureKey: "tbmncSuppliers",
-  },
-];
-
-const aiItems: { title: string; href: string; icon: React.ElementType; featureKey: FeatureKey }[] = [
-  {
-    title: "Ask IntellEDGE",
-    href: "/portal/ask",
-    icon: Sparkles,
-    featureKey: "askIntelledge",
   },
 ];
 
@@ -372,15 +343,73 @@ export function PortalSidebar() {
   
   // Collapsible state for each section
   const [openSections, setOpenSections] = useState({
-    navigation: true,
-    work: true,
-    intelligence: true,
+    systemManagement: true,
+    projectManagement: true,
+    data: false,
+    people: false,
+    productivity: false,
+    affiliateCenter: false,
+    content: false,
     admin: false,
-    initiatives: false,
   });
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // Helper to render menu items
+  const renderMenuItems = (items: typeof systemManagementItems) => (
+    <SidebarMenu>
+      {items.filter(item => canSeeFeature(item.featureKey)).map((item) => (
+        <SidebarMenuItem key={item.href}>
+          <SidebarMenuButton
+            asChild
+            isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
+            tooltip={item.title}
+          >
+            <Link href={item.href}>
+              <item.icon className="h-4 w-4" />
+              <span>{item.title}</span>
+            </Link>
+          </SidebarMenuButton>
+          {item.badge && (
+            <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+          )}
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
+
+  // Helper to render a collapsible section
+  const renderSection = (
+    sectionKey: keyof typeof openSections,
+    label: string,
+    items: typeof systemManagementItems
+  ) => {
+    const visibleItems = items.filter(item => canSeeFeature(item.featureKey));
+    if (visibleItems.length === 0) return null;
+
+    return (
+      <Collapsible open={openSections[sectionKey]} onOpenChange={() => toggleSection(sectionKey)}>
+        <SidebarGroup>
+          <CollapsibleTrigger asChild>
+            <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md flex items-center justify-between pr-2">
+              <span>{label}</span>
+              {openSections[sectionKey] ? (
+                <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-sidebar-foreground/60" />
+              )}
+            </SidebarGroupLabel>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <SidebarGroupContent>
+              {renderMenuItems(visibleItems)}
+            </SidebarGroupContent>
+          </CollapsibleContent>
+        </SidebarGroup>
+      </Collapsible>
+    );
   };
 
   return (
@@ -407,233 +436,80 @@ export function PortalSidebar() {
           </div>
         )}
 
-        {/* Main Navigation */}
-        {canSeeSection("navigation") && (
-          <Collapsible open={openSections.navigation} onOpenChange={() => toggleSection("navigation")}>
-            <SidebarGroup>
-              <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md flex items-center justify-between pr-2">
-                  <span>Navigation</span>
-                  {openSections.navigation ? (
-                    <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-sidebar-foreground/60" />
-                  )}
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {mainNavItems.filter(item => canSeeFeature(item.featureKey)).map((item) => (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname === item.href}
-                          tooltip={item.title}
-                        >
-                          <Link href={item.href}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                        {item.badge && (
-                          <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
-                        )}
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        )}
+        {/* System Management */}
+        {renderSection("systemManagement", "System Management", systemManagementItems)}
 
-        {/* Work Items */}
-        {canSeeSection("work") && (
-          <Collapsible open={openSections.work} onOpenChange={() => toggleSection("work")}>
-            <SidebarGroup>
-              <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md flex items-center justify-between pr-2">
-                  <span>Work</span>
-                  {openSections.work ? (
-                    <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-sidebar-foreground/60" />
-                  )}
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {workItems.filter(item => canSeeFeature(item.featureKey)).map((item) => (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname === item.href}
-                          tooltip={item.title}
-                        >
-                          <Link href={item.href}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        )}
+        {/* Project Management */}
+        {renderSection("projectManagement", "Project Management", projectManagementItems)}
 
-        {/* AI */}
-        {canSeeSection("intelligence") && (
-          <Collapsible open={openSections.intelligence} onOpenChange={() => toggleSection("intelligence")}>
-            <SidebarGroup>
-              <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md flex items-center justify-between pr-2">
-                  <span>Intelligence</span>
-                  {openSections.intelligence ? (
-                    <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-sidebar-foreground/60" />
-                  )}
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {aiItems.filter(item => canSeeFeature(item.featureKey)).map((item) => (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname === item.href}
-                          tooltip={item.title}
-                        >
-                          <Link href={item.href}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        )}
+        {/* Data */}
+        {renderSection("data", "Data", dataItems)}
+
+        {/* People */}
+        {renderSection("people", "People", peopleItems)}
+
+        {/* Productivity */}
+        {renderSection("productivity", "Productivity", productivityItems)}
+
+        {/* Affiliate Center */}
+        {renderSection("affiliateCenter", "Affiliate Center", affiliateCenterItems)}
+
+        {/* Content */}
+        {renderSection("content", "Content", contentItems)}
 
         {/* Admin */}
-        {canSeeSection("admin") && (
-          <Collapsible open={openSections.admin} onOpenChange={() => toggleSection("admin")}>
-            <SidebarGroup>
-              <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md flex items-center justify-between pr-2">
-                  <span>Admin</span>
-                  {openSections.admin ? (
-                    <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-sidebar-foreground/60" />
+        <Collapsible open={openSections.admin} onOpenChange={() => toggleSection("admin")}>
+          <SidebarGroup>
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md flex items-center justify-between pr-2">
+                <span>Admin</span>
+                {openSections.admin ? (
+                  <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-sidebar-foreground/60" />
+                )}
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {adminItems.filter(item => canSeeFeature(item.featureKey)).map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === item.href || pathname.startsWith(item.href)}
+                        tooltip={item.title}
+                      >
+                        <Link href={item.href}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      {item.badge && (
+                        <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                      )}
+                    </SidebarMenuItem>
+                  ))}
+                  {/* SuperAdmin Controls - Only visible to superadmins */}
+                  {showSuperAdminLink && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === "/portal/admin/superadmin"}
+                        tooltip="SuperAdmin Controls"
+                      >
+                        <Link href="/portal/admin/superadmin">
+                          <Shield className="h-4 w-4" />
+                          <span>SuperAdmin Controls</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   )}
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {/* Book Call Leads - with dynamic count */}
-                    {canSeeFeature("bookCallLeads") && (
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname === "/portal/admin/book-call-leads"}
-                          tooltip="Book Call Leads"
-                        >
-                          <Link href="/portal/admin/book-call-leads">
-                            <Phone className="h-4 w-4" />
-                            <span>Book Call Leads</span>
-                          </Link>
-                        </SidebarMenuButton>
-                        {bookCallLeadsCount > 0 && (
-                          <SidebarMenuBadge className="bg-red-500 text-white">
-                            {bookCallLeadsCount}
-                          </SidebarMenuBadge>
-                        )}
-                      </SidebarMenuItem>
-                    )}
-                    {adminItems.filter(item => canSeeFeature(item.featureKey)).map((item) => (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname === item.href || pathname.startsWith(item.href)}
-                          tooltip={item.title}
-                        >
-                          <Link href={item.href}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                    {/* SuperAdmin Controls - Only visible to superadmins */}
-                    {showSuperAdminLink && (
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname === "/portal/admin/superadmin"}
-                          tooltip="SuperAdmin Controls"
-                        >
-                          <Link href="/portal/admin/superadmin">
-                            <Shield className="h-4 w-4" />
-                            <span>SuperAdmin Controls</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    )}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        )}
-
-        {/* Initiatives */}
-        {canSeeSection("initiatives") && (
-          <Collapsible open={openSections.initiatives} onOpenChange={() => toggleSection("initiatives")}>
-            <SidebarGroup>
-              <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md flex items-center justify-between pr-2">
-                  <span>Initiatives</span>
-                  {openSections.initiatives ? (
-                    <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-sidebar-foreground/60" />
-                  )}
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {initiativeItems.filter(item => canSeeFeature(item.featureKey)).map((item) => (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-                          tooltip={item.title}
-                        >
-                          <Link href={item.href}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">

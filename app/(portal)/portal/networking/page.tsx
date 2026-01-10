@@ -47,6 +47,7 @@ import { cn } from "@/lib/utils";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { COLLECTIONS, type TeamMemberDoc } from "@/lib/schema";
+import { CreateReferralDialog } from "@/components/portal/create-referral-dialog";
 
 // Expertise categories for filtering
 const expertiseCategories = [
@@ -89,6 +90,7 @@ export default function NetworkingPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [isReferralDialogOpen, setIsReferralDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMemberDoc | null>(null);
   const [oneToOnes, setOneToOnes] = useState<OneToOneRequest[]>([]);
   const [requestForm, setRequestForm] = useState({
@@ -209,6 +211,10 @@ export default function NetworkingPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => setIsReferralDialogOpen(true)}>
+            <Handshake className="mr-2 h-4 w-4" />
+            Submit Referral
+          </Button>
           <Link href="/portal/networking/profile">
             <Button variant="outline">
               <FileText className="mr-2 h-4 w-4" />
@@ -677,6 +683,15 @@ export default function NetworkingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Referral Dialog */}
+      <CreateReferralDialog
+        open={isReferralDialogOpen}
+        onOpenChange={setIsReferralDialogOpen}
+        recipientId={selectedMember?.id}
+        recipientName={selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : undefined}
+        sourceContext="networking"
+      />
     </div>
   );
 }

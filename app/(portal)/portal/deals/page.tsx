@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +16,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -28,6 +37,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -38,6 +48,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DollarSign,
   Plus,
@@ -55,17 +66,27 @@ import {
   Pencil,
   Trash2,
   Eye,
+  Loader2,
+  Users,
+  Handshake,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp } from "firebase/firestore";
+import { COLLECTIONS, type ReferralDoc, type TeamMemberDoc } from "@/lib/schema";
+import { toast } from "sonner";
+import { useUserProfile } from "@/contexts/user-profile-context";
 
-// Deal stages
+// Deal/Referral stages with colors
 const dealStages = [
-  { id: "referral", name: "Referral Made", color: "bg-gray-500", commission: 7 },
-  { id: "qualified", name: "Lead Qualified", color: "bg-blue-500", commission: 7 },
-  { id: "proposal", name: "Proposal Sent", color: "bg-yellow-500", commission: 12 },
-  { id: "negotiation", name: "In Negotiation", color: "bg-orange-500", commission: 12 },
-  { id: "closed-won", name: "Closed Won", color: "bg-green-500", commission: 17 },
-  { id: "closed-lost", name: "Closed Lost", color: "bg-red-500", commission: 0 },
+  { id: "submitted", name: "Submitted", color: "bg-gray-500", icon: Clock },
+  { id: "contacted", name: "Contacted", color: "bg-blue-500", icon: Users },
+  { id: "meeting-scheduled", name: "Meeting Scheduled", color: "bg-cyan-500", icon: Calendar },
+  { id: "proposal", name: "Proposal Sent", color: "bg-yellow-500", icon: ArrowUpRight },
+  { id: "negotiation", name: "In Negotiation", color: "bg-orange-500", icon: Handshake },
+  { id: "won", name: "Won", color: "bg-green-500", icon: CheckCircle },
+  { id: "lost", name: "Lost", color: "bg-red-500", icon: XCircle },
 ];
 
 // Commission tiers
@@ -75,136 +96,215 @@ const commissionTiers = [
   { level: "co-sell", name: "Co-Sell & Close", rate: 17, description: "Support sales process" },
 ];
 
-// Mock deals data
-const mockDeals = [
-  {
-    id: "1",
-    companyName: "Precision Manufacturing Co.",
-    contactName: "John Smith",
-    contactEmail: "john@precisionmfg.com",
-    stage: "proposal",
-    value: 45000,
-    commissionTier: "assist",
-    referredBy: "Sarah Chen",
-    referredByType: "affiliate",
-    createdAt: "2024-11-15",
-    lastActivity: "2024-12-05",
-    notes: "Interested in ISO 9001 certification and lean manufacturing consulting.",
-    services: ["ISO 9001", "Lean Manufacturing"],
-  },
-  {
-    id: "2",
-    companyName: "TechParts Industries",
-    contactName: "Maria Garcia",
-    contactEmail: "maria@techparts.com",
-    stage: "negotiation",
-    value: 85000,
-    commissionTier: "co-sell",
-    referredBy: "You",
-    referredByType: "self",
-    createdAt: "2024-10-20",
-    lastActivity: "2024-12-08",
-    notes: "Large digital transformation project. Multiple phases planned.",
-    services: ["Digital Twins", "AI Implementation", "Industry 4.0"],
-  },
-  {
-    id: "3",
-    companyName: "Midwest Metals LLC",
-    contactName: "Robert Johnson",
-    contactEmail: "rjohnson@midwestmetals.com",
-    stage: "closed-won",
-    value: 32000,
-    commissionTier: "referral",
-    referredBy: "Michael Rodriguez",
-    referredByType: "affiliate",
-    createdAt: "2024-09-10",
-    lastActivity: "2024-11-28",
-    notes: "IATF 16949 certification completed successfully.",
-    services: ["IATF 16949"],
-  },
-  {
-    id: "4",
-    companyName: "Global Components Inc.",
-    contactName: "Lisa Wang",
-    contactEmail: "lwang@globalcomp.com",
-    stage: "qualified",
-    value: 120000,
-    commissionTier: "assist",
-    referredBy: "You",
-    referredByType: "self",
-    createdAt: "2024-12-01",
-    lastActivity: "2024-12-07",
-    notes: "Reshoring project from China. Complex supply chain restructuring.",
-    services: ["Reshoring", "Supply Chain", "Quality Management"],
-  },
-  {
-    id: "5",
-    companyName: "AutoParts Express",
-    contactName: "David Thompson",
-    contactEmail: "dthompson@autoparts.com",
-    stage: "closed-lost",
-    value: 28000,
-    commissionTier: "referral",
-    referredBy: "Jennifer Park",
-    referredByType: "affiliate",
-    createdAt: "2024-08-15",
-    lastActivity: "2024-10-20",
-    notes: "Lost to competitor. Budget constraints cited.",
-    services: ["Automation"],
-  },
-];
+// Display type for deals
+interface DealDisplay {
+  id: string;
+  prospectName: string;
+  prospectCompany: string;
+  prospectEmail: string;
+  prospectPhone?: string;
+  status: string;
+  estimatedValue: number;
+  dealValue?: number;
+  commissionTier: string;
+  referrerId: string;
+  referrerName: string;
+  recipientId: string;
+  recipientName: string;
+  isSvpReferral: boolean;
+  svpServiceInterest: string[];
+  description: string;
+  whyGoodFit?: string;
+  referralType: string;
+  lastContactDate?: Date;
+  lastActivityNote?: string;
+  contactAttempts: number;
+  oneToOneMeetingId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Form state for new deal
+interface NewDealForm {
+  prospectName: string;
+  prospectCompany: string;
+  prospectEmail: string;
+  prospectPhone: string;
+  estimatedValue: string;
+  commissionTier: string;
+  svpServiceInterest: string;
+  description: string;
+  whyGoodFit: string;
+  referralType: string;
+  isSvpReferral: boolean;
+}
+
+const emptyDealForm: NewDealForm = {
+  prospectName: "",
+  prospectCompany: "",
+  prospectEmail: "",
+  prospectPhone: "",
+  estimatedValue: "",
+  commissionTier: "referral",
+  svpServiceInterest: "",
+  description: "",
+  whyGoodFit: "",
+  referralType: "short-term",
+  isSvpReferral: true,
+};
 
 export default function DealsPage() {
+  const { profile, linkedTeamMember } = useUserProfile();
+  const [deals, setDeals] = useState<DealDisplay[]>([]);
+  const [affiliates, setAffiliates] = useState<TeamMemberDoc[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState<string | null>(null);
+  const [stageFilter, setStageFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState("all");
+  
+  // Dialog states
   const [isNewDealOpen, setIsNewDealOpen] = useState(false);
-  const [selectedDeal, setSelectedDeal] = useState<typeof mockDeals[0] | null>(null);
-  const [newDeal, setNewDeal] = useState({
-    companyName: "",
-    contactName: "",
-    contactEmail: "",
-    value: "",
-    commissionTier: "referral",
-    services: "",
-    notes: "",
-  });
+  const [selectedDeal, setSelectedDeal] = useState<DealDisplay | null>(null);
+  const [dealToDelete, setDealToDelete] = useState<DealDisplay | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  
+  // Form state
+  const [newDeal, setNewDeal] = useState<NewDealForm>(emptyDealForm);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const filteredDeals = mockDeals.filter((deal) => {
+  // Load deals and affiliates from Firebase
+  useEffect(() => {
+    loadData();
+  }, [profile.id]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([loadDeals(), loadAffiliates()]);
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast.error("Failed to load deals");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadDeals = async () => {
+    if (!db) return;
+
+    try {
+      const dealsRef = collection(db, COLLECTIONS.REFERRALS);
+      // Get all SVP referrals or referrals involving current user
+      const q = query(dealsRef, orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+      
+      const loadedDeals: DealDisplay[] = snapshot.docs.map(doc => {
+        const data = doc.data() as ReferralDoc;
+        return {
+          id: doc.id,
+          prospectName: data.prospectName,
+          prospectCompany: data.prospectCompany || "",
+          prospectEmail: data.prospectEmail || "",
+          prospectPhone: data.prospectPhone,
+          status: data.status,
+          estimatedValue: data.estimatedValue || 0,
+          dealValue: data.dealValue,
+          commissionTier: data.commissionTier || "referral",
+          referrerId: data.referrerId,
+          referrerName: data.referrerName || "Unknown",
+          recipientId: data.recipientId,
+          recipientName: data.recipientName || "SVP",
+          isSvpReferral: data.isSvpReferral,
+          svpServiceInterest: data.svpServiceInterest || [],
+          description: data.description,
+          whyGoodFit: data.whyGoodFit,
+          referralType: data.referralType,
+          lastContactDate: data.lastContactDate?.toDate(),
+          lastActivityNote: data.lastActivityNote,
+          contactAttempts: data.contactAttempts || 0,
+          oneToOneMeetingId: data.oneToOneMeetingId,
+          createdAt: data.createdAt.toDate(),
+          updatedAt: data.updatedAt.toDate(),
+        };
+      });
+      
+      setDeals(loadedDeals);
+    } catch (error) {
+      console.error("Error loading deals:", error);
+    }
+  };
+
+  const loadAffiliates = async () => {
+    if (!db) return;
+
+    try {
+      const affiliatesRef = collection(db, COLLECTIONS.TEAM_MEMBERS);
+      const q = query(affiliatesRef, where("role", "==", "affiliate"));
+      const snapshot = await getDocs(q);
+      
+      const loadedAffiliates: TeamMemberDoc[] = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as TeamMemberDoc));
+      
+      setAffiliates(loadedAffiliates);
+    } catch (error) {
+      console.error("Error loading affiliates:", error);
+    }
+  };
+
+  // Filter deals based on search, stage, and tab
+  const filteredDeals = deals.filter((deal) => {
     const matchesSearch =
-      deal.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      deal.contactName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStage = !stageFilter || deal.stage === stageFilter;
-    return matchesSearch && matchesStage;
+      deal.prospectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      deal.prospectCompany.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      deal.referrerName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStage = stageFilter === "all" || deal.status === stageFilter;
+    
+    // Tab filtering
+    let matchesTab = true;
+    if (activeTab === "my-referrals") {
+      matchesTab = deal.referrerId === (linkedTeamMember?.id || profile.id);
+    } else if (activeTab === "received") {
+      matchesTab = deal.recipientId === (linkedTeamMember?.id || profile.id);
+    } else if (activeTab === "svp") {
+      matchesTab = deal.isSvpReferral;
+    }
+    
+    return matchesSearch && matchesStage && matchesTab;
   });
 
-  const totalPipelineValue = mockDeals
-    .filter((d) => !["closed-won", "closed-lost"].includes(d.stage))
-    .reduce((sum, d) => sum + d.value, 0);
-
-  const totalWonValue = mockDeals
-    .filter((d) => d.stage === "closed-won")
-    .reduce((sum, d) => sum + d.value, 0);
-
-  const totalCommissionEarned = mockDeals
-    .filter((d) => d.stage === "closed-won")
-    .reduce((sum, d) => {
-      const tier = commissionTiers.find((t) => t.level === d.commissionTier);
-      return sum + (d.value * (tier?.rate || 0)) / 100;
+  // Calculate stats
+  const calculateStats = () => {
+    const activeDeals = deals.filter(d => !["won", "lost"].includes(d.status));
+    const wonDeals = deals.filter(d => d.status === "won");
+    
+    const pipelineValue = activeDeals.reduce((sum, d) => sum + (d.estimatedValue || 0), 0);
+    const wonValue = wonDeals.reduce((sum, d) => sum + (d.dealValue || d.estimatedValue || 0), 0);
+    
+    const commissionEarned = wonDeals.reduce((sum, d) => {
+      const tier = commissionTiers.find(t => t.level === d.commissionTier);
+      const value = d.dealValue || d.estimatedValue || 0;
+      return sum + (value * (tier?.rate || 0)) / 100;
     }, 0);
-
-  const potentialCommission = mockDeals
-    .filter((d) => !["closed-won", "closed-lost"].includes(d.stage))
-    .reduce((sum, d) => {
-      const tier = commissionTiers.find((t) => t.level === d.commissionTier);
-      return sum + (d.value * (tier?.rate || 0)) / 100;
+    
+    const potentialCommission = activeDeals.reduce((sum, d) => {
+      const tier = commissionTiers.find(t => t.level === d.commissionTier);
+      return sum + ((d.estimatedValue || 0) * (tier?.rate || 0)) / 100;
     }, 0);
+    
+    return { pipelineValue, wonValue, commissionEarned, potentialCommission };
+  };
 
+  const stats = calculateStats();
+
+  // Helper functions
   const getStageInfo = (stageId: string) => {
-    return dealStages.find((s) => s.id === stageId) || dealStages[0];
+    return dealStages.find(s => s.id === stageId) || dealStages[0];
   };
 
   const getCommissionTier = (tierId: string) => {
-    return commissionTiers.find((t) => t.level === tierId) || commissionTiers[0];
+    return commissionTiers.find(t => t.level === tierId) || commissionTiers[0];
   };
 
   const formatCurrency = (value: number) => {
@@ -215,19 +315,137 @@ export default function DealsPage() {
     }).format(value);
   };
 
-  const submitNewDeal = () => {
-    console.log("Creating new deal:", newDeal);
-    setIsNewDealOpen(false);
-    setNewDeal({
-      companyName: "",
-      contactName: "",
-      contactEmail: "",
-      value: "",
-      commissionTier: "referral",
-      services: "",
-      notes: "",
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
+
+  // CRUD operations
+  const handleCreateDeal = async () => {
+    if (!newDeal.prospectName || !newDeal.prospectCompany) {
+      toast.error("Please fill in required fields");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (!db) throw new Error("Database not available");
+
+      const referrerId = linkedTeamMember?.id || profile.id || "unknown";
+      const referrerName = linkedTeamMember 
+        ? `${linkedTeamMember.firstName} ${linkedTeamMember.lastName}`
+        : `${profile.firstName} ${profile.lastName}`;
+
+      const dealData: Omit<ReferralDoc, "id"> = {
+        referrerId,
+        referrerName,
+        recipientId: "svp", // Default to SVP
+        recipientName: "Strategic Value Plus",
+        prospectName: newDeal.prospectName,
+        prospectCompany: newDeal.prospectCompany,
+        prospectEmail: newDeal.prospectEmail,
+        prospectPhone: newDeal.prospectPhone || undefined,
+        description: newDeal.description,
+        whyGoodFit: newDeal.whyGoodFit || undefined,
+        referralType: newDeal.referralType as "short-term" | "long-term",
+        isSvpReferral: newDeal.isSvpReferral,
+        svpServiceInterest: newDeal.svpServiceInterest.split(",").map(s => s.trim()).filter(s => s),
+        status: "submitted",
+        commissionTier: newDeal.commissionTier as "referral" | "assist" | "co-sell",
+        estimatedValue: parseFloat(newDeal.estimatedValue) || 0,
+        contactAttempts: 0,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+
+      const dealsRef = collection(db, COLLECTIONS.REFERRALS);
+      await addDoc(dealsRef, dealData);
+      
+      toast.success("Referral created successfully");
+      setIsNewDealOpen(false);
+      setNewDeal(emptyDealForm);
+      await loadDeals();
+    } catch (error) {
+      console.error("Error creating deal:", error);
+      toast.error("Failed to create referral");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateDealStatus = async (deal: DealDisplay, newStatus: string) => {
+    try {
+      if (!db) throw new Error("Database not available");
+
+      const dealRef = doc(db, COLLECTIONS.REFERRALS, deal.id);
+      await updateDoc(dealRef, {
+        status: newStatus,
+        updatedAt: Timestamp.now(),
+      });
+
+      setDeals(prev => prev.map(d => 
+        d.id === deal.id ? { ...d, status: newStatus, updatedAt: new Date() } : d
+      ));
+      
+      toast.success(`Deal moved to ${getStageInfo(newStatus).name}`);
+    } catch (error) {
+      console.error("Error updating deal:", error);
+      toast.error("Failed to update deal");
+    }
+  };
+
+  const handleDeleteDeal = async () => {
+    if (!dealToDelete) return;
+
+    setIsSaving(true);
+    try {
+      if (!db) throw new Error("Database not available");
+
+      await deleteDoc(doc(db, COLLECTIONS.REFERRALS, dealToDelete.id));
+      setDeals(prev => prev.filter(d => d.id !== dealToDelete.id));
+      toast.success("Referral deleted");
+      setDealToDelete(null);
+    } catch (error) {
+      console.error("Error deleting deal:", error);
+      toast.error("Failed to delete referral");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogActivity = async (deal: DealDisplay, note: string) => {
+    try {
+      if (!db) throw new Error("Database not available");
+
+      const dealRef = doc(db, COLLECTIONS.REFERRALS, deal.id);
+      await updateDoc(dealRef, {
+        lastContactDate: Timestamp.now(),
+        lastActivityNote: note,
+        contactAttempts: (deal.contactAttempts || 0) + 1,
+        updatedAt: Timestamp.now(),
+      });
+
+      await loadDeals();
+      toast.success("Activity logged");
+    } catch (error) {
+      console.error("Error logging activity:", error);
+      toast.error("Failed to log activity");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading deals...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -236,13 +454,19 @@ export default function DealsPage() {
         <div>
           <h1 className="text-3xl font-bold">Deal Tracking</h1>
           <p className="text-muted-foreground">
-            Track referrals and commissions with affiliates
+            Track referrals and commissions from your network
           </p>
         </div>
-        <Button onClick={() => setIsNewDealOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Referral
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={loadData}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button onClick={() => setIsNewDealOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Referral
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -254,8 +478,10 @@ export default function DealsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalPipelineValue)}</div>
-            <p className="text-xs text-muted-foreground">Active deals</p>
+            <div className="text-2xl font-bold">{formatCurrency(stats.pipelineValue)}</div>
+            <p className="text-xs text-muted-foreground">
+              {deals.filter(d => !["won", "lost"].includes(d.status)).length} active deals
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -266,9 +492,11 @@ export default function DealsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(totalWonValue)}
+              {formatCurrency(stats.wonValue)}
             </div>
-            <p className="text-xs text-muted-foreground">This year</p>
+            <p className="text-xs text-muted-foreground">
+              {deals.filter(d => d.status === "won").length} deals won
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -279,9 +507,9 @@ export default function DealsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              {formatCurrency(totalCommissionEarned)}
+              {formatCurrency(stats.commissionEarned)}
             </div>
-            <p className="text-xs text-muted-foreground">Paid out</p>
+            <p className="text-xs text-muted-foreground">From won deals</p>
           </CardContent>
         </Card>
         <Card>
@@ -292,7 +520,7 @@ export default function DealsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {formatCurrency(potentialCommission)}
+              {formatCurrency(stats.potentialCommission)}
             </div>
             <p className="text-xs text-muted-foreground">If all close</p>
           </CardContent>
@@ -324,6 +552,19 @@ export default function DealsPage() {
         </CardContent>
       </Card>
 
+      {/* Tabs for filtering */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="all">All Deals ({deals.length})</TabsTrigger>
+          <TabsTrigger value="my-referrals">
+            My Referrals ({deals.filter(d => d.referrerId === (linkedTeamMember?.id || profile.id)).length})
+          </TabsTrigger>
+          <TabsTrigger value="svp">
+            SVP Referrals ({deals.filter(d => d.isSvpReferral).length})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -335,10 +576,7 @@ export default function DealsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Select
-          value={stageFilter || "all"}
-          onValueChange={(v) => setStageFilter(v === "all" ? null : v)}
-        >
+        <Select value={stageFilter} onValueChange={setStageFilter}>
           <SelectTrigger className="w-[200px]">
             <Filter className="mr-2 h-4 w-4" />
             <SelectValue placeholder="Filter by stage" />
@@ -360,7 +598,7 @@ export default function DealsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Company</TableHead>
+                <TableHead>Prospect</TableHead>
                 <TableHead>Stage</TableHead>
                 <TableHead>Value</TableHead>
                 <TableHead>Commission</TableHead>
@@ -370,79 +608,124 @@ export default function DealsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDeals.map((deal) => {
-                const stage = getStageInfo(deal.stage);
-                const tier = getCommissionTier(deal.commissionTier);
-                const commission = (deal.value * tier.rate) / 100;
+              {filteredDeals.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">No deals found</p>
+                    <Button 
+                      variant="link" 
+                      className="mt-2"
+                      onClick={() => setIsNewDealOpen(true)}
+                    >
+                      Create your first referral
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredDeals.map((deal) => {
+                  const stage = getStageInfo(deal.status);
+                  const tier = getCommissionTier(deal.commissionTier);
+                  const value = deal.dealValue || deal.estimatedValue || 0;
+                  const commission = (value * tier.rate) / 100;
+                  const StageIcon = stage.icon;
 
-                return (
-                  <TableRow key={deal.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{deal.companyName}</p>
-                        <p className="text-sm text-muted-foreground">{deal.contactName}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={cn("text-white", stage.color)}
-                      >
-                        {stage.name}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {formatCurrency(deal.value)}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-primary">
-                          {formatCurrency(commission)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {tier.rate}% - {tier.name}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">
-                            {deal.referredBy.split(" ").map((n) => n[0]).join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">{deal.referredBy}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(deal.lastActivity).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setSelectedDeal(deal)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                  return (
+                    <TableRow key={deal.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{deal.prospectCompany || deal.prospectName}</p>
+                          <p className="text-sm text-muted-foreground">{deal.prospectName}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={cn("text-white gap-1", stage.color)}
+                        >
+                          <StageIcon className="h-3 w-3" />
+                          {stage.name}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatCurrency(value)}
+                        {deal.status !== "won" && deal.estimatedValue && (
+                          <span className="text-xs text-muted-foreground ml-1">(est)</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-primary">
+                            {formatCurrency(commission)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {tier.rate}% - {tier.name}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-xs">
+                              {deal.referrerName.split(" ").map(n => n[0]).join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm">{deal.referrerName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {deal.lastContactDate ? formatDate(deal.lastContactDate) : formatDate(deal.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedDeal(deal)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                setSelectedDeal(deal);
+                                setIsEditMode(true);
+                              }}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            {!["won", "lost"].includes(deal.status) && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleUpdateDealStatus(deal, "won")}>
+                                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                  Mark as Won
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateDealStatus(deal, "lost")}>
+                                  <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                                  Mark as Lost
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => setDealToDelete(deal)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -450,56 +733,56 @@ export default function DealsPage() {
 
       {/* New Deal Dialog */}
       <Dialog open={isNewDealOpen} onOpenChange={setIsNewDealOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Create New Referral</DialogTitle>
             <DialogDescription>
-              Add a new referral to track commissions
+              Submit a new referral to track commissions
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
             <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name</Label>
+              <Label htmlFor="prospectCompany">Company Name *</Label>
               <Input
-                id="companyName"
+                id="prospectCompany"
                 placeholder="Enter company name"
-                value={newDeal.companyName}
-                onChange={(e) => setNewDeal({ ...newDeal, companyName: e.target.value })}
+                value={newDeal.prospectCompany}
+                onChange={(e) => setNewDeal({ ...newDeal, prospectCompany: e.target.value })}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contactName">Contact Name</Label>
+                <Label htmlFor="prospectName">Contact Name *</Label>
                 <Input
-                  id="contactName"
+                  id="prospectName"
                   placeholder="Contact name"
-                  value={newDeal.contactName}
-                  onChange={(e) => setNewDeal({ ...newDeal, contactName: e.target.value })}
+                  value={newDeal.prospectName}
+                  onChange={(e) => setNewDeal({ ...newDeal, prospectName: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactEmail">Contact Email</Label>
+                <Label htmlFor="prospectEmail">Contact Email</Label>
                 <Input
-                  id="contactEmail"
+                  id="prospectEmail"
                   type="email"
                   placeholder="email@company.com"
-                  value={newDeal.contactEmail}
-                  onChange={(e) => setNewDeal({ ...newDeal, contactEmail: e.target.value })}
+                  value={newDeal.prospectEmail}
+                  onChange={(e) => setNewDeal({ ...newDeal, prospectEmail: e.target.value })}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="value">Estimated Value</Label>
+                <Label htmlFor="estimatedValue">Estimated Value</Label>
                 <Input
-                  id="value"
+                  id="estimatedValue"
                   type="number"
                   placeholder="$0"
-                  value={newDeal.value}
-                  onChange={(e) => setNewDeal({ ...newDeal, value: e.target.value })}
+                  value={newDeal.estimatedValue}
+                  onChange={(e) => setNewDeal({ ...newDeal, estimatedValue: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -523,23 +806,51 @@ export default function DealsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="services">Services Interested In</Label>
+              <Label htmlFor="referralType">Referral Type</Label>
+              <Select
+                value={newDeal.referralType}
+                onValueChange={(v) => setNewDeal({ ...newDeal, referralType: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="short-term">Short-term (immediate need)</SelectItem>
+                  <SelectItem value="long-term">Long-term (future opportunity)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="svpServiceInterest">Services Interested In</Label>
               <Input
-                id="services"
-                placeholder="e.g., ISO 9001, Lean Manufacturing"
-                value={newDeal.services}
-                onChange={(e) => setNewDeal({ ...newDeal, services: e.target.value })}
+                id="svpServiceInterest"
+                placeholder="e.g., ISO 9001, Lean Manufacturing, Digital Transformation"
+                value={newDeal.svpServiceInterest}
+                onChange={(e) => setNewDeal({ ...newDeal, svpServiceInterest: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Separate multiple services with commas</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description *</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe the referral opportunity..."
+                value={newDeal.description}
+                onChange={(e) => setNewDeal({ ...newDeal, description: e.target.value })}
+                rows={3}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="whyGoodFit">Why is this a good fit?</Label>
               <Textarea
-                id="notes"
-                placeholder="Additional details about the referral..."
-                value={newDeal.notes}
-                onChange={(e) => setNewDeal({ ...newDeal, notes: e.target.value })}
-                rows={3}
+                id="whyGoodFit"
+                placeholder="Explain why this prospect would benefit from SVP services..."
+                value={newDeal.whyGoodFit}
+                onChange={(e) => setNewDeal({ ...newDeal, whyGoodFit: e.target.value })}
+                rows={2}
               />
             </div>
           </div>
@@ -548,8 +859,12 @@ export default function DealsPage() {
             <Button variant="outline" onClick={() => setIsNewDealOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={submitNewDeal}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button onClick={handleCreateDeal} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
               Create Referral
             </Button>
           </DialogFooter>
@@ -557,14 +872,14 @@ export default function DealsPage() {
       </Dialog>
 
       {/* Deal Details Dialog */}
-      <Dialog open={!!selectedDeal} onOpenChange={() => setSelectedDeal(null)}>
+      <Dialog open={!!selectedDeal && !isEditMode} onOpenChange={() => setSelectedDeal(null)}>
         <DialogContent className="max-w-lg">
           {selectedDeal && (
             <>
               <DialogHeader>
-                <DialogTitle>{selectedDeal.companyName}</DialogTitle>
+                <DialogTitle>{selectedDeal.prospectCompany || selectedDeal.prospectName}</DialogTitle>
                 <DialogDescription>
-                  Deal details and activity
+                  Referral details and activity
                 </DialogDescription>
               </DialogHeader>
 
@@ -572,16 +887,18 @@ export default function DealsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground">Contact</Label>
-                    <p className="font-medium">{selectedDeal.contactName}</p>
-                    <p className="text-sm text-muted-foreground">{selectedDeal.contactEmail}</p>
+                    <p className="font-medium">{selectedDeal.prospectName}</p>
+                    {selectedDeal.prospectEmail && (
+                      <p className="text-sm text-muted-foreground">{selectedDeal.prospectEmail}</p>
+                    )}
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Stage</Label>
                     <Badge
                       variant="secondary"
-                      className={cn("text-white mt-1", getStageInfo(selectedDeal.stage).color)}
+                      className={cn("text-white mt-1", getStageInfo(selectedDeal.status).color)}
                     >
-                      {getStageInfo(selectedDeal.stage).name}
+                      {getStageInfo(selectedDeal.status).name}
                     </Badge>
                   </div>
                 </div>
@@ -589,13 +906,16 @@ export default function DealsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground">Deal Value</Label>
-                    <p className="text-xl font-bold">{formatCurrency(selectedDeal.value)}</p>
+                    <p className="text-xl font-bold">
+                      {formatCurrency(selectedDeal.dealValue || selectedDeal.estimatedValue || 0)}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Your Commission</Label>
                     <p className="text-xl font-bold text-primary">
                       {formatCurrency(
-                        (selectedDeal.value * getCommissionTier(selectedDeal.commissionTier).rate) / 100
+                        ((selectedDeal.dealValue || selectedDeal.estimatedValue || 0) * 
+                          getCommissionTier(selectedDeal.commissionTier).rate) / 100
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -605,38 +925,66 @@ export default function DealsPage() {
                 </div>
 
                 <div>
-                  <Label className="text-muted-foreground">Services</Label>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {selectedDeal.services.map((service) => (
-                      <Badge key={service} variant="outline">
-                        {service}
-                      </Badge>
-                    ))}
+                  <Label className="text-muted-foreground">Referred By</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-xs">
+                        {selectedDeal.referrerName.split(" ").map(n => n[0]).join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>{selectedDeal.referrerName}</span>
                   </div>
                 </div>
 
+                {selectedDeal.svpServiceInterest.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">Services</Label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {selectedDeal.svpServiceInterest.map((service) => (
+                        <Badge key={service} variant="outline">
+                          {service}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <Label className="text-muted-foreground">Notes</Label>
-                  <p className="text-sm mt-1">{selectedDeal.notes}</p>
+                  <Label className="text-muted-foreground">Description</Label>
+                  <p className="text-sm mt-1">{selectedDeal.description}</p>
                 </div>
+
+                {selectedDeal.whyGoodFit && (
+                  <div>
+                    <Label className="text-muted-foreground">Why Good Fit</Label>
+                    <p className="text-sm mt-1">{selectedDeal.whyGoodFit}</p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground">Created</Label>
-                    <p>{new Date(selectedDeal.createdAt).toLocaleDateString()}</p>
+                    <p>{formatDate(selectedDeal.createdAt)}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Last Activity</Label>
-                    <p>{new Date(selectedDeal.lastActivity).toLocaleDateString()}</p>
+                    <p>{selectedDeal.lastContactDate ? formatDate(selectedDeal.lastContactDate) : "No activity yet"}</p>
                   </div>
                 </div>
+
+                {selectedDeal.lastActivityNote && (
+                  <div>
+                    <Label className="text-muted-foreground">Last Activity Note</Label>
+                    <p className="text-sm mt-1">{selectedDeal.lastActivityNote}</p>
+                  </div>
+                )}
               </div>
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setSelectedDeal(null)}>
                   Close
                 </Button>
-                <Button>
+                <Button onClick={() => setIsEditMode(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit Deal
                 </Button>
@@ -645,6 +993,33 @@ export default function DealsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!dealToDelete} onOpenChange={() => setDealToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Referral?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the referral for &quot;{dealToDelete?.prospectCompany || dealToDelete?.prospectName}&quot;. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteDeal}
+              disabled={isSaving}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isSaving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

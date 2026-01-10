@@ -71,8 +71,9 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import { COLLECTIONS, type EventDoc } from "@/lib/schema";
+import { COLLECTIONS, type EventDoc, type EventTicketType } from "@/lib/schema";
 import { toast } from "sonner";
+import { TicketTypeManager } from "@/components/events/ticket-type-manager";
 
 type EventCategory = "webinar" | "workshop" | "conference" | "networking" | "training" | "other";
 type EventStatus = "draft" | "published" | "cancelled" | "completed";
@@ -98,6 +99,9 @@ interface EventFormData {
   tags: string;
   status: EventStatus;
   isFeatured: boolean;
+  slug: string;
+  ticketTypes: EventTicketType[];
+  isFreeEvent: boolean;
 }
 
 const emptyFormData: EventFormData = {
@@ -108,6 +112,9 @@ const emptyFormData: EventFormData = {
   startTime: "09:00",
   endDate: "",
   endTime: "17:00",
+  slug: "",
+  ticketTypes: [],
+  isFreeEvent: false,
   isAllDay: false,
   locationType: "virtual",
   location: "",
@@ -243,6 +250,9 @@ export default function EventsAdminPage() {
         tags: event.tags?.join(", ") || "",
         status: event.status,
         isFeatured: event.isFeatured || false,
+        slug: event.slug || "",
+        ticketTypes: event.ticketTypes || [],
+        isFreeEvent: event.isFreeEvent || false,
       });
     } else {
       setEditingEvent(null);
@@ -279,6 +289,9 @@ export default function EventsAdminPage() {
         ? new Date(formData.registrationDeadline + "T23:59:59")
         : null;
 
+      // Generate slug from title if not provided
+      const slug = formData.slug || formData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
       const eventData: Partial<EventDoc> = {
         title: formData.title,
         description: formData.description || undefined,
@@ -297,6 +310,9 @@ export default function EventsAdminPage() {
         tags: formData.tags ? formData.tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
         status: formData.status,
         isFeatured: formData.isFeatured,
+        slug,
+        ticketTypes: formData.ticketTypes,
+        isFreeEvent: formData.isFreeEvent,
         updatedAt: Timestamp.now(),
       };
 
@@ -804,10 +820,30 @@ export default function EventsAdminPage() {
               </div>
             </div>
 
+            {/* Ticketing */}
+            <TicketTypeManager
+              ticketTypes={formData.ticketTypes}
+              onChange={(ticketTypes) => setFormData({ ...formData, ticketTypes })}
+              isFreeEvent={formData.isFreeEvent}
+              onFreeEventChange={(isFreeEvent) => setFormData({ ...formData, isFreeEvent })}
+            />
+
             {/* Display Options */}
             <div className="space-y-4">
               <h3 className="font-medium text-sm text-muted-foreground">Display Options</h3>
               <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="slug">URL Slug</Label>
+                  <Input
+                    id="slug"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    placeholder="auto-generated-from-title"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty to auto-generate from title. Used in event URL: /events/[slug]
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="imageUrl">Cover Image URL</Label>
                   <Input

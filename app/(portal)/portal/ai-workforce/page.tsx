@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -26,14 +25,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Bot,
   Plus,
   Send,
   Loader2,
-  Sparkles,
-  MessageSquare,
   Trash2,
-  Settings,
   RefreshCw,
   Copy,
   Check,
@@ -43,8 +49,19 @@ import {
   Megaphone,
   Target,
   Users,
+  Wifi,
+  WifiOff,
+  AlertCircle,
+  CheckCircle,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp } from "firebase/firestore";
+import { COLLECTIONS, type AIEmployeeDoc, type AIEmployeeChatDoc } from "@/lib/schema";
+import { toast } from "sonner";
+import { useUserProfile } from "@/contexts/user-profile-context";
+import Link from "next/link";
 import {
   AI_EMPLOYEE_CONFIGS,
   AI_EMPLOYEE_ROLES,
@@ -73,20 +90,138 @@ const roleIcons: Record<AIEmployeeRole, React.ElementType> = {
   sales: Target,
 };
 
+type AIStatus = "checking" | "connected" | "fallback" | "error";
+
 export default function AIWorkforcePage() {
+  const { profile } = useUserProfile();
   const [employees, setEmployees] = useState<AIEmployee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<AIEmployee | null>(null);
   const [chats, setChats] = useState<Record<string, ChatMessage[]>>({});
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<AIEmployee | null>(null);
   const [newEmployeeRole, setNewEmployeeRole] = useState<AIEmployeeRole>("cfo");
   const [newEmployeeName, setNewEmployeeName] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [aiStatus, setAiStatus] = useState<AIStatus>("checking");
+  const [isSaving, setIsSaving] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load employees from localStorage on mount
+  // Check AI connection status on mount
   useEffect(() => {
+    checkAIStatus();
+  }, []);
+
+  const checkAIStatus = async () => {
+    setAiStatus("checking");
+    try {
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: "test",
+          systemPrompt: "Respond with 'ok'",
+          conversationHistory: [],
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Check if it's a fallback response
+        if (data.response?.includes("configure your LLM") || data.response?.includes("unlock full AI")) {
+          setAiStatus("fallback");
+        } else {
+          setAiStatus("connected");
+        }
+      } else {
+        setAiStatus("error");
+      }
+    } catch {
+      setAiStatus("error");
+    }
+  };
+
+  // Load employees from Firebase on mount
+  useEffect(() => {
+    loadEmployeesFromFirebase();
+  }, [profile.id]);
+
+  const loadEmployeesFromFirebase = async () => {
+    if (!db || !profile.id) {
+      // Fallback to localStorage if Firebase not available
+      loadFromLocalStorage();
+      return;
+    }
+
+    setIsLoadingEmployees(true);
+    try {
+      const employeesRef = collection(db, COLLECTIONS.AI_EMPLOYEES);
+      const q = query(employeesRef, where("userId", "==", profile.id), orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        // Initialize with default employees
+        await initializeDefaultEmployees();
+      } else {
+        const loadedEmployees: AIEmployee[] = snapshot.docs.map(doc => {
+          const data = doc.data() as AIEmployeeDoc;
+          return {
+            id: doc.id,
+            role: data.role as AIEmployeeRole,
+            name: data.name,
+            title: data.title,
+            description: data.description,
+            avatar: data.avatar,
+            color: data.color,
+            systemPrompt: data.systemPrompt,
+            capabilities: data.capabilities,
+            sampleQuestions: data.sampleQuestions,
+          };
+        });
+        setEmployees(loadedEmployees);
+        if (loadedEmployees.length > 0) {
+          setSelectedEmployee(loadedEmployees[0]);
+        }
+      }
+
+      // Load chats
+      await loadChatsFromFirebase();
+    } catch (error) {
+      console.error("Error loading employees from Firebase:", error);
+      loadFromLocalStorage();
+    } finally {
+      setIsLoadingEmployees(false);
+    }
+  };
+
+  const loadChatsFromFirebase = async () => {
+    if (!db || !profile.id) return;
+
+    try {
+      const chatsRef = collection(db, COLLECTIONS.AI_EMPLOYEE_CHATS);
+      const q = query(chatsRef, where("userId", "==", profile.id));
+      const snapshot = await getDocs(q);
+      
+      const loadedChats: Record<string, ChatMessage[]> = {};
+      snapshot.docs.forEach(doc => {
+        const data = doc.data() as AIEmployeeChatDoc;
+        loadedChats[data.employeeId] = data.messages.map(msg => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp.toDate(),
+        }));
+      });
+      setChats(loadedChats);
+    } catch (error) {
+      console.error("Error loading chats from Firebase:", error);
+    }
+  };
+
+  const loadFromLocalStorage = () => {
     const savedEmployees = localStorage.getItem("svp_ai_employees");
     if (savedEmployees) {
       try {
@@ -96,11 +231,10 @@ export default function AIWorkforcePage() {
           setSelectedEmployee(parsed[0]);
         }
       } catch {
-        // Initialize with default employees if parsing fails
-        initializeDefaultEmployees();
+        initializeDefaultEmployeesLocal();
       }
     } else {
-      initializeDefaultEmployees();
+      initializeDefaultEmployeesLocal();
     }
 
     const savedChats = localStorage.getItem("svp_ai_chats");
@@ -111,28 +245,10 @@ export default function AIWorkforcePage() {
         // Ignore
       }
     }
-  }, []);
+    setIsLoadingEmployees(false);
+  };
 
-  // Save employees to localStorage when they change
-  useEffect(() => {
-    if (employees.length > 0) {
-      localStorage.setItem("svp_ai_employees", JSON.stringify(employees));
-    }
-  }, [employees]);
-
-  // Save chats to localStorage when they change
-  useEffect(() => {
-    if (Object.keys(chats).length > 0) {
-      localStorage.setItem("svp_ai_chats", JSON.stringify(chats));
-    }
-  }, [chats]);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chats, selectedEmployee]);
-
-  const initializeDefaultEmployees = () => {
+  const initializeDefaultEmployeesLocal = () => {
     const defaultEmployees: AIEmployee[] = [
       createDefaultAIEmployee("cfo", "Alex Finance"),
       createDefaultAIEmployee("hr", "Jordan People"),
@@ -142,37 +258,168 @@ export default function AIWorkforcePage() {
     ];
     setEmployees(defaultEmployees);
     setSelectedEmployee(defaultEmployees[0]);
+    localStorage.setItem("svp_ai_employees", JSON.stringify(defaultEmployees));
   };
 
-  const addEmployee = () => {
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chats, selectedEmployee]);
+
+  const initializeDefaultEmployees = async () => {
+    const defaultEmployees: AIEmployee[] = [
+      createDefaultAIEmployee("cfo", "Alex Finance"),
+      createDefaultAIEmployee("hr", "Jordan People"),
+      createDefaultAIEmployee("legal", "Morgan Counsel"),
+      createDefaultAIEmployee("marketing", "Taylor Brand"),
+      createDefaultAIEmployee("sales", "Casey Closer"),
+    ];
+    
+    // Save to Firebase if available
+    if (db && profile.id) {
+      try {
+        const employeesRef = collection(db, COLLECTIONS.AI_EMPLOYEES);
+        for (const emp of defaultEmployees) {
+          await addDoc(employeesRef, {
+            userId: profile.id,
+            role: emp.role,
+            name: emp.name,
+            title: emp.title,
+            description: emp.description,
+            avatar: emp.avatar,
+            color: emp.color,
+            systemPrompt: emp.systemPrompt,
+            capabilities: emp.capabilities,
+            sampleQuestions: emp.sampleQuestions,
+            isActive: true,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          });
+        }
+        // Reload from Firebase to get proper IDs
+        await loadEmployeesFromFirebase();
+      } catch (error) {
+        console.error("Error saving default employees to Firebase:", error);
+        setEmployees(defaultEmployees);
+        setSelectedEmployee(defaultEmployees[0]);
+      }
+    } else {
+      setEmployees(defaultEmployees);
+      setSelectedEmployee(defaultEmployees[0]);
+    }
+  };
+
+  const addEmployee = async () => {
     const newEmployee = createDefaultAIEmployee(
       newEmployeeRole,
       newEmployeeName || undefined
     );
-    setEmployees((prev) => [...prev, newEmployee]);
-    setSelectedEmployee(newEmployee);
-    setAddDialogOpen(false);
-    setNewEmployeeName("");
-  };
-
-  const removeEmployee = (employeeId: string) => {
-    setEmployees((prev) => prev.filter((e) => e.id !== employeeId));
-    if (selectedEmployee?.id === employeeId) {
-      setSelectedEmployee(employees.find((e) => e.id !== employeeId) || null);
+    
+    setIsSaving(true);
+    try {
+      if (db && profile.id) {
+        const employeesRef = collection(db, COLLECTIONS.AI_EMPLOYEES);
+        const docRef = await addDoc(employeesRef, {
+          userId: profile.id,
+          role: newEmployee.role,
+          name: newEmployee.name,
+          title: newEmployee.title,
+          description: newEmployee.description,
+          avatar: newEmployee.avatar,
+          color: newEmployee.color,
+          systemPrompt: newEmployee.systemPrompt,
+          capabilities: newEmployee.capabilities,
+          sampleQuestions: newEmployee.sampleQuestions,
+          isActive: true,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        });
+        
+        const savedEmployee = { ...newEmployee, id: docRef.id };
+        setEmployees((prev) => [...prev, savedEmployee]);
+        setSelectedEmployee(savedEmployee);
+        toast.success(`${savedEmployee.name} added to your AI team`);
+      } else {
+        setEmployees((prev) => [...prev, newEmployee]);
+        setSelectedEmployee(newEmployee);
+        localStorage.setItem("svp_ai_employees", JSON.stringify([...employees, newEmployee]));
+      }
+    } catch (error) {
+      console.error("Error adding employee:", error);
+      toast.error("Failed to add AI employee");
+    } finally {
+      setIsSaving(false);
+      setAddDialogOpen(false);
+      setNewEmployeeName("");
     }
-    // Also remove chat history
-    setChats((prev) => {
-      const newChats = { ...prev };
-      delete newChats[employeeId];
-      return newChats;
-    });
   };
 
-  const clearChat = (employeeId: string) => {
-    setChats((prev) => ({
-      ...prev,
-      [employeeId]: [],
-    }));
+  const confirmDeleteEmployee = (employee: AIEmployee) => {
+    setEmployeeToDelete(employee);
+    setDeleteDialogOpen(true);
+  };
+
+  const removeEmployee = async () => {
+    if (!employeeToDelete) return;
+    
+    const employeeId = employeeToDelete.id;
+    setIsSaving(true);
+    
+    try {
+      if (db && profile.id) {
+        // Delete from Firebase
+        await deleteDoc(doc(db, COLLECTIONS.AI_EMPLOYEES, employeeId));
+        
+        // Also delete chat history
+        const chatsRef = collection(db, COLLECTIONS.AI_EMPLOYEE_CHATS);
+        const q = query(chatsRef, where("employeeId", "==", employeeId), where("userId", "==", profile.id));
+        const snapshot = await getDocs(q);
+        for (const chatDoc of snapshot.docs) {
+          await deleteDoc(chatDoc.ref);
+        }
+      }
+      
+      setEmployees((prev) => prev.filter((e) => e.id !== employeeId));
+      if (selectedEmployee?.id === employeeId) {
+        setSelectedEmployee(employees.find((e) => e.id !== employeeId) || null);
+      }
+      setChats((prev) => {
+        const newChats = { ...prev };
+        delete newChats[employeeId];
+        return newChats;
+      });
+      
+      toast.success(`${employeeToDelete.name} removed from your AI team`);
+    } catch (error) {
+      console.error("Error removing employee:", error);
+      toast.error("Failed to remove AI employee");
+    } finally {
+      setIsSaving(false);
+      setDeleteDialogOpen(false);
+      setEmployeeToDelete(null);
+    }
+  };
+
+  const clearChat = async (employeeId: string) => {
+    try {
+      if (db && profile.id) {
+        const chatsRef = collection(db, COLLECTIONS.AI_EMPLOYEE_CHATS);
+        const q = query(chatsRef, where("employeeId", "==", employeeId), where("userId", "==", profile.id));
+        const snapshot = await getDocs(q);
+        for (const chatDoc of snapshot.docs) {
+          await deleteDoc(chatDoc.ref);
+        }
+      }
+      
+      setChats((prev) => ({
+        ...prev,
+        [employeeId]: [],
+      }));
+      toast.success("Chat cleared");
+    } catch (error) {
+      console.error("Error clearing chat:", error);
+      toast.error("Failed to clear chat");
+    }
   };
 
   const sendMessage = async () => {
@@ -247,6 +494,51 @@ export default function AIWorkforcePage() {
 
   const currentChat = selectedEmployee ? chats[selectedEmployee.id] || [] : [];
 
+  // Get AI status badge
+  const getAiStatusBadge = () => {
+    switch (aiStatus) {
+      case "checking":
+        return (
+          <Badge variant="outline" className="gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Checking AI...
+          </Badge>
+        );
+      case "connected":
+        return (
+          <Badge className="gap-1 bg-green-100 text-green-700 hover:bg-green-100">
+            <CheckCircle className="h-3 w-3" />
+            AI Connected
+          </Badge>
+        );
+      case "fallback":
+        return (
+          <Badge variant="outline" className="gap-1 border-amber-500 text-amber-600">
+            <AlertCircle className="h-3 w-3" />
+            Configure AI
+          </Badge>
+        );
+      case "error":
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <WifiOff className="h-3 w-3" />
+            AI Offline
+          </Badge>
+        );
+    }
+  };
+
+  if (isLoadingEmployees) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading your AI team...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -256,13 +548,23 @@ export default function AIWorkforcePage() {
             Your team of AI experts ready to assist with business decisions
           </p>
         </div>
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add AI Employee
+        <div className="flex items-center gap-3">
+          {getAiStatusBadge()}
+          {aiStatus === "fallback" && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/portal/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Configure
+              </Link>
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add AI Employee
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add AI Employee</DialogTitle>
@@ -320,6 +622,7 @@ export default function AIWorkforcePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6 h-[calc(100vh-220px)]">
@@ -441,7 +744,7 @@ export default function AIWorkforcePage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => removeEmployee(selectedEmployee.id)}
+                      onClick={() => confirmDeleteEmployee(selectedEmployee)}
                       title="Remove employee"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -610,6 +913,33 @@ export default function AIWorkforcePage() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove AI Employee?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove {employeeToDelete?.name} from your AI team and delete all chat history with them. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={removeEmployee}
+              disabled={isSaving}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isSaving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
