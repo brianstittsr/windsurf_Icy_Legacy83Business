@@ -8,10 +8,28 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Calendar, CheckCircle, FolderKanban } from "lucide-react";
+import { Plus, Calendar, CheckCircle, FolderKanban, MoreVertical, Edit, Trash2, Eye, Loader2 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, getDocs, Timestamp } from "firebase/firestore";
+import { collection, query, orderBy, getDocs, Timestamp, deleteDoc, doc } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 interface ProjectDisplay {
   id: string;
@@ -52,6 +70,9 @@ function formatDate(date: Date | Timestamp | undefined): string {
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<ProjectDisplay | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -99,6 +120,29 @@ export default function ProjectsPage() {
   const avgProgress = projects.length > 0 
     ? Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length) 
     : 0;
+
+  const handleDeleteClick = (project: ProjectDisplay) => {
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!db || !projectToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.PROJECTS, projectToDelete.id));
+      setProjects((prev) => prev.filter((p) => p.id !== projectToDelete.id));
+      toast.success("Project deleted successfully");
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      toast.error("Failed to delete project");
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -198,7 +242,7 @@ export default function ProjectsPage() {
             <Card key={project.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <CardTitle className="text-lg">
                       <Link href={`/portal/projects/${project.id}`} className="hover:underline">
                         {project.name}
@@ -206,7 +250,38 @@ export default function ProjectsPage() {
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">{project.client}</p>
                   </div>
-                  {getStatusBadge(project.status)}
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(project.status)}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/portal/projects/${project.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/portal/projects/${project.id}/edit`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeleteClick(project)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -264,6 +339,31 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{projectToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

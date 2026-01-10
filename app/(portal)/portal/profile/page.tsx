@@ -217,6 +217,13 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showCertDialog, setShowCertDialog] = useState(false);
 
+  // Initialize avatarPreview from userProfile when it loads
+  useEffect(() => {
+    if (userProfile.avatarUrl) {
+      setAvatarPreview(userProfile.avatarUrl);
+    }
+  }, [userProfile.avatarUrl]);
+
   // Password change state
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -297,7 +304,17 @@ export default function ProfilePage() {
     
     try {
       // Map local profile state to UserProfile fields for Firestore update
-      const updates = {
+      const updates: Partial<{
+        firstName: string;
+        lastName: string;
+        email: string;
+        phone: string;
+        company: string;
+        jobTitle: string;
+        location: string;
+        bio: string;
+        avatarUrl: string;
+      }> = {
         firstName: profile.firstName,
         lastName: profile.lastName,
         email: profile.email,
@@ -307,6 +324,11 @@ export default function ProfilePage() {
         location: profile.location,
         bio: profile.bio,
       };
+      
+      // Include avatar if a new one was uploaded (base64)
+      if (avatarPreview) {
+        updates.avatarUrl = avatarPreview;
+      }
       
       if (linkedTeamMember) {
         const success = await saveProfileToFirestore(updates);

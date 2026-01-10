@@ -25,7 +25,7 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "any",
       },
       {
-        src: "/VPlus_logo.webp",
+        src: "/legacy83Logo.webp",
         sizes: "any",
         type: "image/webp",
       },

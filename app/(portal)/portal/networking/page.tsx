@@ -61,7 +61,8 @@ const expertiseCategories = [
 ];
 
 // Helper function to categorize a team member based on their expertise
-function categorizeExpertise(expertise: string): string[] {
+function categorizeExpertise(expertise: string | undefined | null): string[] {
+  if (!expertise) return [];
   const lowerExpertise = expertise.toLowerCase();
   return expertiseCategories
     .filter(cat => cat.keywords.some(keyword => lowerExpertise.includes(keyword)))

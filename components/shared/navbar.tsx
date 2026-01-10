@@ -89,7 +89,7 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/VPlus_logo.webp"
+            src="/legacy83Logo.webp"
             alt="Strategic Value+ Logo"
             width={48}
             height={48}

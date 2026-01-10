@@ -79,11 +79,11 @@ const fallbackCourses = [
 ];
 
 const fallbackCategories = [
-  { name: "Goals & Vision", icon: Target, color: "bg-amber-500", count: 8 },
-  { name: "Revenue & Growth", icon: TrendingUp, color: "bg-green-500", count: 6 },
-  { name: "Operations", icon: Settings, color: "bg-blue-500", count: 7 },
-  { name: "Workforce & Leadership", icon: Users, color: "bg-purple-500", count: 9 },
-  { name: "Succession & Legacy", icon: ArrowRightLeft, color: "bg-orange-500", count: 5 },
+  { id: "goals-vision", name: "Goals & Vision", slug: "goals-vision", icon: Target, color: "bg-amber-500", courseCount: 8 },
+  { id: "revenue-growth", name: "Revenue & Growth", slug: "revenue-growth", icon: TrendingUp, color: "bg-green-500", courseCount: 6 },
+  { id: "operations", name: "Operations", slug: "operations", icon: Settings, color: "bg-blue-500", courseCount: 7 },
+  { id: "workforce-leadership", name: "Workforce & Leadership", slug: "workforce-leadership", icon: Users, color: "bg-purple-500", courseCount: 9 },
+  { id: "succession-legacy", name: "Succession & Legacy", slug: "succession-legacy", icon: ArrowRightLeft, color: "bg-orange-500", courseCount: 5 },
 ];
 
 const fallbackWorkshops = [
@@ -428,7 +428,7 @@ export default function AcademyPage() {
                       <category.icon className="h-7 w-7 text-white" />
                     </div>
                     <h3 className="font-semibold mb-1 group-hover:text-amber-600 transition-colors">{category.name}</h3>
-                    <p className="text-sm text-muted-foreground">{category.count} courses</p>
+                    <p className="text-sm text-muted-foreground">{category.courseCount} courses</p>
                   </Card>
                 </Link>
               ))
@@ -454,8 +454,8 @@ export default function AcademyPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {displayWorkshops.length > 0 ? (
-              displayWorkshops.map((workshop) => (
+            {workshops.length > 0 ? (
+              workshops.map((workshop) => (
                 <Card key={workshop.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center gap-2 mb-2">
@@ -487,7 +487,7 @@ export default function AcademyPage() {
                   </CardContent>
                 </Card>
               ))
-            ) : (
+            ) : useFallback ? (
               fallbackWorkshops.map((workshop) => (
                 <Card key={workshop.title} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
@@ -520,7 +520,7 @@ export default function AcademyPage() {
                   </CardContent>
                 </Card>
               ))
-            )}
+            ) : null}
           </div>
         </div>
       </section>

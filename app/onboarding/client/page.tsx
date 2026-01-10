@@ -284,7 +284,7 @@ export default function ClientOnboardingPage() {
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/VPlus_logo.webp"
+              src="/legacy83Logo.webp"
               alt="Strategic Value+ Logo"
               width={40}
               height={40}

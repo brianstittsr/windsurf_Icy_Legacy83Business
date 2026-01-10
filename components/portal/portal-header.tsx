@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUserProfile } from "@/contexts/user-profile-context";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { terminate } from "firebase/firestore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +76,16 @@ export function PortalHeader() {
   // Handle sign out
   const handleSignOut = async () => {
     try {
+      // Terminate Firestore to prevent internal assertion errors when switching users
+      if (db) {
+        try {
+          await terminate(db);
+          console.log("Firestore terminated before sign out");
+        } catch (terminateError) {
+          console.warn("Could not terminate Firestore:", terminateError);
+        }
+      }
+      
       if (auth) {
         await auth.signOut();
       }
@@ -86,10 +97,12 @@ export function PortalHeader() {
       sessionStorage.removeItem("svp_user_role");
       localStorage.removeItem("svp_remembered_email");
       localStorage.removeItem("svp_remember_me");
-      router.push("/");
+      
+      // Force a full page reload to reinitialize Firebase cleanly
+      window.location.href = "/";
     } catch (error) {
       console.error("Error signing out:", error);
-      router.push("/");
+      window.location.href = "/";
     }
   };
 

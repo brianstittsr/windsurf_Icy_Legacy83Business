@@ -6,7 +6,7 @@ import NextImage from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { isSuperAdmin } from "@/lib/permissions";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, terminate } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
 import { useUserProfile } from "@/contexts/user-profile-context";
 import { useFeatureVisibility } from "@/contexts/feature-visibility-context";
@@ -322,6 +322,16 @@ export function PortalSidebar() {
   // Handle sign out
   const handleSignOut = async () => {
     try {
+      // Terminate Firestore to prevent internal assertion errors when switching users
+      if (db) {
+        try {
+          await terminate(db);
+          console.log("Firestore terminated before sign out");
+        } catch (terminateError) {
+          console.warn("Could not terminate Firestore:", terminateError);
+        }
+      }
+      
       // Sign out from Firebase Auth
       if (auth) {
         await auth.signOut();
@@ -336,11 +346,11 @@ export function PortalSidebar() {
       // Clear local storage remember me
       localStorage.removeItem("svp_remembered_email");
       localStorage.removeItem("svp_remember_me");
-      // Redirect to home page
-      router.push("/");
+      // Force a full page reload to reinitialize Firebase cleanly
+      window.location.href = "/";
     } catch (error) {
       console.error("Error signing out:", error);
-      router.push("/");
+      window.location.href = "/";
     }
   };
 
