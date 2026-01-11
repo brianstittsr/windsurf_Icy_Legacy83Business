@@ -10,10 +10,11 @@ import { backupScheduler } from "@/lib/services/backup-scheduler";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const schedule = await backupScheduler.getSchedule(params.id);
+    const { id } = await params;
+    const schedule = await backupScheduler.getSchedule(id);
 
     if (!schedule) {
       return NextResponse.json(
@@ -37,14 +38,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Handle enable/disable action
     if (body.action === "toggle") {
-      await backupScheduler.setScheduleEnabled(params.id, body.enabled);
+      await backupScheduler.setScheduleEnabled(id, body.enabled);
       return NextResponse.json({
         success: true,
         message: body.enabled ? "Schedule enabled" : "Schedule disabled",
@@ -52,7 +54,7 @@ export async function PUT(
     }
 
     // Update schedule
-    await backupScheduler.updateSchedule(params.id, body);
+    await backupScheduler.updateSchedule(id, body);
 
     return NextResponse.json({
       success: true,
@@ -69,10 +71,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await backupScheduler.deleteSchedule(params.id);
+    const { id } = await params;
+    await backupScheduler.deleteSchedule(id);
 
     return NextResponse.json({
       success: true,

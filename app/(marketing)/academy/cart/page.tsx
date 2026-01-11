@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
@@ -26,7 +26,7 @@ import { CoursePrice } from "@/components/academy/shopping-cart";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function CartPage() {
+function CartPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { items, subtotal, removeItem, clearCart } = useCart();
@@ -302,5 +302,19 @@ export default function CartPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CartPage() {
+  return (
+    <Suspense fallback={
+      <div className="container max-w-4xl py-12">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    }>
+      <CartPageContent />
+    </Suspense>
   );
 }

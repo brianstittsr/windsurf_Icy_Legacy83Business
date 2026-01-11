@@ -9,10 +9,11 @@ import { backupService } from "@/lib/services/backup-service";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const backup = await backupService.getBackup(params.id);
+    const { id } = await params;
+    const backup = await backupService.getBackup(id);
 
     if (!backup) {
       return NextResponse.json(
@@ -36,10 +37,11 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await backupService.deleteBackup(params.id);
+    const { id } = await params;
+    await backupService.deleteBackup(id);
 
     return NextResponse.json({
       success: true,

@@ -64,6 +64,11 @@ import {
   ArrowDown,
   Save,
   ExternalLink,
+  Sparkles,
+  Wand2,
+  BookOpen,
+  GraduationCap,
+  Brain,
 } from "lucide-react";
 import {
   getCourse,
@@ -81,6 +86,20 @@ import {
   type LessonDoc,
 } from "@/lib/firebase-lms";
 import type { ContentType } from "@/types/academy";
+import {
+  AISyllabusGenerator,
+  AILessonGenerator,
+  AIQuizGenerator,
+  AIExamGenerator,
+  AIEnhanceButton,
+} from "@/components/academy/ai-content-tools";
+import {
+  type CourseOutline,
+  type GeneratedLesson,
+  type GeneratedQuiz,
+  type GeneratedExam,
+} from "@/lib/ai-course-generator";
+import { Separator } from "@/components/ui/separator";
 
 interface ModuleWithLessons extends CourseModuleDoc {
   lessons: LessonDoc[];
@@ -187,6 +206,18 @@ export default function CourseContentBuilderPage() {
   // Delete confirmation state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: "module" | "lesson"; id: string; title: string } | null>(null);
+
+  // AI dialog state
+  const [syllabusDialogOpen, setSyllabusDialogOpen] = useState(false);
+  const [lessonAIDialogOpen, setLessonAIDialogOpen] = useState(false);
+  const [quizDialogOpen, setQuizDialogOpen] = useState(false);
+  const [examDialogOpen, setExamDialogOpen] = useState(false);
+  const [aiLessonContext, setAiLessonContext] = useState<{
+    moduleTitle: string;
+    lessonTitle: string;
+    lessonDescription: string;
+    contentType: "video" | "text" | "assignment";
+  } | null>(null);
 
   useEffect(() => {
     loadCourseContent();
@@ -403,6 +434,89 @@ export default function CourseContentBuilderPage() {
     setExpandedModules(newExpanded);
   };
 
+  // AI Handlers
+  const handleApplySyllabus = async (syllabus: CourseOutline) => {
+    setSaving(true);
+    try {
+      // Create modules and lessons from the syllabus
+      for (let i = 0; i < syllabus.modules.length; i++) {
+        const moduleData = syllabus.modules[i];
+        const newModule = await createModule({
+          courseId,
+          title: moduleData.title,
+          description: moduleData.description,
+          sortOrder: modules.length + i,
+        });
+
+        // Create lessons for this module
+        for (let j = 0; j < moduleData.lessons.length; j++) {
+          const lessonData = moduleData.lessons[j];
+          await createLesson({
+            moduleId: newModule.id,
+            courseId,
+            title: lessonData.title,
+            description: lessonData.description,
+            contentType: lessonData.contentType as ContentType,
+            sortOrder: j,
+          });
+        }
+      }
+      toast.success(`Created ${syllabus.modules.length} modules with lessons!`);
+      loadCourseContent();
+    } catch (error) {
+      console.error("Error applying syllabus:", error);
+      toast.error("Failed to apply syllabus");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleApplyLessonContent = (content: GeneratedLesson) => {
+    // Apply the generated content to the lesson form
+    if (content.content) {
+      setLessonTextContent(content.content);
+    }
+    if (content.description) {
+      setLessonDescription(content.description);
+    }
+    toast.success("Content applied to lesson form");
+  };
+
+  const handleApplyQuiz = async (quiz: GeneratedQuiz) => {
+    // For now, we'll create a quiz lesson with the questions in the text content
+    const quizContent = `# ${quiz.title}\n\n${quiz.description}\n\n**Passing Score:** ${quiz.passingScore}%\n**Time Limit:** ${quiz.timeLimit} minutes\n\n## Questions\n\n${quiz.questions.map((q, i) => `### ${i + 1}. ${q.question}\n${q.options ? q.options.map((o, oi) => `- ${o}${oi === q.correctAnswer ? " ✓" : ""}`).join("\n") : ""}\n\n*Explanation: ${q.explanation}*`).join("\n\n")}`;
+    
+    setLessonTextContent(quizContent);
+    setLessonContentType("quiz");
+    toast.success("Quiz content applied");
+  };
+
+  const handleApplyExam = async (exam: GeneratedExam) => {
+    // Create an exam as a special lesson
+    const examContent = `# ${exam.title}\n\n${exam.description}\n\n**Instructions:** ${exam.instructions}\n\n**Passing Score:** ${exam.passingScore}%\n**Time Limit:** ${exam.timeLimit} minutes\n\n${exam.sections.map((section, si) => `## Section ${si + 1}: ${section.title}\n\n${section.description}\n\n${section.questions.map((q, qi) => `### ${qi + 1}. ${q.question} (${q.points} pts)\n${q.options ? q.options.map((o, oi) => `- ${o}`).join("\n") : ""}`).join("\n\n")}`).join("\n\n---\n\n")}`;
+    
+    setLessonTextContent(examContent);
+    setLessonContentType("quiz");
+    toast.success("Exam content applied");
+  };
+
+  const openAILessonGenerator = () => {
+    if (!lessonTitle.trim()) {
+      toast.error("Please enter a lesson title first");
+      return;
+    }
+    const module = modules.find(m => m.id === lessonModuleId);
+    setAiLessonContext({
+      moduleTitle: module?.title || "Module",
+      lessonTitle,
+      lessonDescription,
+      contentType: lessonContentType === "video" || lessonContentType === "text" || lessonContentType === "assignment" 
+        ? lessonContentType 
+        : "text",
+    });
+    setLessonAIDialogOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -468,6 +582,27 @@ export default function CourseContentBuilderPage() {
             <p className="text-sm text-muted-foreground">Free Previews</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* AI Tools Toolbar */}
+      <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
+        <div className="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300">
+          <Sparkles className="h-4 w-4" />
+          AI Tools
+        </div>
+        <Separator orientation="vertical" className="h-6" />
+        <Button variant="ghost" size="sm" onClick={() => setSyllabusDialogOpen(true)} className="text-xs">
+          <BookOpen className="h-3 w-3 mr-1" />
+          Generate Syllabus
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setQuizDialogOpen(true)} className="text-xs">
+          <HelpCircle className="h-3 w-3 mr-1" />
+          Generate Quiz
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setExamDialogOpen(true)} disabled={modules.length === 0} className="text-xs">
+          <GraduationCap className="h-3 w-3 mr-1" />
+          Generate Exam
+        </Button>
       </div>
 
       {/* Add Section Button */}
@@ -697,7 +832,15 @@ export default function CourseContentBuilderPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lesson-description">Description (optional)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="lesson-description">Description (optional)</Label>
+                  <AIEnhanceButton
+                    content={lessonDescription}
+                    contentType="description"
+                    context={`Lesson: ${lessonTitle}`}
+                    onEnhanced={setLessonDescription}
+                  />
+                </div>
                 <Textarea
                   id="lesson-description"
                   value={lessonDescription}
@@ -706,6 +849,19 @@ export default function CourseContentBuilderPage() {
                   rows={2}
                 />
               </div>
+
+              {/* AI Generate Content Button */}
+              {(lessonContentType === "video" || lessonContentType === "text" || lessonContentType === "assignment") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={openAILessonGenerator}
+                  className="w-full border-dashed border-purple-300 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                >
+                  <Brain className="mr-2 h-4 w-4 text-purple-500" />
+                  Generate {lessonContentType === "video" ? "Video Script" : lessonContentType === "text" ? "Article Content" : "Assignment"} with AI
+                </Button>
+              )}
             </div>
 
             {/* Content Type Selection */}
@@ -780,10 +936,18 @@ export default function CourseContentBuilderPage() {
 
             {lessonContentType === "text" && (
               <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                <h4 className="font-medium flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Text Content
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Text Content
+                  </h4>
+                  <AIEnhanceButton
+                    content={lessonTextContent}
+                    contentType="lesson"
+                    context={`Course: ${course?.title}, Lesson: ${lessonTitle}`}
+                    onEnhanced={setLessonTextContent}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="text-content">Content</Label>
                   <Textarea
@@ -902,6 +1066,50 @@ export default function CourseContentBuilderPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AI Syllabus Generator Dialog */}
+      <AISyllabusGenerator
+        open={syllabusDialogOpen}
+        onOpenChange={setSyllabusDialogOpen}
+        courseTitle={course?.title || ""}
+        courseDescription={course?.description || ""}
+        onApplySyllabus={handleApplySyllabus}
+      />
+
+      {/* AI Lesson Generator Dialog */}
+      {aiLessonContext && (
+        <AILessonGenerator
+          open={lessonAIDialogOpen}
+          onOpenChange={setLessonAIDialogOpen}
+          courseTitle={course?.title || ""}
+          moduleTitle={aiLessonContext.moduleTitle}
+          lessonTitle={aiLessonContext.lessonTitle}
+          lessonDescription={aiLessonContext.lessonDescription}
+          contentType={aiLessonContext.contentType}
+          onApplyContent={handleApplyLessonContent}
+        />
+      )}
+
+      {/* AI Quiz Generator Dialog */}
+      <AIQuizGenerator
+        open={quizDialogOpen}
+        onOpenChange={setQuizDialogOpen}
+        courseTitle={course?.title || ""}
+        topic={course?.title || ""}
+        onApplyQuiz={handleApplyQuiz}
+      />
+
+      {/* AI Exam Generator Dialog */}
+      <AIExamGenerator
+        open={examDialogOpen}
+        onOpenChange={setExamDialogOpen}
+        courseTitle={course?.title || ""}
+        modules={modules.map(m => ({
+          title: m.title,
+          keyTopics: m.lessons.map(l => l.title),
+        }))}
+        onApplyExam={handleApplyExam}
+      />
     </div>
   );
 }
