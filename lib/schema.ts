@@ -1853,6 +1853,121 @@ export interface QuizReportTemplateDoc {
 }
 
 // ============================================================================
+// Hero Slide Types
+// ============================================================================
+
+/** Hero slide document in Firestore */
+export interface HeroSlideDoc {
+  id: string;
+  badge: string;
+  headline: string;
+  highlightedText: string;
+  subheadline: string;
+  benefits: string[];
+  primaryCta: {
+    text: string;
+    href: string;
+  };
+  secondaryCta: {
+    text: string;
+    href: string;
+  };
+  isPublished: boolean;
+  order: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+// ============================================================================
+// Backup System Types
+// ============================================================================
+
+/** Backup metadata document in Firestore */
+export interface BackupMetadataDoc {
+  id: string;
+  createdAt: Timestamp;
+  completedAt?: Timestamp;
+  type: "full" | "incremental" | "collections";
+  status: "pending" | "in_progress" | "success" | "failed" | "partial";
+  size: number;
+  compressedSize: number;
+  duration: number;
+  collections: string[];
+  documentCounts: Record<string, number>;
+  storageLocations: {
+    provider: string;
+    path: string;
+    url?: string;
+  }[];
+  checksum: string;
+  encryptionEnabled: boolean;
+  triggeredBy: "manual" | "scheduled";
+  scheduleId?: string;
+  error?: string;
+  metadata: Record<string, any>;
+}
+
+/** Backup schedule document in Firestore */
+export interface BackupScheduleDoc {
+  id: string;
+  name: string;
+  description?: string;
+  cronExpression: string;
+  timezone: string;
+  enabled: boolean;
+  backupType: "full" | "incremental" | "collections";
+  collections?: string[];
+  storageProviders: string[];
+  compression: "gzip" | "zip" | "none";
+  encryption: boolean;
+  retentionPolicy: {
+    keepLast: number;
+    keepDailyFor: number;
+    keepWeeklyFor: number;
+    keepMonthlyFor: number;
+  };
+  notifications: {
+    onSuccess: boolean;
+    onFailure: boolean;
+    emails: string[];
+  };
+  lastRunAt?: Timestamp;
+  nextRunAt?: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+}
+
+/** Storage provider configuration document in Firestore */
+export interface BackupStorageProviderDoc {
+  id: string;
+  name: string;
+  type: "local" | "s3" | "gcs" | "azure" | "firebase";
+  enabled: boolean;
+  isDefault: boolean;
+  config: {
+    bucket?: string;
+    region?: string;
+    accessKeyId?: string;
+    secretAccessKey?: string;
+    endpoint?: string;
+    projectId?: string;
+    keyFile?: string;
+    connectionString?: string;
+    containerName?: string;
+    basePath?: string;
+    storageBucket?: string;
+  };
+  pathPrefix: string;
+  usedStorage?: number;
+  maxStorage?: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ============================================================================
 // Collection Names
 // ============================================================================
 
@@ -1944,6 +2059,12 @@ export const COLLECTIONS = {
   AI_EMPLOYEE_CHATS: "aiEmployeeChats",
   // Bug Tracker
   BUG_TRACKER_ITEMS: "bugTrackerItems",
+  // Backup System
+  BACKUP_METADATA: "backupMetadata",
+  BACKUP_SCHEDULES: "backupSchedules",
+  BACKUP_STORAGE_PROVIDERS: "backupStorageProviders",
+  // Hero Slides
+  HERO_SLIDES: "heroSlides",
 } as const;
 
 // ============================================================================

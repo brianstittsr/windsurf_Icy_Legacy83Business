@@ -11,8 +11,10 @@ import {
   collection,
   increment,
   Timestamp,
+  addDoc,
 } from "firebase/firestore";
 import { COLLECTIONS, type EventDoc, type EventRegistration } from "@/lib/schema";
+import { LMS_COLLECTIONS, type CoursePurchaseDoc } from "@/lib/firebase-lms";
 import Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
@@ -50,7 +52,12 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutCompleted(session);
+        // Check if this is a course purchase or event registration
+        if (session.metadata?.type === "course_purchase") {
+          await handleCourseCheckoutCompleted(session);
+        } else {
+          await handleCheckoutCompleted(session);
+        }
         break;
       }
 
@@ -254,4 +261,67 @@ async function handleRefund(charge: Stripe.Charge) {
   }
 
   console.log(`Refund processed for registration ${regDoc.id}`);
+}
+
+// ============================================================================
+// COURSE PURCHASE HANDLERS
+// ============================================================================
+
+async function handleCourseCheckoutCompleted(session: Stripe.Checkout.Session) {
+  if (!db) return;
+
+  const userId = session.metadata?.userId;
+  const courseIds = session.metadata?.courseIds?.split(",") || [];
+  const purchaseIds = session.metadata?.purchaseIds?.split(",") || [];
+
+  if (!userId || courseIds.length === 0) {
+    console.error("Missing metadata in course checkout session");
+    return;
+  }
+
+  // Update all purchase records
+  for (const purchaseId of purchaseIds) {
+    const purchaseRef = doc(db, LMS_COLLECTIONS.COURSE_PURCHASES, purchaseId);
+    const purchaseSnap = await getDoc(purchaseRef);
+
+    if (!purchaseSnap.exists()) {
+      console.error("Purchase not found:", purchaseId);
+      continue;
+    }
+
+    const purchase = purchaseSnap.data() as CoursePurchaseDoc;
+
+    // Update purchase status
+    await updateDoc(purchaseRef, {
+      paymentStatus: "paid",
+      stripePaymentIntentId: session.payment_intent,
+      purchasedAt: Timestamp.now(),
+    });
+
+    // Create enrollment for this course
+    const enrollmentData = {
+      id: "",
+      userId: purchase.odUserId,
+      courseId: purchase.courseId,
+      enrolledAt: Timestamp.now(),
+      completedAt: null,
+      progressPercentage: 0,
+      lastAccessedAt: null,
+      certificateIssuedAt: null,
+      certificateId: null,
+      purchaseId: purchaseId,
+    };
+
+    await addDoc(collection(db, LMS_COLLECTIONS.ENROLLMENTS), enrollmentData);
+
+    // Increment course enrollment count
+    const courseRef = doc(db, LMS_COLLECTIONS.COURSES, purchase.courseId);
+    await updateDoc(courseRef, {
+      enrollmentCount: increment(1),
+    });
+
+    console.log(`Enrollment created for course ${purchase.courseId}, user ${purchase.odUserId}`);
+  }
+
+  console.log(`Course purchase completed for user ${userId}, courses: ${courseIds.join(", ")}`);
 }

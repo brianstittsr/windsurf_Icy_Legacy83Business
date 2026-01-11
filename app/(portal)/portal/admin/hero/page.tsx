@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,13 +14,21 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Plus,
   Pencil,
   Trash2,
-  GripVertical,
   Eye,
   EyeOff,
   ChevronRight,
@@ -28,13 +36,16 @@ import {
   Check,
   ArrowUp,
   ArrowDown,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { collection, getDocs, doc, setDoc, deleteDoc, Timestamp, writeBatch, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { COLLECTIONS, type HeroSlideDoc } from "@/lib/schema";
 import type { HeroSlide } from "@/components/marketing/hero-carousel";
 import { legacy83HeroSlides } from "@/lib/legacy83-hero-slides";
-
-// Use Legacy 83 Business hero slides as the initial data
-const initialSlides: HeroSlide[] = legacy83HeroSlides;
 
 const wizardSteps = [
   { id: 1, title: "Basic Info", description: "Badge and headline" },
@@ -70,11 +81,93 @@ const emptyFormData: SlideFormData = {
 };
 
 export default function HeroManagementPage() {
-  const [slides, setSlides] = useState<HeroSlide[]>(initialSlides);
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
   const [formData, setFormData] = useState<SlideFormData>(emptyFormData);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [slideToDelete, setSlideToDelete] = useState<HeroSlide | null>(null);
+
+  // Fetch slides from Firestore
+  useEffect(() => {
+    if (!db) {
+      setLoading(false);
+      return;
+    }
+
+    const slidesQuery = query(
+      collection(db, COLLECTIONS.HERO_SLIDES),
+      orderBy("order", "asc")
+    );
+
+    const unsubscribe = onSnapshot(slidesQuery, (snapshot) => {
+      if (snapshot.empty) {
+        // Seed with legacy83 slides if collection is empty
+        seedInitialSlides();
+      } else {
+        const slidesData: HeroSlide[] = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data() as HeroSlideDoc;
+          return {
+            id: docSnap.id,
+            badge: data.badge,
+            headline: data.headline,
+            highlightedText: data.highlightedText,
+            subheadline: data.subheadline,
+            benefits: data.benefits,
+            primaryCta: data.primaryCta,
+            secondaryCta: data.secondaryCta,
+            isPublished: data.isPublished,
+            order: data.order,
+          };
+        });
+        setSlides(slidesData);
+      }
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching hero slides:", error);
+      toast.error("Failed to load hero slides");
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Seed initial slides from legacy83HeroSlides
+  const seedInitialSlides = async () => {
+    if (!db) return;
+    
+    try {
+      const batch = writeBatch(db);
+      
+      legacy83HeroSlides.forEach((slide) => {
+        const docRef = doc(db!, COLLECTIONS.HERO_SLIDES, slide.id);
+        const slideDoc: HeroSlideDoc = {
+          id: slide.id,
+          badge: slide.badge,
+          headline: slide.headline,
+          highlightedText: slide.highlightedText,
+          subheadline: slide.subheadline,
+          benefits: slide.benefits,
+          primaryCta: slide.primaryCta,
+          secondaryCta: slide.secondaryCta,
+          isPublished: slide.isPublished,
+          order: slide.order,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        };
+        batch.set(docRef, slideDoc);
+      });
+
+      await batch.commit();
+      toast.success("Hero slides initialized from defaults");
+    } catch (error) {
+      console.error("Error seeding slides:", error);
+      toast.error("Failed to initialize hero slides");
+    }
+  };
 
   const openWizard = (slide?: HeroSlide) => {
     if (slide) {
@@ -106,37 +199,78 @@ export default function HeroManagementPage() {
     setWizardStep(1);
   };
 
-  const handleSave = () => {
-    const newSlide: HeroSlide = {
-      id: editingSlide?.id || Date.now().toString(),
-      badge: formData.badge,
-      headline: formData.headline,
-      highlightedText: formData.highlightedText,
-      subheadline: formData.subheadline,
-      benefits: formData.benefits.filter(b => b.trim() !== ""),
-      primaryCta: { text: formData.primaryCtaText, href: formData.primaryCtaHref },
-      secondaryCta: { text: formData.secondaryCtaText, href: formData.secondaryCtaHref },
-      isPublished: formData.isPublished,
-      order: editingSlide?.order || slides.length + 1,
-    };
+  const handleSave = async () => {
+    if (!db) return;
+    
+    setSaving(true);
+    try {
+      const slideId = editingSlide?.id || `slide-${Date.now()}`;
+      const slideDoc: HeroSlideDoc = {
+        id: slideId,
+        badge: formData.badge,
+        headline: formData.headline,
+        highlightedText: formData.highlightedText,
+        subheadline: formData.subheadline,
+        benefits: formData.benefits.filter(b => b.trim() !== ""),
+        primaryCta: { text: formData.primaryCtaText, href: formData.primaryCtaHref },
+        secondaryCta: { text: formData.secondaryCtaText, href: formData.secondaryCtaHref },
+        isPublished: formData.isPublished,
+        order: editingSlide?.order || slides.length + 1,
+        createdAt: editingSlide ? Timestamp.now() : Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
 
-    if (editingSlide) {
-      setSlides(slides.map(s => s.id === editingSlide.id ? newSlide : s));
-    } else {
-      setSlides([...slides, newSlide]);
+      await setDoc(doc(db, COLLECTIONS.HERO_SLIDES, slideId), slideDoc);
+      toast.success(editingSlide ? "Slide updated" : "Slide created");
+      closeWizard();
+    } catch (error) {
+      console.error("Error saving slide:", error);
+      toast.error("Failed to save slide");
+    } finally {
+      setSaving(false);
     }
-    closeWizard();
   };
 
-  const handleDelete = (id: string) => {
-    setSlides(slides.filter(s => s.id !== id));
+  const confirmDelete = (slide: HeroSlide) => {
+    setSlideToDelete(slide);
+    setDeleteDialogOpen(true);
   };
 
-  const togglePublish = (id: string) => {
-    setSlides(slides.map(s => s.id === id ? { ...s, isPublished: !s.isPublished } : s));
+  const handleDelete = async () => {
+    if (!db || !slideToDelete) return;
+    
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.HERO_SLIDES, slideToDelete.id));
+      toast.success("Slide deleted");
+      setDeleteDialogOpen(false);
+      setSlideToDelete(null);
+    } catch (error) {
+      console.error("Error deleting slide:", error);
+      toast.error("Failed to delete slide");
+    }
   };
 
-  const moveSlide = (id: string, direction: "up" | "down") => {
+  const togglePublish = async (id: string) => {
+    if (!db) return;
+    
+    const slide = slides.find(s => s.id === id);
+    if (!slide) return;
+    
+    try {
+      await setDoc(doc(db, COLLECTIONS.HERO_SLIDES, id), {
+        isPublished: !slide.isPublished,
+        updatedAt: Timestamp.now(),
+      }, { merge: true });
+      toast.success(slide.isPublished ? "Slide unpublished" : "Slide published");
+    } catch (error) {
+      console.error("Error toggling publish:", error);
+      toast.error("Failed to update slide");
+    }
+  };
+
+  const moveSlide = async (id: string, direction: "up" | "down") => {
+    if (!db) return;
+    
     const index = slides.findIndex(s => s.id === id);
     if (
       (direction === "up" && index === 0) ||
@@ -147,12 +281,18 @@ export default function HeroManagementPage() {
     const swapIndex = direction === "up" ? index - 1 : index + 1;
     [newSlides[index], newSlides[swapIndex]] = [newSlides[swapIndex], newSlides[index]];
     
-    // Update order values
-    newSlides.forEach((slide, i) => {
-      slide.order = i + 1;
-    });
-    
-    setSlides(newSlides);
+    // Update order values in Firestore
+    try {
+      const batch = writeBatch(db);
+      newSlides.forEach((slide, i) => {
+        const docRef = doc(db!, COLLECTIONS.HERO_SLIDES, slide.id);
+        batch.update(docRef, { order: i + 1, updatedAt: Timestamp.now() });
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error("Error reordering slides:", error);
+      toast.error("Failed to reorder slides");
+    }
   };
 
   const updateBenefit = (index: number, value: string) => {
@@ -160,6 +300,22 @@ export default function HeroManagementPage() {
     newBenefits[index] = value;
     setFormData({ ...formData, benefits: newBenefits });
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Hero Carousel Management</h1>
+            <p className="text-muted-foreground">Loading slides...</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -285,7 +441,7 @@ export default function HeroManagementPage() {
                     variant="ghost"
                     size="icon"
                     className="text-destructive"
-                    onClick={() => handleDelete(slide.id)}
+                    onClick={() => confirmDelete(slide)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -500,14 +656,37 @@ export default function HeroManagementPage() {
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={handleSave}>
-                <Check className="mr-2 h-4 w-4" />
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="mr-2 h-4 w-4" />
+                )}
                 {editingSlide ? "Save Changes" : "Create Slide"}
               </Button>
             )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Hero Slide</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{slideToDelete?.headline} {slideToDelete?.highlightedText}"? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

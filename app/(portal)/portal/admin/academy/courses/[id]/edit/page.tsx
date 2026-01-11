@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Loader2, Save, Plus, X, Upload, ImageIcon } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Plus, X, Upload, ImageIcon, FileText, DollarSign } from "lucide-react";
 import { getCourse, updateCourse, getCategories, type CategoryDoc, type CourseDoc } from "@/lib/firebase-lms";
 import { uploadImage, compressImage, base64ToDataUrl, getImage } from "@/lib/firebase-images";
 import type { DifficultyLevel } from "@/types/academy";
@@ -53,6 +53,10 @@ export default function EditCoursePage() {
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [thumbnailImageId, setThumbnailImageId] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  // Pricing state
+  const [priceInCents, setPriceInCents] = useState(0);
+  const [compareAtPriceInCents, setCompareAtPriceInCents] = useState<number | null>(null);
+  const [isFree, setIsFree] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -86,6 +90,10 @@ export default function EditCoursePage() {
         setLearningOutcomes(courseData.learningOutcomes || []);
         setPrerequisites(courseData.prerequisites || []);
         setThumbnailImageId(courseData.thumbnailImageId || null);
+        // Load pricing
+        setPriceInCents(courseData.priceInCents || 0);
+        setCompareAtPriceInCents(courseData.compareAtPriceInCents || null);
+        setIsFree(courseData.isFree ?? true);
         
         // Load thumbnail image if exists
         if (courseData.thumbnailImageId) {
@@ -210,6 +218,9 @@ export default function EditCoursePage() {
         prerequisites,
         thumbnailImageId,
         thumbnailUrl,
+        priceInCents: isFree ? 0 : priceInCents,
+        compareAtPriceInCents: isFree ? null : compareAtPriceInCents,
+        isFree,
       });
 
       toast.success("Course updated successfully!");
@@ -242,11 +253,19 @@ export default function EditCoursePage() {
         </Button>
       </div>
 
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Edit Course</h1>
-        <p className="text-muted-foreground">
-          Update course details and settings
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Edit Course</h1>
+          <p className="text-muted-foreground">
+            Update course details and settings
+          </p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href={`/portal/admin/academy/courses/${courseId}/content`}>
+            <FileText className="mr-2 h-4 w-4" />
+            Manage Content
+          </Link>
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -552,6 +571,86 @@ export default function EditCoursePage() {
                     </>
                   )}
                 </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Pricing
+                </CardTitle>
+                <CardDescription>
+                  Set the price for this course
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is-free">Free Course</Label>
+                  <Switch
+                    id="is-free"
+                    checked={isFree}
+                    onCheckedChange={(checked) => {
+                      setIsFree(checked);
+                      if (checked) {
+                        setPriceInCents(0);
+                        setCompareAtPriceInCents(null);
+                      }
+                    }}
+                  />
+                </div>
+                
+                {!isFree && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price (USD)</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={(priceInCents / 100).toFixed(2)}
+                          onChange={(e) => setPriceInCents(Math.round(parseFloat(e.target.value || "0") * 100))}
+                          className="pl-7"
+                          placeholder="99.00"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="compare-price">Compare at Price (optional)</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="compare-price"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={compareAtPriceInCents ? (compareAtPriceInCents / 100).toFixed(2) : ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCompareAtPriceInCents(val ? Math.round(parseFloat(val) * 100) : null);
+                          }}
+                          className="pl-7"
+                          placeholder="149.00"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Shows as strikethrough to indicate discount
+                      </p>
+                    </div>
+                    
+                    {compareAtPriceInCents && compareAtPriceInCents > priceInCents && (
+                      <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                        <p className="text-sm text-green-700 dark:text-green-300">
+                          {Math.round(((compareAtPriceInCents - priceInCents) / compareAtPriceInCents) * 100)}% discount applied
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
 

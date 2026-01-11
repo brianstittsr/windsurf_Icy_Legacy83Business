@@ -244,10 +244,66 @@ export default function ProfilePage() {
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Check file size - warn if over 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        toast.warning("Large image detected. Compressing for storage...");
+      }
+
+      // Compress and resize image before storing
+      const img = document.createElement("img");
       const reader = new FileReader();
+      
       reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
+        img.src = reader.result as string;
+        
+        img.onload = () => {
+          // Create canvas for resizing
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          
+          // Max dimensions (will maintain aspect ratio)
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          
+          let { width, height } = img;
+          
+          // Calculate new dimensions maintaining aspect ratio
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw and compress
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Convert to JPEG with quality compression (0.7 = 70% quality)
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          
+          // Check if compressed size is under Firestore limit (~1MB)
+          const base64Length = compressedDataUrl.length - "data:image/jpeg;base64,".length;
+          const sizeInBytes = (base64Length * 3) / 4;
+          
+          if (sizeInBytes > 900000) {
+            // If still too large, compress more aggressively
+            const moreCompressed = canvas.toDataURL("image/jpeg", 0.4);
+            setAvatarPreview(moreCompressed);
+            toast.info("Image compressed for storage.");
+          } else {
+            setAvatarPreview(compressedDataUrl);
+          }
+        };
       };
+      
       reader.readAsDataURL(file);
     }
   };
@@ -467,7 +523,9 @@ export default function ProfilePage() {
                 )}
                 <span className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  Member since {userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : "N/A"}
+                  <span suppressHydrationWarning>
+                    Member since {userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "N/A"}
+                  </span>
                 </span>
               </div>
               {/* Quick Stats */}

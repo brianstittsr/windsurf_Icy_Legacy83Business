@@ -83,12 +83,12 @@ const DAYS_OF_WEEK = [
   { key: "saturday", label: "Saturday", short: "Sat" },
 ] as const;
 
-// Sample meeting types
-const sampleMeetingTypes: MeetingType[] = [
+// Default meeting types for new users
+const DEFAULT_MEETING_TYPES: MeetingType[] = [
   {
-    id: "1",
+    id: "default-discovery",
     name: "Discovery/Scoping Session",
-    description: "60-minute complimentary session to explore your goals and specific V+ solutions",
+    description: "60-minute complimentary session to explore your goals",
     duration: 60,
     color: "#C8A951",
     bufferBefore: 0,
@@ -97,7 +97,7 @@ const sampleMeetingTypes: MeetingType[] = [
     requiresApproval: false,
   },
   {
-    id: "2",
+    id: "default-quick",
     name: "Quick Consultation",
     description: "30-minute focused discussion on a specific topic",
     duration: 30,
@@ -107,44 +107,14 @@ const sampleMeetingTypes: MeetingType[] = [
     isActive: true,
     requiresApproval: false,
   },
-  {
-    id: "3",
-    name: "Strategy Session",
-    description: "90-minute deep dive into strategic planning",
-    duration: 90,
-    color: "#8b5cf6",
-    bufferBefore: 15,
-    bufferAfter: 15,
-    isActive: false,
-    requiresApproval: true,
-  },
-];
-
-// Sample bookings
-const sampleBookings: Booking[] = [
-  {
-    id: "b1",
-    meetingTypeId: "1",
-    meetingTypeName: "Discovery/Scoping Session",
-    ownerId: "owner1",
-    ownerName: "Brian Stitt",
-    guestName: "John Smith",
-    guestEmail: "john@example.com",
-    date: new Date().toISOString().split("T")[0],
-    startTime: "10:00",
-    endTime: "11:00",
-    timezone: "America/New_York",
-    status: "confirmed",
-    createdAt: new Date().toISOString(),
-  },
 ];
 
 export default function AvailabilityPage() {
   const [timezone, setTimezone] = useState("America/New_York");
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule>(DEFAULT_WEEKLY_SCHEDULE);
-  const [meetingTypes, setMeetingTypes] = useState<MeetingType[]>(sampleMeetingTypes);
+  const [meetingTypes, setMeetingTypes] = useState<MeetingType[]>([]);
   const [dateOverrides, setDateOverrides] = useState<DateOverride[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>(sampleBookings);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [isAddMeetingTypeOpen, setIsAddMeetingTypeOpen] = useState(false);
   const [isAddOverrideOpen, setIsAddOverrideOpen] = useState(false);
   const [editingMeetingType, setEditingMeetingType] = useState<MeetingType | null>(null);
@@ -219,6 +189,55 @@ export default function AvailabilityPage() {
         setBookingTitle(data.bookingTitle || '');
         setBookingDescription(data.bookingDescription || '');
         setTimezone(data.timezone || 'America/New_York');
+        
+        // Load weekly schedule from saved data
+        if (data.weeklyAvailability && data.weeklyAvailability.length > 0) {
+          const loadedSchedule: WeeklySchedule = { ...DEFAULT_WEEKLY_SCHEDULE };
+          const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+          data.weeklyAvailability.forEach((slot) => {
+            const dayKey = dayKeys[slot.dayOfWeek];
+            if (dayKey) {
+              loadedSchedule[dayKey] = {
+                enabled: slot.isEnabled,
+                slots: [{ start: slot.startTime, end: slot.endTime }],
+              };
+            }
+          });
+          setWeeklySchedule(loadedSchedule);
+        } else {
+          setWeeklySchedule(DEFAULT_WEEKLY_SCHEDULE);
+        }
+        
+        // Load meeting types from saved data
+        if (data.meetingTypes && data.meetingTypes.length > 0) {
+          const loadedMeetingTypes: MeetingType[] = data.meetingTypes.map((mt, index) => ({
+            id: mt.id,
+            name: mt.name,
+            description: mt.description || '',
+            duration: mt.duration,
+            color: ['#C8A951', '#3b82f6', '#8b5cf6', '#22c55e', '#f97316'][index % 5],
+            bufferBefore: 0,
+            bufferAfter: data.bufferBetweenMeetings || 15,
+            isActive: true,
+            requiresApproval: false,
+          }));
+          setMeetingTypes(loadedMeetingTypes);
+        } else {
+          setMeetingTypes(DEFAULT_MEETING_TYPES);
+        }
+        
+        // Load blocked dates as date overrides
+        if (data.blockedDates && data.blockedDates.length > 0) {
+          const loadedOverrides: DateOverride[] = data.blockedDates.map((bd, index) => ({
+            id: `override-${index}`,
+            date: bd.date,
+            type: 'unavailable' as const,
+            reason: bd.reason,
+          }));
+          setDateOverrides(loadedOverrides);
+        } else {
+          setDateOverrides([]);
+        }
       } else {
         // Create default availability for this team member
         const member = teamMembers.find(m => m.id === teamMemberId);
@@ -229,6 +248,9 @@ export default function AvailabilityPage() {
           setBookingDescription(member.expertise || '');
         }
         setAvailabilityDoc(null);
+        setWeeklySchedule(DEFAULT_WEEKLY_SCHEDULE);
+        setMeetingTypes(DEFAULT_MEETING_TYPES);
+        setDateOverrides([]);
       }
 
       // Fetch bookings for this team member
@@ -263,6 +285,7 @@ export default function AvailabilityPage() {
       setCurrentTeamMember(member || null);
     } catch (error) {
       console.error("Error fetching availability:", error);
+      toast.error("Failed to load availability settings");
     } finally {
       setLoading(false);
     }
@@ -457,10 +480,46 @@ export default function AvailabilityPage() {
     toast.success("Booking link copied to clipboard!");
   };
 
-  const updateBookingStatus = (bookingId: string, status: Booking["status"]) => {
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status } : b))
-    );
+  const updateBookingStatus = async (bookingId: string, status: Booking["status"]) => {
+    if (!db) return;
+    
+    try {
+      const bookingRef = doc(db, COLLECTIONS.BOOKINGS, bookingId);
+      const updateData: Record<string, any> = {
+        status,
+        updatedAt: Timestamp.now(),
+      };
+      
+      if (status === 'confirmed') {
+        updateData.confirmedAt = Timestamp.now();
+      } else if (status === 'cancelled') {
+        updateData.cancelledAt = Timestamp.now();
+      }
+      
+      await updateDoc(bookingRef, updateData);
+      
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status } : b))
+      );
+      
+      toast.success(`Booking ${status === 'confirmed' ? 'confirmed' : status === 'cancelled' ? 'cancelled' : 'updated'}`);
+    } catch (error) {
+      console.error("Error updating booking status:", error);
+      toast.error("Failed to update booking status");
+    }
+  };
+
+  const deleteBooking = async (bookingId: string) => {
+    if (!db) return;
+    
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.BOOKINGS, bookingId));
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+      toast.success("Booking deleted");
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+      toast.error("Failed to delete booking");
+    }
   };
 
   // Stats
@@ -924,6 +983,14 @@ export default function AvailabilityPage() {
                                 <XCircle className="h-4 w-4 text-red-500" />
                               </Button>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteBooking(booking.id)}
+                              title="Delete booking"
+                            >
+                              <Trash2 className="h-4 w-4 text-muted-foreground hover:text-red-500" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>

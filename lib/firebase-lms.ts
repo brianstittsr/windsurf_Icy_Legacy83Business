@@ -66,7 +66,40 @@ export const LMS_COLLECTIONS = {
   USER_POINTS: "lms_user_points",
   BADGES: "lms_badges",
   ACADEMY_SETTINGS: "lms_settings",
+  COURSE_PURCHASES: "lms_course_purchases",
+  CART_ITEMS: "lms_cart_items",
 } as const;
+
+// ============================================================================
+// COURSE PURCHASE TYPES
+// ============================================================================
+
+export interface CoursePurchaseDoc {
+  id: string;
+  odUserId: string;
+  userEmail: string;
+  userName: string;
+  courseId: string;
+  courseTitle: string;
+  priceInCents: number;
+  discountInCents: number;
+  totalInCents: number;
+  couponCode: string | null;
+  stripeSessionId: string | null;
+  stripePaymentIntentId: string | null;
+  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  purchasedAt: Timestamp;
+  refundedAt: Timestamp | null;
+  refundReason: string | null;
+  createdAt: Timestamp;
+}
+
+export interface CartItemDoc {
+  id: string;
+  odUserId: string;
+  courseId: string;
+  addedAt: Timestamp;
+}
 
 // ============================================================================
 // FIRESTORE DOCUMENT TYPES (with Timestamp)
@@ -95,6 +128,12 @@ export interface CourseDoc {
   learningOutcomes: string[];
   prerequisites: string[];
   enrollmentCount: number;
+  // Pricing fields
+  priceInCents: number; // Price in cents (e.g., 9900 = $99.00)
+  compareAtPriceInCents: number | null; // Original price for showing discount
+  isFree: boolean; // Whether course is free
+  stripePriceId: string | null; // Stripe Price ID for recurring/one-time
+  stripeProductId: string | null; // Stripe Product ID
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -339,6 +378,9 @@ export async function createCourse(data: {
   learningOutcomes?: string[];
   prerequisites?: string[];
   isFeatured?: boolean;
+  priceInCents?: number;
+  compareAtPriceInCents?: number;
+  isFree?: boolean;
 }): Promise<CourseDoc> {
   if (!db) throw new Error("Firebase not initialized");
 
@@ -368,6 +410,11 @@ export async function createCourse(data: {
     learningOutcomes: data.learningOutcomes || [],
     prerequisites: data.prerequisites || [],
     enrollmentCount: 0,
+    priceInCents: data.priceInCents || 0,
+    compareAtPriceInCents: data.compareAtPriceInCents || null,
+    isFree: data.isFree ?? true,
+    stripePriceId: null,
+    stripeProductId: null,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
@@ -601,6 +648,107 @@ export async function deleteLesson(lessonId: string): Promise<void> {
 
   const docRef = doc(db, LMS_COLLECTIONS.LESSONS, lessonId);
   await deleteDoc(docRef);
+}
+
+export async function getModule(moduleId: string): Promise<CourseModuleDoc | null> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const docRef = doc(db, LMS_COLLECTIONS.COURSE_MODULES, moduleId);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) return null;
+  return docSnap.data() as CourseModuleDoc;
+}
+
+export async function updateModule(
+  moduleId: string,
+  updates: Partial<Omit<CourseModuleDoc, "id" | "createdAt">>
+): Promise<void> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const docRef = doc(db, LMS_COLLECTIONS.COURSE_MODULES, moduleId);
+  await updateDoc(docRef, updates);
+}
+
+export async function deleteModule(moduleId: string): Promise<void> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  // Delete all lessons in this module first
+  const lessons = await getLessons(moduleId);
+  const batch = writeBatch(db);
+  
+  for (const lesson of lessons) {
+    const lessonRef = doc(db, LMS_COLLECTIONS.LESSONS, lesson.id);
+    batch.delete(lessonRef);
+  }
+  
+  // Delete the module
+  const moduleRef = doc(db, LMS_COLLECTIONS.COURSE_MODULES, moduleId);
+  batch.delete(moduleRef);
+  
+  await batch.commit();
+}
+
+export async function reorderModules(
+  courseId: string,
+  moduleIds: string[]
+): Promise<void> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const batch = writeBatch(db);
+  
+  moduleIds.forEach((moduleId, index) => {
+    const moduleRef = doc(db!, LMS_COLLECTIONS.COURSE_MODULES, moduleId);
+    batch.update(moduleRef, { sortOrder: index });
+  });
+  
+  await batch.commit();
+}
+
+export async function reorderLessons(
+  moduleId: string,
+  lessonIds: string[]
+): Promise<void> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const batch = writeBatch(db);
+  
+  lessonIds.forEach((lessonId, index) => {
+    const lessonRef = doc(db!, LMS_COLLECTIONS.LESSONS, lessonId);
+    batch.update(lessonRef, { sortOrder: index });
+  });
+  
+  await batch.commit();
+}
+
+export async function getLesson(lessonId: string): Promise<LessonDoc | null> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const docRef = doc(db, LMS_COLLECTIONS.LESSONS, lessonId);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) return null;
+  return docSnap.data() as LessonDoc;
+}
+
+export async function getCourseWithModulesAndLessons(courseId: string): Promise<{
+  course: CourseDoc;
+  modules: (CourseModuleDoc & { lessons: LessonDoc[] })[];
+} | null> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const course = await getCourse(courseId);
+  if (!course) return null;
+
+  const modules = await getModules(courseId);
+  const modulesWithLessons = await Promise.all(
+    modules.map(async (module) => {
+      const lessons = await getLessons(module.id);
+      return { ...module, lessons };
+    })
+  );
+
+  return { course, modules: modulesWithLessons };
 }
 
 // ============================================================================
@@ -1232,4 +1380,80 @@ export function subscribeToWorkshops(
     const workshops = snapshot.docs.map((doc) => doc.data() as WorkshopDoc);
     callback(workshops);
   });
+}
+
+// ============================================================================
+// COURSE PURCHASE OPERATIONS
+// ============================================================================
+
+export async function getUserPurchases(userId: string): Promise<CoursePurchaseDoc[]> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const purchasesRef = collection(db, LMS_COLLECTIONS.COURSE_PURCHASES);
+  const q = query(
+    purchasesRef,
+    where("odUserId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => doc.data() as CoursePurchaseDoc);
+}
+
+export async function getPurchase(purchaseId: string): Promise<CoursePurchaseDoc | null> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const docRef = doc(db, LMS_COLLECTIONS.COURSE_PURCHASES, purchaseId);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) return null;
+  return docSnap.data() as CoursePurchaseDoc;
+}
+
+export async function hasUserPurchasedCourse(userId: string, courseId: string): Promise<boolean> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const purchasesRef = collection(db, LMS_COLLECTIONS.COURSE_PURCHASES);
+  const q = query(
+    purchasesRef,
+    where("odUserId", "==", userId),
+    where("courseId", "==", courseId),
+    where("paymentStatus", "==", "paid"),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+
+  return !snapshot.empty;
+}
+
+export async function getAllPurchases(): Promise<CoursePurchaseDoc[]> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const purchasesRef = collection(db, LMS_COLLECTIONS.COURSE_PURCHASES);
+  const q = query(purchasesRef, orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => doc.data() as CoursePurchaseDoc);
+}
+
+export async function getPurchaseStats(): Promise<{
+  totalRevenue: number;
+  totalPurchases: number;
+  paidPurchases: number;
+  pendingPurchases: number;
+  refundedPurchases: number;
+}> {
+  if (!db) throw new Error("Firebase not initialized");
+
+  const purchases = await getAllPurchases();
+  
+  return {
+    totalRevenue: purchases
+      .filter(p => p.paymentStatus === "paid")
+      .reduce((acc, p) => acc + p.totalInCents, 0),
+    totalPurchases: purchases.length,
+    paidPurchases: purchases.filter(p => p.paymentStatus === "paid").length,
+    pendingPurchases: purchases.filter(p => p.paymentStatus === "pending").length,
+    refundedPurchases: purchases.filter(p => p.paymentStatus === "refunded").length,
+  };
 }

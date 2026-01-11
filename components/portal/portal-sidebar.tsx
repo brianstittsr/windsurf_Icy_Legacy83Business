@@ -279,6 +279,12 @@ const adminItems: { title: string; href: string; icon: React.ElementType; badge?
     icon: GraduationCap,
     featureKey: "academyAdmin",
   },
+  {
+    title: "Backup & Restore",
+    href: "/portal/admin/backups",
+    icon: Database,
+    featureKey: "backups",
+  },
 ];
 
 export function PortalSidebar() {
@@ -287,6 +293,8 @@ export function PortalSidebar() {
   const { getDisplayName, getInitials, profile, linkedTeamMember } = useUserProfile();
   const { canSeeFeature, canSeeSection, isPreviewMode } = useFeatureVisibility();
   const [bookCallLeadsCount, setBookCallLeadsCount] = useState(0);
+  const [opportunitiesCount, setOpportunitiesCount] = useState(0);
+  const [projectsCount, setProjectsCount] = useState(0);
   const currentUserRole = linkedTeamMember?.role || "affiliate";
   const showSuperAdminLink = isSuperAdmin(currentUserRole);
 
@@ -340,6 +348,38 @@ export function PortalSidebar() {
     
     return () => unsubscribe();
   }, []);
+
+  // Subscribe to Opportunities count (active opportunities)
+  useEffect(() => {
+    if (!db) return;
+    
+    const q = query(
+      collection(db, COLLECTIONS.OPPORTUNITIES),
+      where("status", "in", ["new", "contacted", "qualified", "proposal", "negotiation"])
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setOpportunitiesCount(snapshot.size);
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
+  // Subscribe to Projects count (active projects)
+  useEffect(() => {
+    if (!db) return;
+    
+    const q = query(
+      collection(db, COLLECTIONS.PROJECTS),
+      where("status", "in", ["planning", "in_progress", "on_hold"])
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setProjectsCount(snapshot.size);
+    });
+    
+    return () => unsubscribe();
+  }, []);
   
   // Collapsible state for each section
   const [openSections, setOpenSections] = useState({
@@ -357,26 +397,38 @@ export function PortalSidebar() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
+  // Get dynamic count for specific items
+  const getDynamicCount = (href: string): number | null => {
+    if (href === "/portal/opportunities") return opportunitiesCount > 0 ? opportunitiesCount : null;
+    if (href === "/portal/projects") return projectsCount > 0 ? projectsCount : null;
+    return null;
+  };
+
   // Helper to render menu items
   const renderMenuItems = (items: typeof systemManagementItems) => (
     <SidebarMenu>
-      {items.filter(item => canSeeFeature(item.featureKey)).map((item) => (
-        <SidebarMenuItem key={item.href}>
-          <SidebarMenuButton
-            asChild
-            isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-            tooltip={item.title}
-          >
-            <Link href={item.href}>
-              <item.icon className="h-4 w-4" />
-              <span>{item.title}</span>
-            </Link>
-          </SidebarMenuButton>
-          {item.badge && (
-            <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
-          )}
-        </SidebarMenuItem>
-      ))}
+      {items.filter(item => canSeeFeature(item.featureKey)).map((item) => {
+        const dynamicCount = getDynamicCount(item.href);
+        return (
+          <SidebarMenuItem key={item.href}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
+              tooltip={item.title}
+            >
+              <Link href={item.href}>
+                <item.icon className="h-4 w-4" />
+                <span>{item.title}</span>
+              </Link>
+            </SidebarMenuButton>
+            {dynamicCount !== null ? (
+              <SidebarMenuBadge>{dynamicCount}</SidebarMenuBadge>
+            ) : item.badge ? (
+              <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+            ) : null}
+          </SidebarMenuItem>
+        );
+      })}
     </SidebarMenu>
   );
 
@@ -442,14 +494,14 @@ export function PortalSidebar() {
         {/* Project Management */}
         {renderSection("projectManagement", "Project Management", projectManagementItems)}
 
+        {/* Productivity */}
+        {renderSection("productivity", "Productivity", productivityItems)}
+
         {/* Data */}
         {renderSection("data", "Data", dataItems)}
 
         {/* People */}
         {renderSection("people", "People", peopleItems)}
-
-        {/* Productivity */}
-        {renderSection("productivity", "Productivity", productivityItems)}
 
         {/* Affiliate Center */}
         {renderSection("affiliateCenter", "Affiliate Center", affiliateCenterItems)}

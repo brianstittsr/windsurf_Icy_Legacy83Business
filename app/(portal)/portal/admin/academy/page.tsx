@@ -24,6 +24,8 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
+  Layers,
+  DollarSign,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -71,6 +73,11 @@ const MOCK_COURSES: CourseDoc[] = [
     learningOutcomes: ["Understand the G.R.O.W.S. framework", "Apply strategies to your business"],
     prerequisites: [],
     enrollmentCount: 45,
+    priceInCents: 9900,
+    compareAtPriceInCents: 14900,
+    isFree: false,
+    stripePriceId: null,
+    stripeProductId: null,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   },
@@ -97,6 +104,11 @@ const MOCK_COURSES: CourseDoc[] = [
     learningOutcomes: ["Create strategic plans", "Measure value delivery"],
     prerequisites: ["Basic business knowledge"],
     enrollmentCount: 28,
+    priceInCents: 19900,
+    compareAtPriceInCents: null,
+    isFree: false,
+    stripePriceId: null,
+    stripeProductId: null,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   },
@@ -123,6 +135,11 @@ const MOCK_COURSES: CourseDoc[] = [
     learningOutcomes: ["Lead teams effectively", "Drive organizational change"],
     prerequisites: ["Management experience"],
     enrollmentCount: 0,
+    priceInCents: 0,
+    compareAtPriceInCents: null,
+    isFree: true,
+    stripePriceId: null,
+    stripeProductId: null,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   },
@@ -243,6 +260,12 @@ export default function AcademyAdminPage() {
               {useMockData ? "Mock Data" : "Live Data"}
             </Label>
           </div>
+          <Button variant="outline" asChild>
+            <Link href="/portal/admin/academy/purchases">
+              <DollarSign className="mr-2 h-4 w-4" />
+              Purchases
+            </Link>
+          </Button>
           <Button variant="outline" asChild>
             <Link href="/academy" target="_blank">
               <Eye className="mr-2 h-4 w-4" />
@@ -391,7 +414,13 @@ export default function AcademyAdminPage() {
                           <DropdownMenuItem asChild>
                             <Link href={`/portal/admin/academy/courses/${course.id}/edit`}>
                               <Edit className="mr-2 h-4 w-4" />
-                              Edit
+                              Edit Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/portal/admin/academy/courses/${course.id}/content`}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Manage Content
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
