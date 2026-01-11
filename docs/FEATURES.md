@@ -11,6 +11,19 @@
 
 ---
 
+## Related Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Getting Started Guide](./workflows/GETTING_STARTED.md) | Initial setup and onboarding |
+| [Academy Workflows](./workflows/ACADEMY_WORKFLOWS.md) | Step-by-step course management |
+| [AI Content Workflows](./workflows/AI_CONTENT_WORKFLOWS.md) | AI generation tutorials |
+| [Admin Workflows](./workflows/ADMIN_WORKFLOWS.md) | Administrative tasks |
+| [Meetings & Availability](./workflows/MEETINGS_AVAILABILITY_WORKFLOWS.md) | Scheduling workflows |
+| [Troubleshooting & FAQ](./workflows/TROUBLESHOOTING_FAQ.md) | Common issues and solutions |
+
+---
+
 ## Academy / LMS
 
 ### Overview
