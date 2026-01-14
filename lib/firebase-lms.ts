@@ -642,9 +642,17 @@ export async function updateLesson(
 ): Promise<void> {
   if (!db) throw new Error("Firebase not initialized");
 
+  // Filter out undefined values - Firestore doesn't accept undefined
+  const filteredUpdates: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(updates)) {
+    if (value !== undefined) {
+      filteredUpdates[key] = value;
+    }
+  }
+
   const docRef = doc(db, LMS_COLLECTIONS.LESSONS, lessonId);
   await updateDoc(docRef, {
-    ...updates,
+    ...filteredUpdates,
     updatedAt: serverTimestamp(),
   });
 }
