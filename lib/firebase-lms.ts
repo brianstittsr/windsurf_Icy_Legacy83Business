@@ -159,6 +159,8 @@ export interface LessonDoc {
   videoDurationSeconds: number | null;
   textContent: string | null;
   downloadUrl: string | null;
+  imageId: string | null; // Firebase image ID for lesson thumbnail/content image
+  imageUrl: string | null; // Cached image URL for display
   isPreview: boolean;
   sortOrder: number;
   createdAt: Timestamp;
@@ -572,6 +574,8 @@ export async function createLesson(data: {
   videoDurationSeconds?: number;
   textContent?: string;
   downloadUrl?: string;
+  imageId?: string;
+  imageUrl?: string;
   isPreview?: boolean;
   sortOrder?: number;
 }): Promise<LessonDoc> {
@@ -592,6 +596,8 @@ export async function createLesson(data: {
     videoDurationSeconds: data.videoDurationSeconds || null,
     textContent: data.textContent || null,
     downloadUrl: data.downloadUrl || null,
+    imageId: data.imageId || null,
+    imageUrl: data.imageUrl || null,
     isPreview: data.isPreview || false,
     sortOrder: data.sortOrder || 0,
     createdAt: Timestamp.now(),

@@ -100,6 +100,7 @@ import {
   type GeneratedExam,
 } from "@/lib/ai-course-generator";
 import { Separator } from "@/components/ui/separator";
+import { LessonImagePicker } from "@/components/academy/lesson-image-picker";
 
 interface ModuleWithLessons extends CourseModuleDoc {
   lessons: LessonDoc[];
@@ -201,6 +202,8 @@ export default function CourseContentBuilderPage() {
   const [lessonVideoDuration, setLessonVideoDuration] = useState("");
   const [lessonTextContent, setLessonTextContent] = useState("");
   const [lessonDownloadUrl, setLessonDownloadUrl] = useState("");
+  const [lessonImageId, setLessonImageId] = useState<string | undefined>(undefined);
+  const [lessonImageUrl, setLessonImageUrl] = useState<string | undefined>(undefined);
   const [lessonIsPreview, setLessonIsPreview] = useState(false);
 
   // Delete confirmation state
@@ -320,6 +323,8 @@ export default function CourseContentBuilderPage() {
       setLessonVideoDuration(lesson.videoDurationSeconds ? String(Math.floor(lesson.videoDurationSeconds / 60)) : "");
       setLessonTextContent(lesson.textContent || "");
       setLessonDownloadUrl(lesson.downloadUrl || "");
+      setLessonImageId(lesson.imageId || undefined);
+      setLessonImageUrl(lesson.imageUrl || undefined);
       setLessonIsPreview(lesson.isPreview);
     } else {
       setEditingLesson(null);
@@ -330,6 +335,8 @@ export default function CourseContentBuilderPage() {
       setLessonVideoDuration("");
       setLessonTextContent("");
       setLessonDownloadUrl("");
+      setLessonImageId(undefined);
+      setLessonImageUrl(undefined);
       setLessonIsPreview(false);
     }
     setLessonDialogOpen(true);
@@ -351,6 +358,8 @@ export default function CourseContentBuilderPage() {
         videoDurationSeconds: lessonContentType === "video" && lessonVideoDuration ? parseInt(lessonVideoDuration) * 60 : undefined,
         textContent: lessonContentType === "text" ? lessonTextContent.trim() || undefined : undefined,
         downloadUrl: lessonContentType === "download" ? lessonDownloadUrl.trim() || undefined : undefined,
+        imageId: lessonImageId,
+        imageUrl: lessonImageUrl,
         isPreview: lessonIsPreview,
       };
 
@@ -1021,6 +1030,21 @@ export default function CourseContentBuilderPage() {
                 </p>
               </div>
             )}
+
+            {/* Lesson Image */}
+            <div className="p-4 border rounded-lg bg-muted/30">
+              <LessonImagePicker
+                value={lessonImageId}
+                onChange={(imageId, imageUrl) => {
+                  setLessonImageId(imageId);
+                  setLessonImageUrl(imageUrl);
+                }}
+                label="Lesson Image (optional)"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Add an image to display with this lesson content
+              </p>
+            </div>
 
             {/* Preview Toggle */}
             <div className="flex items-center justify-between p-4 border rounded-lg">
