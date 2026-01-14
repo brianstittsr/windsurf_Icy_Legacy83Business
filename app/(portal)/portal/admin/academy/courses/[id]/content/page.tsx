@@ -352,14 +352,14 @@ export default function CourseContentBuilderPage() {
     try {
       const lessonData = {
         title: lessonTitle.trim(),
-        description: lessonDescription.trim() || undefined,
+        description: lessonDescription.trim() || null,
         contentType: lessonContentType,
-        videoUrl: lessonContentType === "video" ? lessonVideoUrl.trim() || undefined : undefined,
-        videoDurationSeconds: lessonContentType === "video" && lessonVideoDuration ? parseInt(lessonVideoDuration) * 60 : undefined,
-        textContent: lessonContentType === "text" ? lessonTextContent.trim() || undefined : undefined,
-        downloadUrl: lessonContentType === "download" ? lessonDownloadUrl.trim() || undefined : undefined,
-        imageId: lessonImageId,
-        imageUrl: lessonImageUrl,
+        videoUrl: lessonContentType === "video" ? lessonVideoUrl.trim() || null : null,
+        videoDurationSeconds: lessonContentType === "video" && lessonVideoDuration ? parseInt(lessonVideoDuration) * 60 : null,
+        textContent: lessonContentType === "text" ? lessonTextContent.trim() || null : null,
+        downloadUrl: lessonContentType === "download" ? lessonDownloadUrl.trim() || null : null,
+        imageId: lessonImageId || null,
+        imageUrl: lessonImageUrl || null,
         isPreview: lessonIsPreview,
       };
 

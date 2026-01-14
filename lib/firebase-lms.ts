@@ -568,14 +568,14 @@ export async function createLesson(data: {
   moduleId: string;
   courseId: string;
   title: string;
-  description?: string;
+  description?: string | null;
   contentType: ContentType;
-  videoUrl?: string;
-  videoDurationSeconds?: number;
-  textContent?: string;
-  downloadUrl?: string;
-  imageId?: string;
-  imageUrl?: string;
+  videoUrl?: string | null;
+  videoDurationSeconds?: number | null;
+  textContent?: string | null;
+  downloadUrl?: string | null;
+  imageId?: string | null;
+  imageUrl?: string | null;
   isPreview?: boolean;
   sortOrder?: number;
 }): Promise<LessonDoc> {
