@@ -27,7 +27,9 @@ import {
   ClipboardCheck,
   LogIn,
   UserPlus,
+  ShoppingCart,
 } from "lucide-react";
+import { CartButton } from "@/components/academy/course-cart-drawer";
 import { cn } from "@/lib/utils";
 
 const services = [
@@ -150,6 +152,7 @@ export function Legacy83Navbar() {
 
         {/* CTA Buttons */}
         <div className="hidden lg:flex items-center gap-3">
+          <CartButton />
           <Link 
             href="/sign-in" 
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"

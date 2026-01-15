@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUserProfile } from "@/contexts/user-profile-context";
+import { useCourseCart } from "@/contexts/course-cart-context";
 import { 
   getCourse, 
   getModules, 
@@ -34,7 +35,8 @@ import {
   User,
   Users,
   Star,
-  Lock
+  Lock,
+  ShoppingCart
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +48,7 @@ export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { profile, isAuthenticated } = useUserProfile();
+  const { addItem, isInCart } = useCourseCart();
   const courseId = params.courseId as string;
 
   const [course, setCourse] = useState<CourseDoc | null>(null);
@@ -120,6 +123,29 @@ export default function CourseDetailPage() {
       setEnrolling(false);
     }
   };
+
+  const handleAddToCart = () => {
+    if (!course) return;
+    
+    if (isInCart(courseId)) {
+      toast.info("This course is already in your cart");
+      return;
+    }
+
+    addItem({
+      courseId: course.id,
+      courseTitle: course.title,
+      courseSlug: course.slug,
+      thumbnailUrl: course.thumbnailUrl,
+      instructorName: course.instructorName,
+      price: course.priceInCents,
+      originalPrice: course.compareAtPriceInCents || undefined,
+    });
+    toast.success("Course added to cart!");
+  };
+
+  const isPaidCourse = course && !course.isFree && course.priceInCents > 0;
+  const courseInCart = isInCart(courseId);
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev => {
@@ -272,7 +298,31 @@ export default function CourseDetailPage() {
                         Continue Learning
                       </Link>
                     </Button>
+                  ) : isPaidCourse ? (
+                    // Paid course - show Add to Cart
+                    courseInCart ? (
+                      <Button 
+                        className="w-full bg-green-600 hover:bg-green-700" 
+                        size="lg"
+                        asChild
+                      >
+                        <Link href="/academy/courses">
+                          <CheckCircle2 className="h-5 w-5 mr-2" />
+                          In Cart - Continue Shopping
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button 
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900" 
+                        size="lg"
+                        onClick={handleAddToCart}
+                      >
+                        <ShoppingCart className="h-5 w-5 mr-2" />
+                        Add to Cart
+                      </Button>
+                    )
                   ) : (
+                    // Free course - direct enroll
                     <Button 
                       className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900" 
                       size="lg"
@@ -282,9 +332,7 @@ export default function CourseDetailPage() {
                       {enrolling ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
-                        <>
-                          {course.isFree || course.priceInCents === 0 ? "Enroll Now - Free" : "Enroll Now"}
-                        </>
+                        "Enroll Now - Free"
                       )}
                     </Button>
                   )}
