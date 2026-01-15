@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,10 +23,12 @@ import {
   Settings,
   Users,
   ArrowRightLeft,
-  Filter,
+  Loader2,
 } from "lucide-react";
+import { getCourses, CourseDoc } from "@/lib/firebase-lms";
 
-const allCourses = [
+// Fallback courses for when Firestore is empty
+const fallbackCourses = [
   {
     id: "1",
     title: "The G.R.O.W.S. Framework Masterclass",
@@ -161,12 +163,70 @@ const categories = [
 
 const levels = ["All Levels", "Beginner", "Intermediate", "Advanced"];
 
+interface DisplayCourse {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  categorySlug: string;
+  duration: string;
+  lessons: number;
+  level: string;
+  slug: string;
+  isFeatured?: boolean;
+  enrollmentCount: number;
+  thumbnailUrl?: string | null;
+}
+
+function mapCourseDocToDisplay(course: CourseDoc): DisplayCourse {
+  return {
+    id: course.id,
+    title: course.title,
+    description: course.shortDescription || course.description || "",
+    category: course.difficultyLevel || "General",
+    categorySlug: course.categoryId || "general",
+    duration: course.estimatedDurationMinutes 
+      ? `${Math.round(course.estimatedDurationMinutes / 60)} hours` 
+      : "Self-paced",
+    lessons: 0, // Will be calculated separately if needed
+    level: course.difficultyLevel || "Intermediate",
+    slug: course.slug,
+    isFeatured: course.isFeatured,
+    enrollmentCount: course.enrollmentCount || 0,
+    thumbnailUrl: course.thumbnailUrl,
+  };
+}
+
 export default function CoursesPage() {
+  const [courses, setCourses] = useState<DisplayCourse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("All Levels");
 
-  const filteredCourses = allCourses.filter((course) => {
+  useEffect(() => {
+    loadCourses();
+  }, []);
+
+  const loadCourses = async () => {
+    setLoading(true);
+    try {
+      const firestoreCourses = await getCourses({ isPublished: true });
+      if (firestoreCourses.length > 0) {
+        setCourses(firestoreCourses.map(mapCourseDocToDisplay));
+      } else {
+        // Use fallback courses if no Firestore courses
+        setCourses(fallbackCourses as DisplayCourse[]);
+      }
+    } catch (error) {
+      console.error("Error loading courses:", error);
+      setCourses(fallbackCourses as DisplayCourse[]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredCourses = courses.filter((course) => {
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "all" || course.categorySlug === selectedCategory;
@@ -224,11 +284,18 @@ export default function CoursesPage() {
 
         {/* Results count */}
         <div className="mb-6 text-sm text-muted-foreground">
-          Showing {filteredCourses.length} of {allCourses.length} courses
+          {loading ? "Loading courses..." : `Showing ${filteredCourses.length} of ${courses.length} courses`}
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+          </div>
+        )}
+
         {/* Course Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {!loading && <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => (
             <Card key={course.id} className="group overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-video bg-slate-200 relative overflow-hidden">
@@ -278,9 +345,9 @@ export default function CoursesPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
+        </div>}
 
-        {filteredCourses.length === 0 && (
+        {!loading && filteredCourses.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">No courses found matching your criteria.</p>
             <Button variant="outline" onClick={() => {
