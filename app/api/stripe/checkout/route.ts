@@ -4,7 +4,14 @@ import { db } from "@/lib/firebase";
 import { collection, doc, setDoc, Timestamp } from "firebase/firestore";
 import { LMS_COLLECTIONS } from "@/lib/firebase-lms";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Initialize Stripe lazily to avoid build-time errors when env var is not available
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY is not configured");
+  }
+  return new Stripe(key);
+}
 
 interface CheckoutItem {
   courseId: string;
@@ -79,6 +86,7 @@ export async function POST(request: NextRequest) {
     }));
 
     // Create Stripe checkout session
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
