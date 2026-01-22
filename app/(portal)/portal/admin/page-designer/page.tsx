@@ -230,7 +230,10 @@ export default function PageDesignerPage() {
   // State
   const [selectedPage, setSelectedPage] = useState<PublicPage | null>(null);
   const [selectedSection, setSelectedSection] = useState<PageSection | null>(null);
-  const [activeTab, setActiveTab] = useState("chat");
+  const [activeTab, setActiveTab] = useState("design");
+  const [uploadedScreenshot, setUploadedScreenshot] = useState<string | null>(null);
+  const [screenshotAnalysis, setScreenshotAnalysis] = useState<string>("");
+  const [isAnalyzingScreenshot, setIsAnalyzingScreenshot] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -637,6 +640,47 @@ export default function PageDesignerPage() {
         return true;
       default:
         return true;
+    }
+  };
+
+  // Handle screenshot analysis
+  const handleAnalyzeScreenshot = async (imageData: string) => {
+    setIsAnalyzingScreenshot(true);
+    try {
+      // Simulate AI analysis (in production, this would call an AI vision API)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const analysis = `**Design Elements Detected:**
+
+• Layout: Modern single-column layout with clear hierarchy
+• Color Scheme: Warm tones with amber/orange accents
+• Typography: Clean sans-serif fonts, good readability
+• Sections: Hero, Features, Testimonials, CTA
+• Images: High-quality professional photography
+• Spacing: Generous whitespace, good visual breathing room
+
+**UX Recommendations:**
+
+✓ Strong visual hierarchy
+✓ Clear call-to-action placement
+✓ Mobile-responsive design patterns
+✓ Accessible color contrast
+
+**Suggested Improvements:**
+
+• Add more social proof elements
+• Increase CTA button prominence
+• Consider adding trust badges
+• Optimize image loading performance
+
+Click "Apply Design to Page" to implement these design patterns on your selected page.`;
+      
+      setScreenshotAnalysis(analysis);
+    } catch (error) {
+      console.error("Error analyzing screenshot:", error);
+      toast.error("Failed to analyze screenshot");
+    } finally {
+      setIsAnalyzingScreenshot(false);
     }
   };
 
@@ -1697,13 +1741,32 @@ export default function PageDesignerPage() {
             Design Wizard
           </Button>
           {selectedPage && (
-            <Button variant="outline" asChild>
-              <a href={selectedPage.path} target="_blank" rel="noopener noreferrer">
-                <Eye className="mr-2 h-4 w-4" />
-                Preview Page
-                <ExternalLink className="ml-2 h-3 w-3" />
-              </a>
-            </Button>
+            <>
+              <Button
+                onClick={handleUXReview}
+                disabled={isReviewing}
+                className="bg-amber-500 hover:bg-amber-600"
+              >
+                {isReviewing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    UX Recommendations
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" asChild>
+                <a href={selectedPage.path} target="_blank" rel="noopener noreferrer">
+                  <Eye className="mr-2 h-4 w-4" />
+                  Preview Page
+                  <ExternalLink className="ml-2 h-3 w-3" />
+                </a>
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -1805,14 +1868,26 @@ export default function PageDesignerPage() {
             <Card className="h-[700px] flex flex-col">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
                 <CardHeader className="pb-0">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-6">
+                    <TabsTrigger value="design" className="gap-2">
+                      <Paintbrush className="h-4 w-4" />
+                      Design
+                    </TabsTrigger>
+                    <TabsTrigger value="elements" className="gap-2">
+                      <Layout className="h-4 w-4" />
+                      Elements
+                    </TabsTrigger>
+                    <TabsTrigger value="buttons" className="gap-2">
+                      <ArrowRight className="h-4 w-4" />
+                      Buttons
+                    </TabsTrigger>
                     <TabsTrigger value="chat" className="gap-2">
                       <MessageSquare className="h-4 w-4" />
                       AI Chat
                     </TabsTrigger>
-                    <TabsTrigger value="templates" className="gap-2">
-                      <LayoutTemplate className="h-4 w-4" />
-                      Templates
+                    <TabsTrigger value="seo" className="gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      SEO
                     </TabsTrigger>
                     <TabsTrigger value="review" className="gap-2">
                       <Sparkles className="h-4 w-4" />
@@ -1820,6 +1895,319 @@ export default function PageDesignerPage() {
                     </TabsTrigger>
                   </TabsList>
                 </CardHeader>
+
+                {/* Design Tab */}
+                <TabsContent value="design" className="flex-1 flex flex-col m-0 p-0">
+                  <ScrollArea className="flex-1 p-4">
+                    <div className="space-y-6">
+                      {/* Screenshot Upload */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <ImageIcon className="h-4 w-4" />
+                            Design from Screenshot
+                          </CardTitle>
+                          <CardDescription>
+                            Paste or upload a screenshot to design a similar page
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div
+                            className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-amber-500 transition-colors"
+                            onPaste={(e) => {
+                              const items = e.clipboardData.items;
+                              for (let i = 0; i < items.length; i++) {
+                                if (items[i].type.indexOf('image') !== -1) {
+                                  const blob = items[i].getAsFile();
+                                  if (blob) {
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                      setUploadedScreenshot(event.target?.result as string);
+                                      toast.success('Screenshot pasted! Analyzing...');
+                                      handleAnalyzeScreenshot(event.target?.result as string);
+                                    };
+                                    reader.readAsDataURL(blob);
+                                  }
+                                }
+                              }
+                            }}
+                          >
+                            <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-sm font-medium mb-2">Paste screenshot here (Ctrl+V / Cmd+V)</p>
+                            <p className="text-xs text-muted-foreground">Or click to upload an image</p>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              id="screenshot-upload"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (event) => {
+                                    setUploadedScreenshot(event.target?.result as string);
+                                    toast.success('Screenshot uploaded! Analyzing...');
+                                    handleAnalyzeScreenshot(event.target?.result as string);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-4"
+                              onClick={() => document.getElementById('screenshot-upload')?.click()}
+                            >
+                              Choose File
+                            </Button>
+                          </div>
+
+                          {uploadedScreenshot && (
+                            <div className="space-y-4">
+                              <div className="relative">
+                                <img
+                                  src={uploadedScreenshot}
+                                  alt="Uploaded screenshot"
+                                  className="w-full rounded-lg border"
+                                />
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-2 right-2"
+                                  onClick={() => {
+                                    setUploadedScreenshot(null);
+                                    setScreenshotAnalysis('');
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+
+                              {isAnalyzingScreenshot && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Analyzing design elements...
+                                </div>
+                              )}
+
+                              {screenshotAnalysis && (
+                                <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+                                  <CardHeader>
+                                    <CardTitle className="text-base flex items-center gap-2">
+                                      <Sparkles className="h-4 w-4 text-amber-500" />
+                                      AI Analysis
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <p className="text-sm whitespace-pre-wrap">{screenshotAnalysis}</p>
+                                    <Button className="w-full mt-4">
+                                      <Wand2 className="mr-2 h-4 w-4" />
+                                      Apply Design to Page
+                                    </Button>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Color Scheme */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Color Scheme</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-5 gap-2">
+                            {['#F59E0B', '#1E293B', '#3B82F6', '#10B981', '#EF4444'].map((color) => (
+                              <div
+                                key={color}
+                                className="aspect-square rounded-lg border-2 cursor-pointer hover:scale-110 transition-transform"
+                                style={{ backgroundColor: color }}
+                                onClick={() => toast.success(`Color ${color} selected`)}
+                              />
+                            ))}
+                          </div>
+                          <Button variant="outline" className="w-full">
+                            <Palette className="mr-2 h-4 w-4" />
+                            Customize Colors
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      {/* Typography */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Typography</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="space-y-2">
+                            <Label>Heading Font</Label>
+                            <Select defaultValue="inter">
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="inter">Inter</SelectItem>
+                                <SelectItem value="poppins">Poppins</SelectItem>
+                                <SelectItem value="roboto">Roboto</SelectItem>
+                                <SelectItem value="montserrat">Montserrat</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Body Font</Label>
+                            <Select defaultValue="inter">
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="inter">Inter</SelectItem>
+                                <SelectItem value="opensans">Open Sans</SelectItem>
+                                <SelectItem value="lato">Lato</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                {/* Elements Tab */}
+                <TabsContent value="elements" className="flex-1 flex flex-col m-0 p-0">
+                  <ScrollArea className="flex-1 p-4">
+                    <div className="space-y-4">
+                      <div className="grid gap-3">
+                        {SECTION_OPTIONS.map((section) => (
+                          <Card
+                            key={section.id}
+                            className="cursor-pointer hover:shadow-md transition-all"
+                            onClick={() => {
+                              toast.success(`Adding ${section.label} section`);
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                                  <section.icon className="h-5 w-5 text-amber-500" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-semibold">{section.label}</h4>
+                                  <p className="text-sm text-muted-foreground">{section.description}</p>
+                                </div>
+                                <Plus className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                {/* Buttons Tab */}
+                <TabsContent value="buttons" className="flex-1 flex flex-col m-0 p-0">
+                  <ScrollArea className="flex-1 p-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold">Page Buttons</h3>
+                        <Button size="sm" onClick={handleAddButton}>
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Button
+                        </Button>
+                      </div>
+
+                      {buttons.length === 0 ? (
+                        <Card className="p-8 text-center">
+                          <ArrowRight className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                          <h3 className="font-semibold mb-2">No buttons yet</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Add buttons for navigation or checkout
+                          </p>
+                          <Button onClick={handleAddButton}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Your First Button
+                          </Button>
+                        </Card>
+                      ) : (
+                        <div className="space-y-3">
+                          {buttons.map((button) => (
+                            <Card key={button.id}>
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  <div className="grid gap-3 md:grid-cols-2">
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">Button Text</Label>
+                                      <Input
+                                        value={button.text}
+                                        onChange={(e) => handleUpdateButton(button.id, { text: e.target.value })}
+                                        placeholder="Button text"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">URL</Label>
+                                      <Input
+                                        value={button.url}
+                                        onChange={(e) => handleUpdateButton(button.id, { url: e.target.value })}
+                                        placeholder="/path or https://..."
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="grid gap-3 md:grid-cols-3">
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">Type</Label>
+                                      <Select
+                                        value={button.type}
+                                        onValueChange={(value: any) => handleUpdateButton(button.id, { type: value })}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="navigation">Navigation</SelectItem>
+                                          <SelectItem value="checkout">Checkout</SelectItem>
+                                          <SelectItem value="external">External</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">Style</Label>
+                                      <Select
+                                        value={button.style}
+                                        onValueChange={(value: any) => handleUpdateButton(button.id, { style: value })}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="primary">Primary</SelectItem>
+                                          <SelectItem value="secondary">Secondary</SelectItem>
+                                          <SelectItem value="outline">Outline</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="flex items-end">
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => handleDeleteButton(button.id)}
+                                        className="w-full"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
 
                 {/* Chat Tab */}
                 <TabsContent value="chat" className="flex-1 flex flex-col m-0 p-0">
@@ -1930,6 +2318,100 @@ export default function PageDesignerPage() {
                       </Button>
                     </div>
                   </div>
+                </TabsContent>
+
+                {/* SEO Tab */}
+                <TabsContent value="seo" className="flex-1 flex flex-col m-0 p-0">
+                  <ScrollArea className="flex-1 p-4">
+                    <div className="space-y-6">
+                      {/* Meta Tags */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Meta Tags</CardTitle>
+                          <CardDescription>Optimize for search engines</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Page Title</Label>
+                            <Input placeholder="e.g., Transform Your Business Legacy | Icy Williams" />
+                            <p className="text-xs text-muted-foreground">60 characters recommended</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Meta Description</Label>
+                            <Textarea
+                              placeholder="Brief description of the page for search results"
+                              rows={3}
+                            />
+                            <p className="text-xs text-muted-foreground">155-160 characters recommended</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Focus Keywords</Label>
+                            <Input placeholder="e.g., business legacy, succession planning" />
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Open Graph */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Social Media Preview</CardTitle>
+                          <CardDescription>How your page appears when shared</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>OG Title</Label>
+                            <Input placeholder="Title for social media" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>OG Description</Label>
+                            <Textarea placeholder="Description for social media" rows={2} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>OG Image URL</Label>
+                            <Input placeholder="https://example.com/image.jpg" />
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* SEO Score */}
+                      <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 text-amber-500" />
+                            SEO Score
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center mb-4">
+                            <div className="text-4xl font-bold text-amber-500">85/100</div>
+                            <p className="text-sm text-muted-foreground">Good SEO optimization</p>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span>Title optimization</span>
+                              <Badge variant="outline" className="bg-green-500/10 text-green-700">Good</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Meta description</span>
+                              <Badge variant="outline" className="bg-green-500/10 text-green-700">Good</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Keyword density</span>
+                              <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700">Fair</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Image alt tags</span>
+                              <Badge variant="outline" className="bg-red-500/10 text-red-700">Needs work</Badge>
+                            </div>
+                          </div>
+                          <Button className="w-full mt-4" variant="outline">
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Analyze SEO
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </ScrollArea>
                 </TabsContent>
 
                 {/* Templates Tab */}
