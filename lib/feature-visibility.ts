@@ -54,6 +54,7 @@ export const SIDEBAR_FEATURES = {
   imageManager: { label: "Image Manager", section: "admin", href: "/portal/admin/images" },
   academyAdmin: { label: "Academy Admin", section: "admin", href: "/portal/admin/academy" },
   pageDesigner: { label: "Page Designer", section: "admin", href: "/portal/admin/page-designer" },
+  navigationManager: { label: "Navigation Manager", section: "admin", href: "/portal/admin/navigation" },
   backups: { label: "Backup & Restore", section: "admin", href: "/portal/admin/backups" },
   
   // Initiatives
@@ -150,6 +151,7 @@ export const DEFAULT_ROLE_VISIBILITY: Record<UserRole, {
       imageManager: false,
       academyAdmin: false,
       pageDesigner: false,
+      navigationManager: false,
       backups: false,
       initiatives: false,
       tbmncSuppliers: false,
@@ -207,6 +209,7 @@ export const DEFAULT_ROLE_VISIBILITY: Record<UserRole, {
       imageManager: false,
       academyAdmin: false,
       pageDesigner: false,
+      navigationManager: false,
       backups: false,
       initiatives: false,
       tbmncSuppliers: false,

@@ -268,10 +268,22 @@ const adminItems: { title: string; href: string; icon: React.ElementType; badge?
     featureKey: "gohighlevel",
   },
   {
+    title: "Image Manager",
+    href: "/portal/admin/images",
+    icon: ImageIcon,
+    featureKey: "imageManager",
+  },
+  {
     title: "Page Designer",
     href: "/portal/admin/page-designer",
     icon: Paintbrush,
     featureKey: "pageDesigner",
+  },
+  {
+    title: "Navigation Manager",
+    href: "/portal/admin/navigation",
+    icon: Menu,
+    featureKey: "navigationManager",
   },
   {
     title: "Academy Admin",
