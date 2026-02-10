@@ -28,18 +28,48 @@ import {
   Flag,
   CheckCircle,
   Circle,
+  Clock,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp, getDocs, query, orderBy } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
 import { toast } from "sonner";
 
+type MilestoneStatus = "not-started" | "in-progress" | "completed" | "blocked" | "deferred";
+
 interface Milestone {
   id: string;
   name: string;
+  description: string;
   dueDate: string;
-  completed: boolean;
+  status: MilestoneStatus;
+  completedAt: string | null;
+  priority: "low" | "medium" | "high";
+}
+
+const milestoneStatusOptions: { value: MilestoneStatus; label: string; color: string }[] = [
+  { value: "not-started", label: "Not Started", color: "bg-gray-100 text-gray-800" },
+  { value: "in-progress", label: "In Progress", color: "bg-blue-100 text-blue-800" },
+  { value: "completed", label: "Completed", color: "bg-green-100 text-green-800" },
+  { value: "blocked", label: "Blocked", color: "bg-red-100 text-red-800" },
+  { value: "deferred", label: "Deferred", color: "bg-yellow-100 text-yellow-800" },
+];
+
+const priorityOptions: { value: "low" | "medium" | "high"; label: string }[] = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];
+
+function getMilestoneStatusBadge(status: MilestoneStatus) {
+  const opt = milestoneStatusOptions.find((o) => o.value === status);
+  return <Badge className={opt?.color || "bg-gray-100 text-gray-800"}>{opt?.label || status}</Badge>;
 }
 
 interface ProjectForm {
@@ -75,7 +105,8 @@ export default function NewProjectPage() {
     progress: "0",
   });
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [newMilestone, setNewMilestone] = useState({ name: "", dueDate: "" });
+  const [newMilestone, setNewMilestone] = useState({ name: "", description: "", dueDate: "", priority: "medium" as "low" | "medium" | "high" });
+  const [expandedMilestone, setExpandedMilestone] = useState<string | null>(null);
 
   const addMilestone = () => {
     if (!newMilestone.name.trim()) {
@@ -85,20 +116,33 @@ export default function NewProjectPage() {
     const milestone: Milestone = {
       id: crypto.randomUUID(),
       name: newMilestone.name.trim(),
+      description: newMilestone.description.trim(),
       dueDate: newMilestone.dueDate,
-      completed: false,
+      status: "not-started",
+      completedAt: null,
+      priority: newMilestone.priority,
     };
     setMilestones((prev) => [...prev, milestone]);
-    setNewMilestone({ name: "", dueDate: "" });
+    setNewMilestone({ name: "", description: "", dueDate: "", priority: "medium" });
   };
 
   const removeMilestone = (id: string) => {
     setMilestones((prev) => prev.filter((m) => m.id !== id));
   };
 
-  const toggleMilestoneComplete = (id: string) => {
+  const updateMilestoneStatus = (id: string, status: MilestoneStatus) => {
     setMilestones((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, completed: !m.completed } : m))
+      prev.map((m) => {
+        if (m.id !== id) return m;
+        const completedAt = status === "completed" ? new Date().toISOString() : null;
+        return { ...m, status, completedAt };
+      })
+    );
+  };
+
+  const updateMilestoneField = (id: string, field: keyof Milestone, value: string) => {
+    setMilestones((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, [field]: value } : m))
     );
   };
 
@@ -137,7 +181,7 @@ export default function NewProjectPage() {
 
     setIsSaving(true);
     try {
-      const completedMilestones = milestones.filter((m) => m.completed).length;
+      const completedMilestones = milestones.filter((m) => m.status === "completed").length;
       const projectData = {
         name: form.name,
         description: form.description,
@@ -150,8 +194,11 @@ export default function NewProjectPage() {
         milestones: milestones.map((m) => ({
           id: m.id,
           name: m.name,
+          description: m.description || "",
           dueDate: m.dueDate ? Timestamp.fromDate(new Date(m.dueDate)) : null,
-          completed: m.completed,
+          status: m.status,
+          completedAt: m.completedAt ? Timestamp.fromDate(new Date(m.completedAt)) : null,
+          priority: m.priority || "medium",
         })),
         milestonesCompleted: completedMilestones,
         milestonesTotal: milestones.length,
@@ -312,36 +359,130 @@ export default function NewProjectPage() {
             <CardContent className="space-y-4">
               {/* Existing Milestones */}
               {milestones.length > 0 && (
-                <div className="space-y-2">
-                  {milestones.map((milestone) => (
+                <div className="space-y-3">
+                  {milestones.map((milestone, index) => (
                     <div
                       key={milestone.id}
-                      className="flex items-center gap-3 p-3 bg-muted rounded-lg group"
+                      className={`border rounded-lg transition-all ${
+                        milestone.status === "completed" ? "bg-green-50/50 border-green-200" :
+                        milestone.status === "blocked" ? "bg-red-50/50 border-red-200" :
+                        milestone.status === "in-progress" ? "bg-blue-50/50 border-blue-200" :
+                        "bg-muted/50"
+                      }`}
                     >
-                      <Checkbox
-                        checked={milestone.completed}
-                        onCheckedChange={() => toggleMilestoneComplete(milestone.id)}
-                        className="h-5 w-5"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className={`font-medium truncate ${milestone.completed ? "line-through text-muted-foreground" : ""}`}>
-                          {milestone.name}
-                        </p>
-                        {milestone.dueDate && (
-                          <p className="text-xs text-muted-foreground">
-                            Due: {new Date(milestone.dueDate).toLocaleDateString()}
-                          </p>
-                        )}
+                      <div className="flex items-center gap-3 p-3">
+                        <span className="text-xs font-mono text-muted-foreground w-6 text-center">{index + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className={`font-medium truncate ${milestone.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
+                              {milestone.name}
+                            </p>
+                            {getMilestoneStatusBadge(milestone.status)}
+                            {milestone.priority === "high" && <Badge variant="destructive" className="text-xs">High</Badge>}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1">
+                            {milestone.dueDate && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Due: {new Date(milestone.dueDate).toLocaleDateString()}
+                              </span>
+                            )}
+                            {milestone.completedAt && (
+                              <span className="text-xs text-green-600 flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                Completed: {new Date(milestone.completedAt).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setExpandedMilestone(expandedMilestone === milestone.id ? null : milestone.id)}
+                        >
+                          {expandedMilestone === milestone.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeMilestone(milestone.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                        onClick={() => removeMilestone(milestone.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+
+                      {/* Expanded Details */}
+                      {expandedMilestone === milestone.id && (
+                        <div className="px-3 pb-3 pt-1 border-t space-y-3">
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Status</Label>
+                              <Select
+                                value={milestone.status}
+                                onValueChange={(v) => updateMilestoneStatus(milestone.id, v as MilestoneStatus)}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {milestoneStatusOptions.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Priority</Label>
+                              <Select
+                                value={milestone.priority}
+                                onValueChange={(v) => updateMilestoneField(milestone.id, "priority", v)}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {priorityOptions.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Due Date</Label>
+                              <Input
+                                type="date"
+                                value={milestone.dueDate}
+                                onChange={(e) => updateMilestoneField(milestone.id, "dueDate", e.target.value)}
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Description</Label>
+                            <Textarea
+                              placeholder="Describe this milestone..."
+                              value={milestone.description}
+                              onChange={(e) => updateMilestoneField(milestone.id, "description", e.target.value)}
+                              rows={2}
+                              className="text-xs"
+                            />
+                          </div>
+                          {milestone.status === "completed" && milestone.completedAt && (
+                            <div className="text-xs text-green-600 flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              Completed on {new Date(milestone.completedAt).toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -350,7 +491,7 @@ export default function NewProjectPage() {
               {/* Add New Milestone */}
               <div className="flex flex-col gap-3 p-4 border border-dashed rounded-lg">
                 <div className="text-sm font-medium text-muted-foreground">Add New Milestone</div>
-                <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                   <Input
                     placeholder="Milestone name..."
                     value={newMilestone.name}
@@ -362,16 +503,40 @@ export default function NewProjectPage() {
                       }
                     }}
                   />
-                  <Input
-                    type="date"
-                    value={newMilestone.dueDate}
-                    onChange={(e) => setNewMilestone((prev) => ({ ...prev, dueDate: e.target.value }))}
-                    className="w-auto"
-                  />
                   <Button type="button" onClick={addMilestone} variant="outline">
                     <Plus className="h-4 w-4 mr-1" />
                     Add
                   </Button>
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Input
+                    type="date"
+                    value={newMilestone.dueDate}
+                    onChange={(e) => setNewMilestone((prev) => ({ ...prev, dueDate: e.target.value }))}
+                    className="w-full"
+                  />
+                  <Select
+                    value={newMilestone.priority}
+                    onValueChange={(v) => setNewMilestone((prev) => ({ ...prev, priority: v as "low" | "medium" | "high" }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {priorityOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label} Priority
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Textarea
+                    placeholder="Description (optional)"
+                    value={newMilestone.description}
+                    onChange={(e) => setNewMilestone((prev) => ({ ...prev, description: e.target.value }))}
+                    rows={1}
+                    className="min-h-[36px]"
+                  />
                 </div>
               </div>
 
@@ -439,7 +604,7 @@ export default function NewProjectPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Milestones</span>
                 <span className="font-medium">
-                  {milestones.filter((m) => m.completed).length}/{milestones.length}
+                  {milestones.filter((m) => m.status === "completed").length}/{milestones.length}
                 </span>
               </div>
             </CardContent>

@@ -31,11 +31,28 @@ import {
   Users,
   FolderKanban,
   Loader2,
+  Flag,
+  AlertCircle,
+  Circle,
+  Pause,
+  Timer,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
 import { toast } from "sonner";
+
+type MilestoneStatus = "not-started" | "in-progress" | "completed" | "blocked" | "deferred";
+
+interface MilestoneDetail {
+  id: string;
+  name: string;
+  description: string;
+  dueDate: Date | null;
+  status: MilestoneStatus;
+  completedAt: Date | null;
+  priority: "low" | "medium" | "high";
+}
 
 interface ProjectDetail {
   id: string;
@@ -47,10 +64,47 @@ interface ProjectDetail {
   startDate: Date | null;
   endDate: Date | null;
   teamIds: string[];
+  milestones: MilestoneDetail[];
   milestonesCompleted: number;
   milestonesTotal: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+function getMilestoneStatusIcon(status: MilestoneStatus) {
+  switch (status) {
+    case "completed":
+      return <CheckCircle className="h-4 w-4 text-green-600" />;
+    case "in-progress":
+      return <Timer className="h-4 w-4 text-blue-600" />;
+    case "blocked":
+      return <AlertCircle className="h-4 w-4 text-red-600" />;
+    case "deferred":
+      return <Pause className="h-4 w-4 text-yellow-600" />;
+    default:
+      return <Circle className="h-4 w-4 text-gray-400" />;
+  }
+}
+
+function getMilestoneStatusLabel(status: MilestoneStatus): string {
+  switch (status) {
+    case "not-started": return "Not Started";
+    case "in-progress": return "In Progress";
+    case "completed": return "Completed";
+    case "blocked": return "Blocked";
+    case "deferred": return "Deferred";
+    default: return status;
+  }
+}
+
+function getMilestoneStatusColor(status: MilestoneStatus): string {
+  switch (status) {
+    case "completed": return "bg-green-100 text-green-800";
+    case "in-progress": return "bg-blue-100 text-blue-800";
+    case "blocked": return "bg-red-100 text-red-800";
+    case "deferred": return "bg-yellow-100 text-yellow-800";
+    default: return "bg-gray-100 text-gray-800";
+  }
 }
 
 function getStatusBadge(status: string) {
@@ -114,6 +168,15 @@ export default function ProjectDetailPage() {
               ? data.endDate.toDate() 
               : data.endDate ? new Date(data.endDate) : null,
             teamIds: data.teamIds || [],
+            milestones: (data.milestones || []).map((m: any) => ({
+              id: m.id || "",
+              name: m.name || "",
+              description: m.description || "",
+              dueDate: m.dueDate instanceof Timestamp ? m.dueDate.toDate() : m.dueDate ? new Date(m.dueDate) : null,
+              status: m.status || (m.completed ? "completed" : "not-started"),
+              completedAt: m.completedAt instanceof Timestamp ? m.completedAt.toDate() : m.completedAt ? new Date(m.completedAt) : null,
+              priority: m.priority || "medium",
+            })),
             milestonesCompleted: data.milestonesCompleted || 0,
             milestonesTotal: data.milestonesTotal || 0,
             createdAt: data.createdAt instanceof Timestamp 
@@ -277,6 +340,82 @@ export default function ProjectDetailPage() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Milestones Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Flag className="h-5 w-5" />
+                  Milestones
+                </CardTitle>
+                <Badge variant="secondary">
+                  {project.milestones.filter((m) => m.status === "completed").length}/{project.milestones.length} completed
+                </Badge>
+              </div>
+              <CardDescription>Track project deliverables and key dates</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {project.milestones.length > 0 ? (
+                <div className="space-y-3">
+                  {project.milestones.map((milestone, index) => (
+                    <div
+                      key={milestone.id}
+                      className={`flex gap-3 p-3 rounded-lg border ${
+                        milestone.status === "completed" ? "bg-green-50/50 border-green-200" :
+                        milestone.status === "blocked" ? "bg-red-50/50 border-red-200" :
+                        milestone.status === "in-progress" ? "bg-blue-50/50 border-blue-200" :
+                        milestone.status === "deferred" ? "bg-yellow-50/50 border-yellow-200" :
+                        "bg-muted/30"
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-1 pt-0.5">
+                        {getMilestoneStatusIcon(milestone.status)}
+                        {index < project.milestones.length - 1 && (
+                          <div className="w-px flex-1 bg-border" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className={`font-medium ${milestone.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
+                            {milestone.name}
+                          </p>
+                          <Badge className={`text-xs ${getMilestoneStatusColor(milestone.status)}`}>
+                            {getMilestoneStatusLabel(milestone.status)}
+                          </Badge>
+                          {milestone.priority === "high" && (
+                            <Badge variant="destructive" className="text-xs">High Priority</Badge>
+                          )}
+                          {milestone.priority === "low" && (
+                            <Badge variant="outline" className="text-xs">Low</Badge>
+                          )}
+                        </div>
+                        {milestone.description && (
+                          <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
+                        )}
+                        <div className="flex items-center gap-4 mt-1.5 flex-wrap">
+                          {milestone.dueDate && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              Due: {milestone.dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                          )}
+                          {milestone.completedAt && (
+                            <span className="text-xs text-green-600 flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              Completed: {milestone.completedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at {milestone.completedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic text-center py-4">No milestones added yet</p>
+              )}
             </CardContent>
           </Card>
 
