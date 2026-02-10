@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getLLMConfig, createOpenAIClient } from "@/lib/openai-config";
 
 interface GenerateMilestonesRequest {
   proposalName: string;
@@ -17,26 +18,79 @@ interface Milestone {
   dependencies: string[];
 }
 
-async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
+async function callLLM(
+  llmConfig: { provider: string; apiKey: string; baseUrl?: string; model?: string },
+  systemPrompt: string,
+  userPrompt: string
+): Promise<string> {
+  // Create OpenAI client with proper configuration
+  const openai = await createOpenAIClient();
+  
+  if (!openai) {
+    throw new Error("Failed to create OpenAI client");
+  }
+
+  // Determine the model to use
+  let model = llmConfig.model || "gpt-4o-mini";
+  
+  // Adjust model name for different providers
+  if (llmConfig.provider === "ollama") {
+    // For Ollama, use the model directly or default to llama3
+    model = model === "gpt-4o-mini" ? "llama3" : model;
+  } else if (llmConfig.provider === "anthropic") {
+    // Anthropic models
+    model = model.startsWith("claude") ? model : "claude-3-sonnet-20240229";
+  } else if (llmConfig.provider === "google") {
+    // Google AI models
+    model = model.startsWith("gemini") ? model : "gemini-pro";
+  } else if (llmConfig.provider === "mistral") {
+    // Mistral models
+    model = model.startsWith("mistral") ? model : "mistral-large";
+  } else if (llmConfig.provider === "openai-compatible") {
+    // For OpenAI-compatible, use whatever model is configured or default
+    model = model === "gpt-4o-mini" ? "default" : model;
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
       max_tokens: 2000,
-    }),
-  });
+    });
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || "";
+    return completion.choices[0]?.message?.content || "";
+  } catch (error: any) {
+    // If model not found, try to get available models and use the first one
+    if (error.status === 404 && llmConfig.provider === "openai-compatible") {
+      console.log("[callLLM] Model not found, trying to get available models...");
+      try {
+        const models = await openai.models.list();
+        if (models.data.length > 0) {
+          const firstModel = models.data[0].id;
+          console.log("[callLLM] Retrying with model:", firstModel);
+          
+          const completion = await openai.chat.completions.create({
+            model: firstModel,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            temperature: 0.7,
+            max_tokens: 2000,
+          });
+          
+          return completion.choices[0]?.message?.content || "";
+        }
+      } catch (modelError) {
+        console.error("[callLLM] Failed to get available models:", modelError);
+      }
+    }
+    throw error;
+  }
 }
 
 function generateFallbackMilestones(request: GenerateMilestonesRequest): Milestone[] {
@@ -113,9 +167,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const llmConfig = await getLLMConfig();
 
-    if (apiKey) {
+    if (llmConfig) {
       const systemPrompt = `You are a project management expert who creates detailed, realistic project milestones. 
 You understand different types of proposals (grants, contracts, RFPs) and create appropriate milestones.
 Always respond with valid JSON array of milestones.`;
@@ -148,7 +202,7 @@ Respond ONLY with a JSON array in this format:
 ]`;
 
       try {
-        const aiResponse = await callOpenAI(apiKey, systemPrompt, userPrompt);
+        const aiResponse = await callLLM(llmConfig, systemPrompt, userPrompt);
         
         // Parse JSON from response
         const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);

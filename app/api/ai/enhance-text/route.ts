@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAIApiKey } from "@/lib/openai-config";
+import { getLLMConfig, createOpenAIClient } from "@/lib/openai-config";
 
 interface EnhanceTextRequest {
   text: string;
@@ -74,26 +74,28 @@ Please provide enhanced notes that:
 5. Maintain a professional tone`;
     }
 
-    // Get API key from stored LLM settings (Firebase or env vars)
-    const apiKey = await getOpenAIApiKey();
+    // Get LLM configuration from stored settings (Firebase or env vars)
+    const llmConfig = await getLLMConfig();
     
-    console.log("[enhance-text] API key found:", !!apiKey);
-    console.log("[enhance-text] Environment OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
+    console.log("[enhance-text] LLM config found:", !!llmConfig);
+    if (llmConfig) {
+      console.log("[enhance-text] Provider:", llmConfig.provider, "Model:", llmConfig.model, "BaseURL:", llmConfig.baseUrl);
+    }
 
     let enhancedText: string;
 
-    if (apiKey) {
+    if (llmConfig) {
       try {
-        console.log("[enhance-text] Calling OpenAI...");
-        enhancedText = await callOpenAI(apiKey, systemPrompt, userPrompt);
-        console.log("[enhance-text] OpenAI call successful, response length:", enhancedText.length);
-      } catch (openaiError) {
-        console.error("[enhance-text] OpenAI call failed:", openaiError);
-        // If OpenAI call fails, use fallback
+        console.log("[enhance-text] Calling LLM...");
+        enhancedText = await callLLM(llmConfig, systemPrompt, userPrompt);
+        console.log("[enhance-text] LLM call successful, response length:", enhancedText.length);
+      } catch (llmError) {
+        console.error("[enhance-text] LLM call failed:", llmError);
+        // If LLM call fails, use fallback
         enhancedText = generateFallbackEnhancement(text, context);
       }
     } else {
-      console.log("[enhance-text] No API key found, using fallback");
+      console.log("[enhance-text] No LLM configuration found, using fallback");
       // Fallback: Return a formatted version of the original text
       enhancedText = generateFallbackEnhancement(text, context);
     }
@@ -108,34 +110,81 @@ Please provide enhanced notes that:
   }
 }
 
-async function callOpenAI(
-  apiKey: string,
+async function callLLM(
+  llmConfig: { provider: string; apiKey: string; baseUrl?: string; model?: string },
   systemPrompt: string,
   userPrompt: string
 ): Promise<string> {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
+  // Create OpenAI client with proper configuration
+  const openai = await createOpenAIClient();
+  
+  if (!openai) {
+    throw new Error("Failed to create OpenAI client");
+  }
+
+  // Determine the model to use
+  let model = llmConfig.model || "gpt-4o";
+  
+  // Adjust model name for different providers
+  if (llmConfig.provider === "ollama") {
+    // For Ollama, use the model directly or default to llama3
+    model = model === "gpt-4o" ? "llama3" : model;
+  } else if (llmConfig.provider === "anthropic") {
+    // Anthropic models
+    model = model.startsWith("claude") ? model : "claude-3-sonnet-20240229";
+  } else if (llmConfig.provider === "google") {
+    // Google AI models
+    model = model.startsWith("gemini") ? model : "gemini-pro";
+  } else if (llmConfig.provider === "mistral") {
+    // Mistral models
+    model = model.startsWith("mistral") ? model : "mistral-large";
+  } else if (llmConfig.provider === "openai-compatible") {
+    // For OpenAI-compatible, use whatever model is configured or default
+    model = model === "gpt-4o" ? "default" : model;
+  }
+  
+  console.log("[callLLM] Using model:", model, "for provider:", llmConfig.provider);
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
       max_tokens: 1000,
-    }),
-  });
+    });
 
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
+    return completion.choices[0]?.message?.content || "No response generated";
+  } catch (error: any) {
+    // If model not found, try to get available models and use the first one
+    if (error.status === 404 && llmConfig.provider === "openai-compatible") {
+      console.log("[callLLM] Model not found, trying to get available models...");
+      try {
+        const models = await openai.models.list();
+        if (models.data.length > 0) {
+          const firstModel = models.data[0].id;
+          console.log("[callLLM] Retrying with model:", firstModel);
+          
+          const completion = await openai.chat.completions.create({
+            model: firstModel,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            temperature: 0.7,
+            max_tokens: 1000,
+          });
+          
+          return completion.choices[0]?.message?.content || "No response generated";
+        }
+      } catch (modelError) {
+        console.error("[callLLM] Failed to get available models:", modelError);
+      }
+    }
+    throw error;
   }
-
-  const data = await response.json();
-  return data.choices[0]?.message?.content || "No response generated";
 }
 
 function generateFallbackEnhancement(

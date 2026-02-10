@@ -80,42 +80,69 @@ async function getSettings(): Promise<any | null> {
 }
 
 /**
- * Get OpenAI API key from environment variable (primary for API routes) or Firebase settings (fallback)
- * In API routes, env vars are more reliable. Firebase settings are for client-side configuration.
+ * Get LLM configuration from environment variable (primary for API routes) or Firebase settings (fallback)
+ * Returns full configuration including provider, API key, and base URL for OpenAI-compatible endpoints
  */
-export async function getOpenAIApiKey(): Promise<string | null> {
-  console.log("[getOpenAIApiKey] Checking environment variable...");
+export async function getLLMConfig(): Promise<{
+  provider: string;
+  apiKey: string;
+  baseUrl?: string;
+  model?: string;
+} | null> {
+  console.log("[getLLMConfig] Checking environment variables...");
   
-  // Primary for API routes: Environment variable (most reliable in server context)
+  // Primary for API routes: Environment variables (most reliable in server context)
   const envKey = process.env.OPENAI_API_KEY;
-  console.log("[getOpenAIApiKey] Env var exists:", !!envKey, "length:", envKey?.length || 0);
+  const envProvider = process.env.LLM_PROVIDER || "openai";
+  const envBaseUrl = process.env.LLM_BASE_URL;
+  const envModel = process.env.LLM_MODEL || "gpt-4o";
+  
+  console.log("[getLLMConfig] Env vars - provider:", envProvider, "apiKey exists:", !!envKey, "baseUrl:", envBaseUrl);
   
   if (envKey && envKey.trim().length > 0) {
-    console.log("[getOpenAIApiKey] Using environment variable");
-    return envKey;
+    console.log("[getLLMConfig] Using environment variables");
+    return {
+      provider: envProvider,
+      apiKey: envKey,
+      baseUrl: envBaseUrl,
+      model: envModel,
+    };
   }
 
-  console.log("[getOpenAIApiKey] Env var not found, checking Firebase...");
+  console.log("[getLLMConfig] Env vars not found, checking Firebase...");
   
   // Fallback: Try Firebase settings
   try {
     const settings = await getSettings();
-    console.log("[getOpenAIApiKey] Settings fetched:", !!settings);
-    console.log("[getOpenAIApiKey] llmConfig exists:", !!settings?.llmConfig);
-    console.log("[getOpenAIApiKey] apiKey exists:", !!settings?.llmConfig?.apiKey);
+    console.log("[getLLMConfig] Settings fetched:", !!settings);
+    console.log("[getLLMConfig] llmConfig exists:", !!settings?.llmConfig);
     
-    const firebaseKey = settings?.llmConfig?.apiKey;
-    if (firebaseKey && firebaseKey.trim().length > 0) {
-      console.log("[getOpenAIApiKey] Using Firebase settings, key length:", firebaseKey.length);
-      return firebaseKey;
+    const llmConfig = settings?.llmConfig;
+    if (llmConfig?.apiKey && llmConfig.apiKey.trim().length > 0) {
+      console.log("[getLLMConfig] Using Firebase settings");
+      return {
+        provider: llmConfig.provider || "openai",
+        apiKey: llmConfig.apiKey,
+        baseUrl: llmConfig.baseUrl || llmConfig.ollamaUrl,
+        model: llmConfig.model || "gpt-4o",
+      };
     }
-    console.log("[getOpenAIApiKey] Firebase key is empty or not set");
+    console.log("[getLLMConfig] Firebase key is empty or not set");
   } catch (error) {
-    console.error("[getOpenAIApiKey] Error fetching from Firebase:", error);
+    console.error("[getLLMConfig] Error fetching from Firebase:", error);
   }
 
-  console.log("[getOpenAIApiKey] No API key found anywhere");
+  console.log("[getLLMConfig] No LLM configuration found anywhere");
   return null;
+}
+
+/**
+ * Get OpenAI API key (legacy function for backward compatibility)
+ * @deprecated Use getLLMConfig instead
+ */
+export async function getOpenAIApiKey(): Promise<string | null> {
+  const config = await getLLMConfig();
+  return config?.apiKey || null;
 }
 
 /**
@@ -275,18 +302,35 @@ export async function getLinkedInConfig(): Promise<{ accessToken: string; client
 }
 
 /**
- * Create an OpenAI client with the configured API key
+ * Create an OpenAI client with the configured API key and base URL
  */
 export async function createOpenAIClient(): Promise<OpenAI | null> {
   try {
-    const apiKey = await getOpenAIApiKey();
+    const config = await getLLMConfig();
     
-    if (!apiKey) {
-      console.log("No OpenAI API key found");
+    if (!config) {
+      console.log("No LLM configuration found");
       return null;
     }
 
-    return new OpenAI({ apiKey });
+    console.log("[createOpenAIClient] Creating client with provider:", config.provider, "baseUrl:", config.baseUrl);
+
+    const clientConfig: any = { apiKey: config.apiKey };
+    
+    // Add base URL for OpenAI-compatible endpoints
+    if (config.baseUrl && config.provider !== "openai") {
+      clientConfig.baseURL = config.baseUrl;
+    }
+    
+    // Add default headers for Ollama
+    if (config.provider === "ollama") {
+      clientConfig.defaultHeaders = {
+        "HTTP-Referer": "https://svp-platform.com",
+        "User-Agent": "SVP-Platform/1.0"
+      };
+    }
+
+    return new OpenAI(clientConfig);
   } catch (error) {
     console.error("Error creating OpenAI client:", error);
     return null;
