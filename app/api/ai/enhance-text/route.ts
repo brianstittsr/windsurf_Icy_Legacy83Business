@@ -27,13 +27,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Build the system prompt based on context type
-    let systemPrompt = "You are a professional business writer specializing in sales and consulting.";
+    let systemPrompt = "You are a professional business writer specializing in sales and consulting. IMPORTANT: Respond ONLY with the requested content. Do NOT include any introductory phrases like 'Here is...', 'Sure, here\'s...', 'Certainly!', 'I\'d be happy to...', or any preamble. Start directly with the enhanced text.";
     let userPrompt = prompt || "Enhance this text to be more professional and compelling.";
 
     if (context?.type === "opportunity_description") {
       systemPrompt = `You are a professional business writer specializing in sales opportunities and consulting proposals. 
 You write clear, compelling descriptions that highlight value propositions and business outcomes.
-Keep the tone professional but engaging. Focus on the business impact and potential value.`;
+Keep the tone professional but engaging. Focus on the business impact and potential value.
+IMPORTANT: Respond ONLY with the enhanced description text. Do NOT include any introductory phrases, preamble, or meta-commentary. Start directly with the content.`;
       
       userPrompt = `${prompt || "Create a professional, compelling description for this sales opportunity."}
 
@@ -53,7 +54,8 @@ Please provide an enhanced, professional description that:
 4. Uses professional business language`;
     } else if (context?.type === "opportunity_notes") {
       systemPrompt = `You are a professional business analyst who creates clear, actionable notes for sales opportunities.
-You organize information logically and highlight key action items and next steps.`;
+You organize information logically and highlight key action items and next steps.
+IMPORTANT: Respond ONLY with the enhanced notes. Do NOT include any introductory phrases, preamble, or meta-commentary. Start directly with the content.`;
       
       userPrompt = `${prompt || "Expand and professionalize these notes for a sales opportunity."}
 
@@ -87,7 +89,8 @@ Please provide enhanced notes that:
     if (llmConfig) {
       try {
         console.log("[enhance-text] Calling LLM...");
-        enhancedText = await callLLM(llmConfig, systemPrompt, userPrompt);
+        const rawResponse = await callLLM(llmConfig, systemPrompt, userPrompt);
+        enhancedText = cleanLLMResponse(rawResponse);
         console.log("[enhance-text] LLM call successful, response length:", enhancedText.length);
       } catch (llmError) {
         console.error("[enhance-text] LLM call failed:", llmError);
@@ -108,6 +111,46 @@ Please provide enhanced notes that:
       { status: 500 }
     );
   }
+}
+
+function cleanLLMResponse(text: string): string {
+  // Strip common LLM preamble/introductory phrases
+  const preamblePatterns = [
+    /^(Sure[,!]?\s*(here['']s|here is|I['']d be happy to|I can help)[^.]*[.!:]\s*)/i,
+    /^(Certainly[,!]?\s*(here['']s|here is)[^.]*[.!:]\s*)/i,
+    /^(Of course[,!]?\s*[^.]*[.!:]\s*)/i,
+    /^(Absolutely[,!]?\s*[^.]*[.!:]\s*)/i,
+    /^(Here['']?s?\s*(is|are)?\s*(the|a|an|your)?\s*(enhanced|improved|revised|updated|professional|polished)[^:]*:\s*)/i,
+    /^(I['']?d be happy to[^.]*[.!:]\s*)/i,
+    /^(I['']?ve (enhanced|improved|revised|updated|created|written|drafted)[^.]*[.!:]\s*)/i,
+    /^(Below is[^.]*[.!:]\s*)/i,
+    /^(The following is[^.]*[.!:]\s*)/i,
+    /^(Here you go[,!]?\s*)/i,
+    /^(Great[,!]?\s*(here|let me)[^.]*[.!:]\s*)/i,
+    /^(Let me[^.]*[.!:]\s*)/i,
+  ];
+
+  let cleaned = text.trim();
+  for (const pattern of preamblePatterns) {
+    cleaned = cleaned.replace(pattern, "");
+  }
+
+  // Also strip trailing meta-commentary like "Let me know if you'd like..."
+  const trailingPatterns = [
+    /(\n\s*---\s*\n[\s\S]*$)/,
+    /(\n\s*Let me know if[^]*$)/i,
+    /(\n\s*Feel free to[^]*$)/i,
+    /(\n\s*I hope this[^]*$)/i,
+    /(\n\s*Would you like[^]*$)/i,
+    /(\n\s*If you('d| would) like[^]*$)/i,
+    /(\n\s*Is there anything[^]*$)/i,
+  ];
+
+  for (const pattern of trailingPatterns) {
+    cleaned = cleaned.replace(pattern, "");
+  }
+
+  return cleaned.trim();
 }
 
 async function callLLM(
@@ -139,10 +182,31 @@ async function callLLM(
     // Mistral models
     model = model.startsWith("mistral") ? model : "mistral-large";
   } else if (llmConfig.provider === "openai-compatible") {
-    // For OpenAI-compatible, use whatever model is configured or default
-    model = model === "gpt-4o" ? "default" : model;
+    // For OpenAI-compatible, keep user-configured model as-is
+    // Only override if it's still the default OpenAI model name
+    if (model === "gpt-4o") {
+      model = "";
+    }
   }
   
+  // If model is empty (openai-compatible with no configured model), auto-detect
+  if (!model && llmConfig.provider === "openai-compatible") {
+    console.log("[callLLM] No model configured, auto-detecting from endpoint...");
+    try {
+      const models = await openai.models.list();
+      if (models.data.length > 0) {
+        model = models.data[0].id;
+        console.log("[callLLM] Auto-detected model:", model);
+      }
+    } catch (detectError) {
+      console.error("[callLLM] Failed to auto-detect models:", detectError);
+    }
+  }
+
+  if (!model) {
+    throw new Error("No model available for provider: " + llmConfig.provider);
+  }
+
   console.log("[callLLM] Using model:", model, "for provider:", llmConfig.provider);
 
   try {

@@ -47,9 +47,31 @@ async function callLLM(
     // Mistral models
     model = model.startsWith("mistral") ? model : "mistral-large";
   } else if (llmConfig.provider === "openai-compatible") {
-    // For OpenAI-compatible, use whatever model is configured or default
-    model = model === "gpt-4o-mini" ? "default" : model;
+    // For OpenAI-compatible, keep user-configured model as-is
+    if (model === "gpt-4o-mini") {
+      model = "";
+    }
   }
+
+  // If model is empty (openai-compatible with no configured model), auto-detect
+  if (!model && llmConfig.provider === "openai-compatible") {
+    console.log("[callLLM] No model configured, auto-detecting from endpoint...");
+    try {
+      const models = await openai.models.list();
+      if (models.data.length > 0) {
+        model = models.data[0].id;
+        console.log("[callLLM] Auto-detected model:", model);
+      }
+    } catch (detectError) {
+      console.error("[callLLM] Failed to auto-detect models:", detectError);
+    }
+  }
+
+  if (!model) {
+    throw new Error("No model available for provider: " + llmConfig.provider);
+  }
+
+  console.log("[callLLM] Using model:", model, "for provider:", llmConfig.provider);
 
   try {
     const completion = await openai.chat.completions.create({

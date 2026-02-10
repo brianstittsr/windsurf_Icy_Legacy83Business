@@ -116,7 +116,7 @@ export function DocumentWizardSelector({ open, onOpenChange, onComplete }: Docum
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="!max-w-[95vw] !w-[1200px] max-h-[90vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="!max-w-[95vw] !w-[1200px] max-h-[90vh] overflow-hidden flex flex-col p-0" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         {!selectedType ? (
           <>
             <DialogHeader className="px-6 pt-6 pb-4">

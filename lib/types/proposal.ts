@@ -39,6 +39,10 @@ export interface Proposal {
   createdAt: Date;
   updatedAt: Date;
   
+  // Document Content (from wizard)
+  sectionContent?: Record<string, string>;
+  formData?: Record<string, string>;
+
   // Digital Signature Integration
   docuSealSubmissionId?: string;
   signatureStatus?: SignatureStatus;
