@@ -480,10 +480,6 @@ export default function MeetingsPage() {
             Schedule meetings and access AI-extracted insights
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="mr-2 h-4 w-4" />
-          Schedule Meeting
-        </Button>
       </div>
 
       {/* Tabs */}
@@ -517,10 +513,6 @@ export default function MeetingsPage() {
                 <p className="text-muted-foreground mb-4">
                   Schedule a meeting to get started
                 </p>
-                <Button onClick={openCreateDialog}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Schedule Meeting
-                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -720,7 +712,7 @@ export default function MeetingsPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingMeeting ? "Edit Meeting" : "Schedule Meeting"}
+              {editingMeeting ? "Edit Meeting" : "Create Meeting"}
             </DialogTitle>
             <DialogDescription>
               {editingMeeting
@@ -838,7 +830,7 @@ export default function MeetingsPage() {
             </Button>
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editingMeeting ? "Update Meeting" : "Schedule Meeting"}
+              {editingMeeting ? "Update Meeting" : "Create Meeting"}
             </Button>
           </DialogFooter>
         </DialogContent>

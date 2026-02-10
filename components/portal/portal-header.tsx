@@ -36,7 +36,6 @@ import {
 const quickActions = [
   { title: "New Opportunity", href: "/portal/opportunities/new", icon: Target },
   { title: "New Project", href: "/portal/projects/new", icon: FolderKanban },
-  { title: "Schedule Meeting", href: "/portal/meetings/new", icon: Calendar },
   { title: "Upload Document", href: "/portal/documents/new", icon: FileText },
 ];
 
