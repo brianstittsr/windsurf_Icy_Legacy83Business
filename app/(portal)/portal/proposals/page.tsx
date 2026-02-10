@@ -93,7 +93,7 @@ const WIZARD_STEPS = [
 const emptyProposal: Partial<Proposal> = {
   name: "",
   description: "",
-  type: "grant",
+  type: "statement_of_work",
   startDate: "",
   endDate: "",
   fundingSource: "",
@@ -146,7 +146,7 @@ export default function ProposalsPage() {
             budget: proposalData.totalBudget,
           },
           prompt: `Create a professional, compelling proposal description for "${proposalData.name || 'this proposal'}". 
-The proposal type is ${proposalData.type || 'grant'}${proposalData.fundingSource ? ` with funding from ${proposalData.fundingSource}` : ''}.
+The proposal type is ${proposalData.type || 'statement_of_work'}${proposalData.fundingSource ? ` with funding from ${proposalData.fundingSource}` : ''}.
 ${proposalData.description ? `Current description to enhance: ${proposalData.description}` : 'Generate a new description from scratch.'}
 Make it clear, professional, and highlight the value proposition and expected outcomes.`,
         }),
@@ -776,7 +776,7 @@ Make it clear, professional, and highlight the value proposition and expected ou
                     <div className="space-y-2">
                       <Label>Reference Number</Label>
                       <Input
-                        placeholder="Grant/Contract number"
+                        placeholder="Contract/Reference number"
                         value={proposalData.referenceNumber || ""}
                         onChange={(e) => setProposalData({ ...proposalData, referenceNumber: e.target.value })}
                       />

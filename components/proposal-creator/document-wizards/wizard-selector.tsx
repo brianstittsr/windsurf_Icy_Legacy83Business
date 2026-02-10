@@ -8,25 +8,26 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileText,
   Shield,
-  FileQuestion,
   FileSignature,
   Handshake,
   Building2,
-  Factory,
   Sparkles,
+  ClipboardList,
+  MapPin,
+  Scale,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GrantWizard, type GrantData } from "./grant-wizard";
 import { NDAWizard, type NDAData } from "./nda-wizard";
-import { RFPResponseWizard, type RFPResponseData } from "./rfp-response-wizard";
 import { ContractWizard, type ContractData } from "./contract-wizard";
 import { AgreementWizard, type AgreementData } from "./agreement-wizard";
 import { MOUWizard, type MOUData } from "./mou-wizard";
-import { OEMSupplierWizard, type OEMSupplierData } from "./oem-supplier-wizard";
+import { SOWWizard, type SOWData } from "./sow-wizard";
+import { SLEAWizard, type SLEAData } from "./slea-wizard";
+import { MSAWizard, type MSAData } from "./msa-wizard";
 
-export type DocumentType = "grant" | "nda" | "rfp_response" | "contract" | "agreement" | "mou" | "oem_supplier_readiness";
+export type DocumentType = "nda" | "contract" | "agreement" | "mou" | "statement_of_work" | "slea" | "msa";
 
-export type WizardData = GrantData | NDAData | RFPResponseData | ContractData | AgreementData | MOUData | OEMSupplierData;
+export type WizardData = NDAData | ContractData | AgreementData | MOUData | SOWData | SLEAData | MSAData;
 
 interface DocumentWizardSelectorProps {
   open: boolean;
@@ -36,28 +37,28 @@ interface DocumentWizardSelectorProps {
 
 const documentTypes = [
   {
-    type: "grant" as DocumentType,
-    title: "Grant Application",
-    description: "Create a comprehensive grant proposal with objectives, methodology, budget, entities, milestones, and data collection plans.",
-    icon: FileText,
+    type: "statement_of_work" as DocumentType,
+    title: "Statement of Work",
+    description: "Create a detailed SOW with scope, deliverables, milestones, acceptance criteria, and payment schedule.",
+    icon: ClipboardList,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
   },
   {
-    type: "nda" as DocumentType,
-    title: "Non-Disclosure Agreement",
-    description: "Create an NDA to protect confidential information shared between parties.",
-    icon: Shield,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-  },
-  {
-    type: "rfp_response" as DocumentType,
-    title: "RFP Response",
-    description: "Create a compelling response to a Request for Proposal with executive summary, approach, and pricing.",
-    icon: FileQuestion,
+    type: "slea" as DocumentType,
+    title: "Site Level Execution Agreement (SLEA)",
+    description: "Create a site-specific execution agreement with scope, safety requirements, performance metrics, and compliance.",
+    icon: MapPin,
     color: "text-orange-600",
     bgColor: "bg-orange-50",
+  },
+  {
+    type: "msa" as DocumentType,
+    title: "Master Service Agreement (MSA)",
+    description: "Create an MSA defining the overarching terms, service standards, financial terms, and legal provisions between parties.",
+    icon: Scale,
+    color: "text-amber-600",
+    bgColor: "bg-amber-50",
   },
   {
     type: "contract" as DocumentType,
@@ -66,6 +67,14 @@ const documentTypes = [
     icon: FileSignature,
     color: "text-green-600",
     bgColor: "bg-green-50",
+  },
+  {
+    type: "nda" as DocumentType,
+    title: "Non-Disclosure Agreement",
+    description: "Create an NDA to protect confidential information shared between parties.",
+    icon: Shield,
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
   },
   {
     type: "agreement" as DocumentType,
@@ -82,14 +91,6 @@ const documentTypes = [
     icon: Building2,
     color: "text-indigo-600",
     bgColor: "bg-indigo-50",
-  },
-  {
-    type: "oem_supplier_readiness" as DocumentType,
-    title: "OEM Supplier Readiness",
-    description: "Assess supplier readiness with capabilities, quality systems, compliance, and supply chain management.",
-    icon: Factory,
-    color: "text-amber-600",
-    bgColor: "bg-amber-50",
   },
 ];
 
@@ -166,26 +167,26 @@ export function DocumentWizardSelector({ open, onOpenChange, onComplete }: Docum
           </>
         ) : (
           <div className="flex flex-col h-[85vh]">
-            {selectedType === "grant" && (
-              <GrantWizard onComplete={handleComplete} onCancel={handleCancel} />
+            {selectedType === "statement_of_work" && (
+              <SOWWizard onComplete={handleComplete} onCancel={handleCancel} />
             )}
-            {selectedType === "nda" && (
-              <NDAWizard onComplete={handleComplete} onCancel={handleCancel} />
+            {selectedType === "slea" && (
+              <SLEAWizard onComplete={handleComplete} onCancel={handleCancel} />
             )}
-            {selectedType === "rfp_response" && (
-              <RFPResponseWizard onComplete={handleComplete} onCancel={handleCancel} />
+            {selectedType === "msa" && (
+              <MSAWizard onComplete={handleComplete} onCancel={handleCancel} />
             )}
             {selectedType === "contract" && (
               <ContractWizard onComplete={handleComplete} onCancel={handleCancel} />
+            )}
+            {selectedType === "nda" && (
+              <NDAWizard onComplete={handleComplete} onCancel={handleCancel} />
             )}
             {selectedType === "agreement" && (
               <AgreementWizard onComplete={handleComplete} onCancel={handleCancel} />
             )}
             {selectedType === "mou" && (
               <MOUWizard onComplete={handleComplete} onCancel={handleCancel} />
-            )}
-            {selectedType === "oem_supplier_readiness" && (
-              <OEMSupplierWizard onComplete={handleComplete} onCancel={handleCancel} />
             )}
           </div>
         )}

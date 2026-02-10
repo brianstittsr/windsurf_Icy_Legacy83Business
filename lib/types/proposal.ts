@@ -7,7 +7,7 @@
 // PROPOSAL TYPES
 // ============================================
 
-export type ProposalType = 'grant' | 'nda' | 'rfp_response' | 'rfi_response' | 'contract' | 'agreement' | 'mou' | 'oem_supplier_readiness';
+export type ProposalType = 'nda' | 'contract' | 'agreement' | 'mou' | 'statement_of_work' | 'slea' | 'msa';
 export type ProposalStatus = 'draft' | 'pending_signature' | 'active' | 'inactive' | 'completed';
 export type SignatureStatus = 'not_sent' | 'pending' | 'partially_signed' | 'completed' | 'declined';
 
@@ -377,14 +377,13 @@ export interface AgreementWizardState {
 // ============================================
 
 export const PROPOSAL_TYPES: { value: ProposalType; label: string }[] = [
-  { value: 'grant', label: 'Grant Application' },
-  { value: 'nda', label: 'Non-Disclosure Agreement (NDA)' },
-  { value: 'rfp_response', label: 'RFP Response' },
-  { value: 'rfi_response', label: 'RFI Response' },
+  { value: 'statement_of_work', label: 'Statement of Work' },
+  { value: 'slea', label: 'Site Level Execution Agreement (SLEA)' },
+  { value: 'msa', label: 'Master Service Agreement (MSA)' },
   { value: 'contract', label: 'Contract' },
+  { value: 'nda', label: 'Non-Disclosure Agreement (NDA)' },
   { value: 'agreement', label: 'Agreement' },
   { value: 'mou', label: 'Memorandum of Understanding' },
-  { value: 'oem_supplier_readiness', label: 'OEM Supplier Readiness' },
 ];
 
 export const AGREEMENT_TYPES: { value: AgreementType; label: string }[] = [
