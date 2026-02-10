@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -132,6 +132,14 @@ const stages = [
 ];
 
 export default function NewOpportunityPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+      <NewOpportunityContent />
+    </Suspense>
+  );
+}
+
+function NewOpportunityContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [form, setForm] = useState<OpportunityForm>(initialForm);
