@@ -8,34 +8,74 @@ const CACHE_DURATION = 60000; // 1 minute cache
 /**
  * Get all platform settings from Firebase (cached)
  * Uses dynamic import to avoid issues with Firebase in API routes
+ * Falls back to Firebase Admin SDK for server-side access
  */
 async function getSettings(): Promise<any | null> {
   // Check cache first
   if (cachedSettings && Date.now() - cacheTimestamp < CACHE_DURATION) {
+    console.log("[openai-config] Using cached settings");
     return cachedSettings;
   }
 
+  // Try Firebase Client SDK first
   try {
-    // Dynamic import to handle server-side properly
+    console.log("[openai-config] Attempting to fetch from Firebase Client SDK...");
     const { db } = await import("@/lib/firebase");
     const { doc, getDoc } = await import("firebase/firestore");
     const { COLLECTIONS } = await import("@/lib/schema");
     
+    console.log("[openai-config] Firebase client db exists:", !!db);
+    
     if (db) {
       const docRef = doc(db, COLLECTIONS.PLATFORM_SETTINGS, "global");
+      console.log("[openai-config] Fetching document from client SDK...");
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
         cachedSettings = docSnap.data();
         cacheTimestamp = Date.now();
+        console.log("[openai-config] Settings fetched successfully via client SDK, has llmConfig:", !!cachedSettings?.llmConfig);
         return cachedSettings;
+      } else {
+        console.log("[openai-config] Settings document does not exist in client SDK");
       }
+    } else {
+      console.log("[openai-config] Firebase client db is null, trying Admin SDK...");
     }
   } catch (error) {
-    // Silently fail - will use env vars as fallback
-    console.log("Firebase settings not available, using environment variables");
+    console.error("[openai-config] Error fetching from Firebase Client SDK:", error);
+    console.log("[openai-config] Falling back to Admin SDK...");
   }
 
+  // Fallback: Try Firebase Admin SDK
+  try {
+    console.log("[openai-config] Attempting to fetch from Firebase Admin SDK...");
+    const { adminDb } = await import("@/lib/firebase-admin");
+    const { COLLECTIONS } = await import("@/lib/schema");
+    
+    console.log("[openai-config] Firebase adminDb exists:", !!adminDb);
+    
+    if (adminDb) {
+      const docRef = adminDb.collection(COLLECTIONS.PLATFORM_SETTINGS).doc("global");
+      console.log("[openai-config] Fetching document from Admin SDK...");
+      const docSnap = await docRef.get();
+
+      if (docSnap.exists) {
+        cachedSettings = docSnap.data();
+        cacheTimestamp = Date.now();
+        console.log("[openai-config] Settings fetched successfully via Admin SDK, has llmConfig:", !!cachedSettings?.llmConfig);
+        return cachedSettings;
+      } else {
+        console.log("[openai-config] Settings document does not exist in Admin SDK");
+      }
+    } else {
+      console.log("[openai-config] Firebase Admin SDK not available");
+    }
+  } catch (adminError) {
+    console.error("[openai-config] Error fetching from Firebase Admin SDK:", adminError);
+  }
+
+  console.log("[openai-config] All Firebase SDKs failed, returning null");
   return null;
 }
 
@@ -44,21 +84,37 @@ async function getSettings(): Promise<any | null> {
  * In API routes, env vars are more reliable. Firebase settings are for client-side configuration.
  */
 export async function getOpenAIApiKey(): Promise<string | null> {
+  console.log("[getOpenAIApiKey] Checking environment variable...");
+  
   // Primary for API routes: Environment variable (most reliable in server context)
-  if (process.env.OPENAI_API_KEY) {
-    return process.env.OPENAI_API_KEY;
+  const envKey = process.env.OPENAI_API_KEY;
+  console.log("[getOpenAIApiKey] Env var exists:", !!envKey, "length:", envKey?.length || 0);
+  
+  if (envKey && envKey.trim().length > 0) {
+    console.log("[getOpenAIApiKey] Using environment variable");
+    return envKey;
   }
 
+  console.log("[getOpenAIApiKey] Env var not found, checking Firebase...");
+  
   // Fallback: Try Firebase settings
   try {
     const settings = await getSettings();
-    if (settings?.llmConfig?.apiKey) {
-      return settings.llmConfig.apiKey;
+    console.log("[getOpenAIApiKey] Settings fetched:", !!settings);
+    console.log("[getOpenAIApiKey] llmConfig exists:", !!settings?.llmConfig);
+    console.log("[getOpenAIApiKey] apiKey exists:", !!settings?.llmConfig?.apiKey);
+    
+    const firebaseKey = settings?.llmConfig?.apiKey;
+    if (firebaseKey && firebaseKey.trim().length > 0) {
+      console.log("[getOpenAIApiKey] Using Firebase settings, key length:", firebaseKey.length);
+      return firebaseKey;
     }
+    console.log("[getOpenAIApiKey] Firebase key is empty or not set");
   } catch (error) {
-    // Ignore Firebase errors
+    console.error("[getOpenAIApiKey] Error fetching from Firebase:", error);
   }
 
+  console.log("[getOpenAIApiKey] No API key found anywhere");
   return null;
 }
 

@@ -200,9 +200,11 @@ export default function LegacyJournalPage() {
                     {featuredPost.readTime}
                   </span>
                 </div>
-                <Button className="w-fit bg-amber-500 hover:bg-amber-600 text-slate-900">
-                  Read Article
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                <Button className="w-fit bg-amber-500 hover:bg-amber-600 text-slate-900" asChild>
+                  <Link href={`/legacy-journal/${featuredPost.slug}`}>
+                    Read Article
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
                 </Button>
               </CardContent>
             </div>
@@ -216,32 +218,34 @@ export default function LegacyJournalPage() {
           <h2 className="text-2xl font-bold mb-8">Latest Articles</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {blogPosts.map((post) => (
-              <Card key={post.slug} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                  <BookOpen className="h-10 w-10 text-slate-400" />
-                </div>
-                <CardContent className="p-6">
-                  <Badge className="mb-3 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20">
-                    {post.category}
-                  </Badge>
-                  <h3 className="text-lg font-semibold mb-2 line-clamp-2">
-                    {post.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                    {post.excerpt}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {post.date}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {post.readTime}
-                    </span>
+              <Link key={post.slug} href={`/legacy-journal/${post.slug}`} className="block group">
+                <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow h-full">
+                  <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center group-hover:from-amber-50 group-hover:to-amber-100 transition-colors">
+                    <BookOpen className="h-10 w-10 text-slate-400 group-hover:text-amber-500 transition-colors" />
                   </div>
-                </CardContent>
-              </Card>
+                  <CardContent className="p-6">
+                    <Badge className="mb-3 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20">
+                      {post.category}
+                    </Badge>
+                    <h3 className="text-lg font-semibold mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors">
+                      {post.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                      {post.excerpt}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {post.date}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {post.readTime}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
 

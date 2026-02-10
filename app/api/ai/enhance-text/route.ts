@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOpenAIApiKey } from "@/lib/openai-config";
 
 interface EnhanceTextRequest {
   text: string;
@@ -73,18 +74,26 @@ Please provide enhanced notes that:
 5. Maintain a professional tone`;
     }
 
-    // Try to get LLM config from environment
-    const apiKey = process.env.OPENAI_API_KEY;
-    const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
-    const useOllama = process.env.USE_OLLAMA === "true";
+    // Get API key from stored LLM settings (Firebase or env vars)
+    const apiKey = await getOpenAIApiKey();
+    
+    console.log("[enhance-text] API key found:", !!apiKey);
+    console.log("[enhance-text] Environment OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
 
     let enhancedText: string;
 
-    if (useOllama) {
-      enhancedText = await callOllama(ollamaUrl, systemPrompt, userPrompt);
-    } else if (apiKey) {
-      enhancedText = await callOpenAI(apiKey, systemPrompt, userPrompt);
+    if (apiKey) {
+      try {
+        console.log("[enhance-text] Calling OpenAI...");
+        enhancedText = await callOpenAI(apiKey, systemPrompt, userPrompt);
+        console.log("[enhance-text] OpenAI call successful, response length:", enhancedText.length);
+      } catch (openaiError) {
+        console.error("[enhance-text] OpenAI call failed:", openaiError);
+        // If OpenAI call fails, use fallback
+        enhancedText = generateFallbackEnhancement(text, context);
+      }
     } else {
+      console.log("[enhance-text] No API key found, using fallback");
       // Fallback: Return a formatted version of the original text
       enhancedText = generateFallbackEnhancement(text, context);
     }
@@ -127,34 +136,6 @@ async function callOpenAI(
 
   const data = await response.json();
   return data.choices[0]?.message?.content || "No response generated";
-}
-
-async function callOllama(
-  ollamaUrl: string,
-  systemPrompt: string,
-  userPrompt: string
-): Promise<string> {
-  const response = await fetch(`${ollamaUrl}/api/chat`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "llama2",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      stream: false,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Ollama API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.message?.content || "No response generated";
 }
 
 function generateFallbackEnhancement(

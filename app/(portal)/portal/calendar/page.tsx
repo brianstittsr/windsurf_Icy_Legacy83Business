@@ -533,6 +533,12 @@ export default function CalendarPage() {
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
+          <Button asChild>
+            <a href="/portal/meetings">
+              <Plus className="mr-2 h-4 w-4" />
+              Schedule Meeting
+            </a>
+          </Button>
         </div>
       </div>
 

@@ -164,7 +164,7 @@ const projectManagementItems: { title: string; href: string; icon: React.Element
     featureKey: "eos2",
   },
   {
-    title: "Rocks",
+    title: "Action Items",
     href: "/portal/rocks",
     icon: CheckSquare,
     featureKey: "rocks",

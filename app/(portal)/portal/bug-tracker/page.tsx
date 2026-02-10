@@ -121,7 +121,7 @@ interface Comment {
 
 // Page options for the dropdown
 const pageOptions = [
-  { value: "", label: "No specific page" },
+  { value: "none", label: "No specific page" },
   { value: "/", label: "Home Page" },
   { value: "/sign-in", label: "Sign In" },
   { value: "/portal", label: "Portal Home" },
@@ -167,7 +167,7 @@ export default function BugTrackerPage() {
     title: "",
     description: "",
     priority: "medium" as BugTrackerItemPriority,
-    page: "",
+    page: "none",
     tags: "",
   });
 
@@ -269,7 +269,7 @@ export default function BugTrackerPage() {
         description: formData.description,
         status: "open",
         priority: formData.priority,
-        page: formData.page || undefined,
+        page: formData.page !== "none" ? formData.page : undefined,
         reporterId: profile.id || "anonymous",
         reporterName: profile.firstName && profile.lastName 
           ? `${profile.firstName} ${profile.lastName}` 
@@ -398,7 +398,7 @@ export default function BugTrackerPage() {
       title: "",
       description: "",
       priority: "medium",
-      page: "",
+      page: "none",
       tags: "",
     });
   };

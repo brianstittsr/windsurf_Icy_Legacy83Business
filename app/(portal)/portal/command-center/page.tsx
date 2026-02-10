@@ -25,12 +25,14 @@ import {
   AlertCircle,
   MoreHorizontal,
   Plus,
+  Bug,
 } from "lucide-react";
 import { db, auth } from "@/lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 import { COLLECTIONS, type OpportunityDoc, type ProjectDoc, type ActionItemDoc, type ActivityDoc, type TeamMemberDoc } from "@/lib/schema";
 import type { CalendarEventDoc } from "@/lib/schema";
 import { DataMigrationBanner } from "@/components/portal/data-migration-banner";
+import { BugTrackerForm } from "@/components/bug-tracker";
 
 // Types for dashboard data
 interface DashboardStats {
@@ -43,11 +45,16 @@ interface DashboardStats {
     count: number;
     atRisk: number;
   };
-  rocks: {
+  actionItems: {
     progress: number;
     daysRemaining: number;
   };
   teamOnline: number;
+  bugTracker: {
+    openBugs: number;
+    totalItems: number;
+    criticalCount: number;
+  };
 }
 
 interface OpportunityDisplay {
@@ -148,8 +155,9 @@ export default function CommandCenterPage() {
   const [stats, setStats] = useState<DashboardStats>({
     pipeline: { value: 0, change: 0, trend: "up" },
     activeProjects: { count: 0, atRisk: 0 },
-    rocks: { progress: 0, daysRemaining: getDaysRemainingInQuarter() },
+    actionItems: { progress: 0, daysRemaining: getDaysRemainingInQuarter() },
     teamOnline: 0,
+    bugTracker: { openBugs: 0, totalItems: 0, criticalCount: 0 },
   });
   const [opportunities, setOpportunities] = useState<OpportunityDisplay[]>([]);
   const [meetings, setMeetings] = useState<MeetingDisplay[]>([]);
@@ -323,22 +331,45 @@ export default function CommandCenterPage() {
           setTeamMembers([]);
         }
 
-        // Fetch rocks progress
+        // Fetch action items progress
         const rocksRef = collection(db, COLLECTIONS.TRACTION_ROCKS);
         const currentQuarter = getCurrentQuarter();
         const rocksQuery = query(rocksRef, where("quarter", "==", currentQuarter));
         
         let totalProgress = 0;
-        let rockCount = 0;
+        let actionItemCount = 0;
         try {
           const rocksSnapshot = await getDocs(rocksQuery);
           rocksSnapshot.forEach((doc) => {
             const data = doc.data();
             totalProgress += data.progress || 0;
-            rockCount++;
+            actionItemCount++;
           });
         } catch {
-          // Rocks collection may not exist
+          // Action items collection may not exist
+        }
+
+        // Fetch bug tracker stats
+        let openBugsCount = 0;
+        let totalItemsCount = 0;
+        let criticalCount = 0;
+        
+        try {
+          const bugTrackerRef = collection(db, COLLECTIONS.BUG_TRACKER_ITEMS);
+          const bugTrackerSnapshot = await getDocs(bugTrackerRef);
+          
+          bugTrackerSnapshot.forEach((doc) => {
+            const data = doc.data();
+            totalItemsCount++;
+            if (data.type === "bug" && data.status === "open") {
+              openBugsCount++;
+            }
+            if (data.priority === "critical") {
+              criticalCount++;
+            }
+          });
+        } catch {
+          // Bug tracker collection may not exist
         }
 
         // Update stats
@@ -352,11 +383,16 @@ export default function CommandCenterPage() {
             count: activeCount,
             atRisk: atRiskCount,
           },
-          rocks: {
-            progress: rockCount > 0 ? Math.round(totalProgress / rockCount) : 0,
+          actionItems: {
+            progress: actionItemCount > 0 ? Math.round(totalProgress / actionItemCount) : 0,
             daysRemaining: getDaysRemainingInQuarter(),
           },
           teamOnline: teamMembers.length,
+          bugTracker: {
+            openBugs: openBugsCount,
+            totalItems: totalItemsCount,
+            criticalCount: criticalCount,
+          },
         });
 
       } catch (error) {
@@ -473,17 +509,17 @@ export default function CommandCenterPage() {
           </CardContent>
         </Card>
 
-        {/* Rocks Progress */}
+        {/* Action Items Progress */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{getCurrentQuarter()} Rocks</CardTitle>
+            <CardTitle className="text-sm font-medium">{getCurrentQuarter()} Action Items</CardTitle>
             <CheckSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.rocks.progress}%</div>
-            <Progress value={stats.rocks.progress} className="mt-2" />
+            <div className="text-2xl font-bold">{stats.actionItems.progress}%</div>
+            <Progress value={stats.actionItems.progress} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              {stats.rocks.daysRemaining} days remaining
+              {stats.actionItems.daysRemaining} days remaining
             </p>
           </CardContent>
         </Card>
@@ -515,6 +551,31 @@ export default function CommandCenterPage() {
                   </AvatarFallback>
                 </Avatar>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bug Tracker Stats */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Bug Tracker</CardTitle>
+            <Bug className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.bugTracker.openBugs}</div>
+            <div className="flex items-center text-xs text-muted-foreground gap-2">
+              {stats.bugTracker.criticalCount > 0 ? (
+                <>
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <span className="text-red-500">{stats.bugTracker.criticalCount} critical</span>
+                </>
+              ) : stats.bugTracker.openBugs > 0 ? (
+                <span className="text-yellow-500">{stats.bugTracker.openBugs} open bugs</span>
+              ) : (
+                <span className="text-green-500">No open bugs</span>
+              )}
+              <span className="text-muted-foreground">•</span>
+              <span>{stats.bugTracker.totalItems} total items</span>
             </div>
           </CardContent>
         </Card>
@@ -633,7 +694,7 @@ export default function CommandCenterPage() {
       </div>
 
       {/* Bottom Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Action Items */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -732,6 +793,12 @@ export default function CommandCenterPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Quick Bug Report */}
+        <BugTrackerForm compact onSuccess={() => {
+          // Refresh stats after successful submission
+          // This will be handled by the parent component's state
+        }} />
       </div>
     </div>
   );

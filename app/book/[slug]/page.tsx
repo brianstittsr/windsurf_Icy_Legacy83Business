@@ -154,26 +154,100 @@ export default function BookingPage() {
     fetchAvailability();
   }, [slug]);
 
-  // Update available slots when date changes
+// Update available slots when date changes - check calendar appointments
   useEffect(() => {
-    if (!selectedDate || !availability || !selectedMeetingType) {
-      setAvailableSlots([]);
-      return;
-    }
-    
-    const dayOfWeek = selectedDate.getDay();
-    const dayAvailability = availability.weeklyAvailability.find(d => d.dayOfWeek === dayOfWeek);
-    
-    if (dayAvailability?.isEnabled) {
-      const slots = generateTimeSlots(
+    const checkAvailability = async () => {
+      if (!selectedDate || !availability || !selectedMeetingType || !db) {
+        setAvailableSlots([]);
+        return;
+      }
+      
+      const dayOfWeek = selectedDate.getDay();
+      const dayAvailability = availability.weeklyAvailability.find(d => d.dayOfWeek === dayOfWeek);
+      
+      if (!dayAvailability?.isEnabled) {
+        setAvailableSlots([]);
+        return;
+      }
+      
+      // Generate all possible slots
+      const allSlots = generateTimeSlots(
         dayAvailability.startTime,
         dayAvailability.endTime,
         selectedMeetingType.duration
       );
-      setAvailableSlots(slots);
-    } else {
-      setAvailableSlots([]);
-    }
+      
+      // Check existing bookings for this date
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      try {
+        const bookingsRef = collection(db, COLLECTIONS.BOOKINGS);
+        const bookingsQuery = query(
+          bookingsRef,
+          where("teamMemberId", "==", availability.teamMemberId),
+          where("date", "==", dateStr),
+          where("status", "in", ["confirmed", "pending"])
+        );
+        const bookingsSnapshot = await getDocs(bookingsQuery);
+        
+        // Get booked time ranges
+        const bookedRanges: { start: string; end: string }[] = [];
+        bookingsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          bookedRanges.push({ start: data.startTime, end: data.endTime });
+        });
+        
+        // Also check calendar events
+        const calendarRef = collection(db, COLLECTIONS.CALENDAR_EVENTS);
+        const calendarQuery = query(
+          calendarRef,
+          where("type", "==", "meeting")
+        );
+        const calendarSnapshot = await getDocs(calendarQuery);
+        
+        calendarSnapshot.forEach((doc) => {
+          const data = doc.data();
+          const eventDate = data.startDate?.toDate?.() || new Date(data.startDate);
+          const eventDateStr = eventDate.toISOString().split('T')[0];
+          
+          if (eventDateStr === dateStr && data.attendees?.includes(availability.teamMemberName)) {
+            const startTime = eventDate.toTimeString().slice(0, 5);
+            const endDate = data.endDate?.toDate?.() || new Date(data.endDate);
+            const endTime = endDate.toTimeString().slice(0, 5);
+            bookedRanges.push({ start: startTime, end: endTime });
+          }
+        });
+        
+        // Filter out booked slots and apply buffer
+        const bufferMinutes = availability.bufferBetweenMeetings || 0;
+        const availableSlots = allSlots.filter(slot => {
+          const [slotHour, slotMin] = slot.split(':').map(Number);
+          const slotStartMinutes = slotHour * 60 + slotMin;
+          const slotEndMinutes = slotStartMinutes + selectedMeetingType.duration;
+          
+          // Check if slot overlaps with any booked range (including buffer)
+          return !bookedRanges.some(booked => {
+            const [bookedStartHour, bookedStartMin] = booked.start.split(':').map(Number);
+            const [bookedEndHour, bookedEndMin] = booked.end.split(':').map(Number);
+            const bookedStartMinutes = bookedStartHour * 60 + bookedStartMin - bufferMinutes;
+            const bookedEndMinutes = bookedEndHour * 60 + bookedEndMin + bufferMinutes;
+            
+            return (
+              (slotStartMinutes >= bookedStartMinutes && slotStartMinutes < bookedEndMinutes) ||
+              (slotEndMinutes > bookedStartMinutes && slotEndMinutes <= bookedEndMinutes) ||
+              (slotStartMinutes <= bookedStartMinutes && slotEndMinutes >= bookedEndMinutes)
+            );
+          });
+        });
+        
+        setAvailableSlots(availableSlots);
+      } catch (error) {
+        console.error("Error checking availability:", error);
+        // Fall back to showing all slots if check fails
+        setAvailableSlots(allSlots);
+      }
+    };
+    
+    checkAvailability();
   }, [selectedDate, availability, selectedMeetingType]);
 
   // Handle booking submission
@@ -399,7 +473,7 @@ export default function BookingPage() {
                 {/* Date Selection */}
                 <div>
                   <Label className="mb-3 block">Select a Date</Label>
-                  <div className="grid grid-cols-3 gap-2 max-h-[300px] overflow-y-auto">
+                  <div className="grid grid-cols-3 gap-2">
                     {availableDays.slice(0, 21).map((date) => (
                       <Button
                         key={date.toISOString()}
@@ -423,7 +497,7 @@ export default function BookingPage() {
                   <Label className="mb-3 block">Select a Time</Label>
                   {selectedDate ? (
                     availableSlots.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
+                      <div className="grid grid-cols-2 gap-2">
                         {availableSlots.map((time) => (
                           <Button
                             key={time}
@@ -622,7 +696,7 @@ export default function BookingPage() {
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">
-          <p>Powered by Strategic Value Plus</p>
+          <p>Powered by Legacy 83 Business</p>
         </div>
       </div>
     </div>

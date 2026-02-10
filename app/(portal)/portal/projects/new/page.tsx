@@ -23,11 +23,24 @@ import {
   Calendar,
   Users,
   Loader2,
+  Plus,
+  X,
+  Flag,
+  CheckCircle,
+  Circle,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp, getDocs, query, orderBy } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
 import { toast } from "sonner";
+
+interface Milestone {
+  id: string;
+  name: string;
+  dueDate: string;
+  completed: boolean;
+}
 
 interface ProjectForm {
   name: string;
@@ -61,6 +74,33 @@ export default function NewProjectPage() {
     endDate: "",
     progress: "0",
   });
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [newMilestone, setNewMilestone] = useState({ name: "", dueDate: "" });
+
+  const addMilestone = () => {
+    if (!newMilestone.name.trim()) {
+      toast.error("Please enter a milestone name");
+      return;
+    }
+    const milestone: Milestone = {
+      id: crypto.randomUUID(),
+      name: newMilestone.name.trim(),
+      dueDate: newMilestone.dueDate,
+      completed: false,
+    };
+    setMilestones((prev) => [...prev, milestone]);
+    setNewMilestone({ name: "", dueDate: "" });
+  };
+
+  const removeMilestone = (id: string) => {
+    setMilestones((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const toggleMilestoneComplete = (id: string) => {
+    setMilestones((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, completed: !m.completed } : m))
+    );
+  };
 
   useEffect(() => {
     async function fetchOrganizations() {
@@ -97,6 +137,7 @@ export default function NewProjectPage() {
 
     setIsSaving(true);
     try {
+      const completedMilestones = milestones.filter((m) => m.completed).length;
       const projectData = {
         name: form.name,
         description: form.description,
@@ -106,8 +147,14 @@ export default function NewProjectPage() {
         endDate: form.endDate ? Timestamp.fromDate(new Date(form.endDate)) : null,
         progress: parseInt(form.progress) || 0,
         teamIds: [],
-        milestonesCompleted: 0,
-        milestonesTotal: 0,
+        milestones: milestones.map((m) => ({
+          id: m.id,
+          name: m.name,
+          dueDate: m.dueDate ? Timestamp.fromDate(new Date(m.dueDate)) : null,
+          completed: m.completed,
+        })),
+        milestonesCompleted: completedMilestones,
+        milestonesTotal: milestones.length,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -252,6 +299,89 @@ export default function NewProjectPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Milestones */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Flag className="h-5 w-5" />
+                Milestones
+              </CardTitle>
+              <CardDescription>Add key milestones and deliverables for this project</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Existing Milestones */}
+              {milestones.length > 0 && (
+                <div className="space-y-2">
+                  {milestones.map((milestone) => (
+                    <div
+                      key={milestone.id}
+                      className="flex items-center gap-3 p-3 bg-muted rounded-lg group"
+                    >
+                      <Checkbox
+                        checked={milestone.completed}
+                        onCheckedChange={() => toggleMilestoneComplete(milestone.id)}
+                        className="h-5 w-5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-medium truncate ${milestone.completed ? "line-through text-muted-foreground" : ""}`}>
+                          {milestone.name}
+                        </p>
+                        {milestone.dueDate && (
+                          <p className="text-xs text-muted-foreground">
+                            Due: {new Date(milestone.dueDate).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                        onClick={() => removeMilestone(milestone.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add New Milestone */}
+              <div className="flex flex-col gap-3 p-4 border border-dashed rounded-lg">
+                <div className="text-sm font-medium text-muted-foreground">Add New Milestone</div>
+                <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                  <Input
+                    placeholder="Milestone name..."
+                    value={newMilestone.name}
+                    onChange={(e) => setNewMilestone((prev) => ({ ...prev, name: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addMilestone();
+                      }
+                    }}
+                  />
+                  <Input
+                    type="date"
+                    value={newMilestone.dueDate}
+                    onChange={(e) => setNewMilestone((prev) => ({ ...prev, dueDate: e.target.value }))}
+                    className="w-auto"
+                  />
+                  <Button type="button" onClick={addMilestone} variant="outline">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+              </div>
+
+              {milestones.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  No milestones added yet. Add milestones to track project progress.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -305,6 +435,12 @@ export default function NewProjectPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Progress</span>
                 <span className="font-medium">{form.progress || 0}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Milestones</span>
+                <span className="font-medium">
+                  {milestones.filter((m) => m.completed).length}/{milestones.length}
+                </span>
               </div>
             </CardContent>
           </Card>

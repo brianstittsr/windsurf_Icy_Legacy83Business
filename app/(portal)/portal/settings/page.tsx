@@ -183,11 +183,12 @@ const apiConfigs: ApiKeyConfig[] = [
 ];
 
 const llmProviders = [
-  { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"] },
-  { id: "anthropic", name: "Anthropic", models: ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"] },
-  { id: "google", name: "Google AI", models: ["gemini-pro", "gemini-ultra"] },
-  { id: "mistral", name: "Mistral AI", models: ["mistral-large", "mistral-medium", "mistral-small"] },
-  { id: "ollama", name: "Ollama (Local)", models: ["llama2", "codellama", "mistral", "mixtral"] },
+  { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"], supportsCustomUrl: false },
+  { id: "anthropic", name: "Anthropic", models: ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"], supportsCustomUrl: false },
+  { id: "google", name: "Google AI", models: ["gemini-pro", "gemini-ultra"], supportsCustomUrl: false },
+  { id: "mistral", name: "Mistral AI", models: ["mistral-large", "mistral-medium", "mistral-small"], supportsCustomUrl: false },
+  { id: "ollama", name: "Ollama (Local)", models: ["llama2", "codellama", "mistral", "mixtral", "llama3", "phi3"], supportsCustomUrl: true },
+  { id: "openai-compatible", name: "OpenAI Compatible (ngrok/lm-studio/vllm)", models: ["default"], supportsCustomUrl: true },
 ];
 
 const SETTINGS_DOC_ID = "global";
@@ -214,6 +215,8 @@ function SettingsPageContent() {
     apiKey: "",
     ollamaUrl: "http://localhost:11434",
     useOllama: false,
+    baseUrl: "",
+    useOpenAICompatible: false,
   });
   
   // Social links settings
@@ -306,6 +309,8 @@ function SettingsPageContent() {
               apiKey: data.llmConfig.apiKey || "",
               ollamaUrl: data.llmConfig.ollamaUrl || "http://localhost:11434",
               useOllama: data.llmConfig.useOllama || false,
+              baseUrl: data.llmConfig.baseUrl || "",
+              useOpenAICompatible: data.llmConfig.useOpenAICompatible || false,
             });
           }
           
@@ -393,6 +398,8 @@ function SettingsPageContent() {
           apiKey: llmConfig.apiKey || "",
           ollamaUrl: llmConfig.ollamaUrl,
           useOllama: llmConfig.useOllama,
+          baseUrl: llmConfig.baseUrl || "",
+          useOpenAICompatible: llmConfig.useOpenAICompatible,
         },
         webhookEvents: webhookEvents as Record<string, boolean>,
         notificationSettings: notificationSettings,
@@ -696,135 +703,144 @@ function SettingsPageContent() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Server className="h-5 w-5 text-primary" />
-                  <div>
-                    <Label>Use Ollama (Local LLM)</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Run models locally without API costs
-                    </p>
-                  </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="llmProvider">Provider</Label>
+                  <Select
+                    value={llmConfig.provider}
+                    onValueChange={(value) => {
+                      const provider = llmProviders.find(p => p.id === value);
+                      setLlmConfig({
+                        ...llmConfig,
+                        provider: value,
+                        model: provider?.models[0] || "",
+                        useOllama: value === "ollama",
+                        useOpenAICompatible: value === "openai-compatible",
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {llmProviders.map((provider) => (
+                        <SelectItem key={provider.id} value={provider.id}>
+                          {provider.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Switch
-                  checked={llmConfig.useOllama}
-                  onCheckedChange={(checked) =>
-                    setLlmConfig({ ...llmConfig, useOllama: checked, provider: checked ? "ollama" : "openai" })
-                  }
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="llmModel">Model</Label>
+                  <Select
+                    value={llmConfig.model}
+                    onValueChange={(value) => setLlmConfig({ ...llmConfig, model: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {llmProviders.find(p => p.id === llmConfig.provider)?.models.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {llmConfig.useOllama ? (
-                <div className="space-y-4">
+              {/* Base URL Configuration - for Ollama and OpenAI-compatible providers */}
+              {(llmConfig.provider === "ollama" || llmConfig.provider === "openai-compatible") && (
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                   <div className="space-y-2">
-                    <Label htmlFor="ollamaUrl">Ollama Server URL</Label>
+                    <Label htmlFor="baseUrl">
+                      {llmConfig.provider === "ollama" ? "Ollama Server URL (or ngrok URL)" : "Base URL (OpenAI-compatible endpoint)"}
+                    </Label>
                     <Input
-                      id="ollamaUrl"
-                      placeholder="http://localhost:11434"
-                      value={llmConfig.ollamaUrl}
-                      onChange={(e) => setLlmConfig({ ...llmConfig, ollamaUrl: e.target.value })}
+                      id="baseUrl"
+                      placeholder={llmConfig.provider === "ollama" ? "http://localhost:11434 or https://xxxx.ngrok.io" : "https://api.example.com/v1"}
+                      value={llmConfig.baseUrl || llmConfig.ollamaUrl}
+                      onChange={(e) => setLlmConfig({ 
+                        ...llmConfig, 
+                        baseUrl: e.target.value,
+                        ollamaUrl: e.target.value 
+                      })}
                     />
                     <p className="text-sm text-muted-foreground">
-                      Default: http://localhost:11434
+                      {llmConfig.provider === "ollama" 
+                        ? "Use ngrok to expose your local Ollama: ngrok http 11434" 
+                        : "The base URL for your OpenAI-compatible API endpoint"}
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ollamaModel">Model</Label>
-                    <Select
-                      value={llmConfig.model}
-                      onValueChange={(value) => setLlmConfig({ ...llmConfig, model: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {llmProviders.find(p => p.id === "ollama")?.models.map((model) => (
-                          <SelectItem key={model} value={model}>
-                            {model}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">Ollama Setup Instructions</h4>
-                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                      <li>Install Ollama from <a href="https://ollama.ai" className="text-primary underline" target="_blank">ollama.ai</a></li>
-                      <li>Run: <code className="bg-background px-1 rounded">ollama pull llama2</code></li>
-                      <li>Start Ollama: <code className="bg-background px-1 rounded">ollama serve</code></li>
-                      <li>Test connection above</li>
-                    </ol>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="llmProvider">Provider</Label>
-                    <Select
-                      value={llmConfig.provider}
-                      onValueChange={(value) => {
-                        const provider = llmProviders.find(p => p.id === value);
-                        setLlmConfig({
-                          ...llmConfig,
-                          provider: value,
-                          model: provider?.models[0] || "",
-                        });
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a provider" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {llmProviders.filter(p => p.id !== "ollama").map((provider) => (
-                          <SelectItem key={provider.id} value={provider.id}>
-                            {provider.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="llmModel">Model</Label>
-                    <Select
-                      value={llmConfig.model}
-                      onValueChange={(value) => setLlmConfig({ ...llmConfig, model: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {llmProviders.find(p => p.id === llmConfig.provider)?.models.map((model) => (
-                          <SelectItem key={model} value={model}>
-                            {model}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="llmApiKey">API Key</Label>
-                    <div className="relative">
-                      <Input
-                        id="llmApiKey"
-                        type={showKeys["llm"] ? "text" : "password"}
-                        placeholder="Enter your API key"
-                        value={llmConfig.apiKey}
-                        onChange={(e) => setLlmConfig({ ...llmConfig, apiKey: e.target.value })}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-full"
-                        onClick={() => toggleShowKey("llm")}
-                      >
-                        {showKeys["llm"] ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
+
+                  {llmConfig.provider === "ollama" && (
+                    <div className="p-4 bg-background rounded-lg">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Server className="h-4 w-4" />
+                        Ollama + ngrok Setup
+                      </h4>
+                      <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                        <li>Install Ollama: <a href="https://ollama.ai" className="text-primary underline" target="_blank" rel="noopener">ollama.ai</a></li>
+                        <li>Pull a model: <code className="bg-muted px-1 rounded">ollama pull llama3</code></li>
+                        <li>Start Ollama: <code className="bg-muted px-1 rounded">ollama serve</code></li>
+                        <li>Install ngrok: <a href="https://ngrok.com" className="text-primary underline" target="_blank" rel="noopener">ngrok.com</a></li>
+                        <li>Expose Ollama: <code className="bg-muted px-1 rounded">ngrok http 11434</code></li>
+                        <li>Copy the ngrok URL (e.g., <code className="bg-muted px-1 rounded">https://xxxx.ngrok.io</code>) above</li>
+                      </ol>
                     </div>
+                  )}
+
+                  {llmConfig.provider === "openai-compatible" && (
+                    <div className="p-4 bg-background rounded-lg">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Brain className="h-4 w-4" />
+                        OpenAI-Compatible Endpoints
+                      </h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• <strong>LM Studio:</strong> <code className="bg-muted px-1 rounded">http://localhost:1234/v1</code></li>
+                        <li>• <strong>vLLM:</strong> <code className="bg-muted px-1 rounded">http://localhost:8000/v1</code></li>
+                        <li>• <strong>Ollama (OpenAI compat):</strong> <code className="bg-muted px-1 rounded">https://xxxx.ngrok.io/v1</code></li>
+                        <li>• <strong>Text Generation WebUI:</strong> <code className="bg-muted px-1 rounded">http://localhost:5000/v1</code></li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* API Key - required for most providers */}
+              {llmConfig.provider !== "ollama" && (
+                <div className="space-y-2">
+                  <Label htmlFor="llmApiKey">
+                    {llmConfig.provider === "openai-compatible" ? "API Key (if required)" : "API Key"}
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="llmApiKey"
+                      type={showKeys["llm"] ? "text" : "password"}
+                      placeholder={llmConfig.provider === "openai-compatible" ? "Enter API key (optional for some local endpoints)" : "Enter your API key"}
+                      value={llmConfig.apiKey}
+                      onChange={(e) => setLlmConfig({ ...llmConfig, apiKey: e.target.value })}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full"
+                      onClick={() => toggleShowKey("llm")}
+                    >
+                      {showKeys["llm"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
+                  {llmConfig.provider === "openai-compatible" && (
+                    <p className="text-sm text-muted-foreground">
+                      Some local endpoints like LM Studio don&apos;t require an API key. Leave blank if not needed.
+                    </p>
+                  )}
                 </div>
               )}
 

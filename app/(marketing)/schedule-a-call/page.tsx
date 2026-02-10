@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Phone, 
@@ -13,7 +15,11 @@ import {
   MessageCircle,
   Target,
   Users,
+  Loader2,
 } from "lucide-react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { COLLECTIONS, type TeamMemberAvailabilityDoc } from "@/lib/schema";
 
 const benefits = [
   {
@@ -42,6 +48,43 @@ const expectations = [
 ];
 
 export default function ScheduleCallPage() {
+  const [loading, setLoading] = useState(true);
+  const [availability, setAvailability] = useState<TeamMemberAvailabilityDoc | null>(null);
+  const [bookingSlug, setBookingSlug] = useState<string>("strategy-call");
+
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!db) return;
+      
+      try {
+        const q = query(
+          collection(db, COLLECTIONS.TEAM_MEMBER_AVAILABILITY),
+          where("isActive", "==", true)
+        );
+        const snapshot = await getDocs(q);
+        
+        let found: TeamMemberAvailabilityDoc | null = null;
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data() as TeamMemberAvailabilityDoc;
+          if (!found || data.bookingSlug === "strategy-call" || data.teamMemberName.toLowerCase().includes("icy")) {
+            found = { ...data, id: docSnap.id };
+          }
+        });
+        
+        if (found) {
+          setAvailability(found);
+          setBookingSlug((found as TeamMemberAvailabilityDoc).bookingSlug);
+        }
+      } catch (error) {
+        console.error("Error fetching availability:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAvailability();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
@@ -80,40 +123,40 @@ export default function ScheduleCallPage() {
         </div>
       </section>
 
-      {/* Calendar Embed Section */}
+      {/* Booking Section */}
       <section className="py-16">
         <div className="container">
           <div className="max-w-4xl mx-auto">
-            <Card className="border-0 shadow-xl overflow-hidden">
-              <CardContent className="p-0">
-                {/* Placeholder for calendar embed */}
-                <div className="bg-slate-100 p-12 text-center min-h-[500px] flex flex-col items-center justify-center">
-                  <Calendar className="h-16 w-16 text-amber-500 mb-6" />
+            {loading ? (
+              <Card className="border-0 shadow-xl">
+                <CardContent className="p-12 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-amber-500" />
+                  <p className="text-muted-foreground">Loading booking options...</p>
+                </CardContent>
+              </Card>
+            ) : availability ? (
+              <Card className="border-0 shadow-xl overflow-hidden">
+                <CardContent className="p-0">
+                  <iframe
+                    src={`/book/${bookingSlug}`}
+                    className="w-full min-h-[700px] border-0"
+                    title="Book Your Strategy Call"
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-0 shadow-xl">
+                <CardContent className="p-12 text-center">
+                  <Calendar className="h-16 w-16 text-amber-500 mb-6 mx-auto" />
                   <h3 className="text-2xl font-bold mb-4">Book Your Strategy Call</h3>
-                  <p className="text-muted-foreground mb-8 max-w-md">
-                    Select a time that works for you. Icy will personally reach out 
-                    to confirm your appointment.
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                    Our scheduling system is being set up. Please use one of these options to book your call.
                   </p>
                   
-                  {/* Temporary booking options until calendar is integrated */}
-                  <div className="space-y-4 w-full max-w-sm">
+                  <div className="space-y-4 w-full max-w-sm mx-auto">
                     <Button 
                       size="lg" 
                       className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900"
-                      asChild
-                    >
-                      <a href="https://calendly.com/legacy83business" target="_blank" rel="noopener noreferrer">
-                        <Calendar className="mr-2 h-5 w-5" />
-                        Book via Calendly
-                      </a>
-                    </Button>
-                    
-                    <div className="text-center text-muted-foreground">or</div>
-                    
-                    <Button 
-                      size="lg" 
-                      variant="outline"
-                      className="w-full"
                       asChild
                     >
                       <a href="tel:+15133351978">
@@ -121,6 +164,8 @@ export default function ScheduleCallPage() {
                         Call (513) 335-1978
                       </a>
                     </Button>
+                    
+                    <div className="text-center text-muted-foreground">or</div>
                     
                     <Button 
                       size="lg" 
@@ -134,12 +179,40 @@ export default function ScheduleCallPage() {
                       </a>
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </section>
+
+      {/* QR Code Section */}
+      {availability && (
+        <section className="py-8 bg-slate-50">
+          <div className="container">
+            <div className="max-w-4xl mx-auto">
+              <Card className="border-0 shadow-md">
+                <CardHeader className="text-center">
+                  <CardTitle className="text-lg">Quick Booking</CardTitle>
+                  <CardDescription>Scan to book on your mobile device</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center pb-6">
+                  <div className="bg-white p-4 rounded-lg shadow-sm">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/book/${bookingSlug}`)}`}
+                      alt="Booking QR Code"
+                      className="w-48 h-48"
+                    />
+                    <p className="text-center text-xs text-muted-foreground mt-2">
+                      Scan to book instantly
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* What to Expect */}
       <section className="py-16 bg-slate-50">

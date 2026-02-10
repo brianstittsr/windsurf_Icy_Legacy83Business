@@ -70,6 +70,7 @@ import {
 import { COLLECTIONS, type CalendarEventDoc, type TeamMemberDoc } from "@/lib/schema";
 import { toast } from "sonner";
 import { format, isToday, isTomorrow, isPast, addMinutes } from "date-fns";
+import { syncMeetingToCalendars, updateMeetingOnCalendars, deleteMeetingFromCalendars } from "@/lib/calendar-sync-service";
 
 interface MeetingData {
   id: string;
@@ -326,13 +327,72 @@ export default function MeetingsPage() {
         // Update existing meeting
         const meetingRef = doc(db, COLLECTIONS.CALENDAR_EVENTS, editingMeeting.calendarEventId);
         await updateDoc(meetingRef, meetingData);
+        
+        // Sync to external calendars
+        try {
+          const syncResult = await updateMeetingOnCalendars(
+            "system", // TODO: Replace with actual userId from auth
+            {
+              id: editingMeeting.calendarEventId,
+              title: formData.title.trim(),
+              description: formData.description.trim() || undefined,
+              startTime: startDateTime,
+              endTime: endDateTime,
+              location: formData.location.trim() || undefined,
+              attendees: formData.attendees,
+              isOnlineMeeting: !!formData.meetingUrl,
+            },
+            {
+              googleEventId: (editingMeeting as any).googleEventId,
+              microsoftEventId: (editingMeeting as any).microsoftEventId,
+            }
+          );
+          if (syncResult.errors && syncResult.errors.length > 0) {
+            console.warn("Calendar sync warnings:", syncResult.errors);
+          }
+        } catch (syncError) {
+          console.error("Calendar sync error:", syncError);
+        }
+        
         toast.success("Meeting updated successfully");
       } else {
         // Create new meeting
-        await addDoc(collection(db, COLLECTIONS.CALENDAR_EVENTS), {
+        const docRef = await addDoc(collection(db, COLLECTIONS.CALENDAR_EVENTS), {
           ...meetingData,
           createdAt: Timestamp.now(),
         });
+        
+        // Sync to external calendars (Google & Microsoft)
+        try {
+          const syncResult = await syncMeetingToCalendars(
+            "system", // TODO: Replace with actual userId from auth
+            {
+              id: docRef.id,
+              title: formData.title.trim(),
+              description: formData.description.trim() || undefined,
+              startTime: startDateTime,
+              endTime: endDateTime,
+              location: formData.location.trim() || undefined,
+              attendees: formData.attendees,
+              isOnlineMeeting: !!formData.meetingUrl,
+            }
+          );
+          
+          // Save external calendar event IDs back to Firestore
+          if (syncResult.googleEventId || syncResult.microsoftEventId) {
+            await updateDoc(doc(db, COLLECTIONS.CALENDAR_EVENTS, docRef.id), {
+              googleEventId: syncResult.googleEventId || null,
+              microsoftEventId: syncResult.microsoftEventId || null,
+            });
+          }
+          
+          if (syncResult.errors && syncResult.errors.length > 0) {
+            console.warn("Calendar sync warnings:", syncResult.errors);
+          }
+        } catch (syncError) {
+          console.error("Calendar sync error:", syncError);
+        }
+        
         toast.success("Meeting scheduled successfully");
       }
 
@@ -349,6 +409,19 @@ export default function MeetingsPage() {
     if (!db || !meetingToDelete) return;
 
     try {
+      // Delete from external calendars first
+      try {
+        await deleteMeetingFromCalendars(
+          "system", // TODO: Replace with actual userId from auth
+          {
+            googleEventId: (meetingToDelete as any).googleEventId,
+            microsoftEventId: (meetingToDelete as any).microsoftEventId,
+          }
+        );
+      } catch (syncError) {
+        console.error("Calendar sync delete error:", syncError);
+      }
+      
       await deleteDoc(doc(db, COLLECTIONS.CALENDAR_EVENTS, meetingToDelete.calendarEventId));
       toast.success("Meeting deleted");
       setDeleteDialogOpen(false);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,9 @@ import {
   X,
   Package,
   RefreshCw,
+  ClipboardList,
+  TrendingUp,
+  AlertTriangle,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { db } from "@/lib/firebase";
@@ -60,6 +63,15 @@ interface OpportunityForm {
   isSubscription: boolean;
   monthlyAmount: string;
   subscriptionTermMonths: string;
+  // Quiz lead fields
+  source: string;
+  quizScore: string;
+  quizMaxScore: string;
+  quizPercentage: string;
+  quizLevel: string;
+  quizTopStrength: string;
+  quizPriorityArea: string;
+  quizSubmissionId: string;
 }
 
 interface AffiliateOption {
@@ -91,6 +103,15 @@ const initialForm: OpportunityForm = {
   isSubscription: false,
   monthlyAmount: "",
   subscriptionTermMonths: "12",
+  // Quiz lead defaults
+  source: "",
+  quizScore: "",
+  quizMaxScore: "",
+  quizPercentage: "",
+  quizLevel: "",
+  quizTopStrength: "",
+  quizPriorityArea: "",
+  quizSubmissionId: "",
 };
 
 const subscriptionTermOptions = [
@@ -112,12 +133,43 @@ const stages = [
 
 export default function NewOpportunityPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState<OpportunityForm>(initialForm);
   const [isSaving, setIsSaving] = useState(false);
   const [affiliates, setAffiliates] = useState<AffiliateOption[]>([]);
   const [isEnhancingDescription, setIsEnhancingDescription] = useState(false);
   const [isEnhancingNotes, setIsEnhancingNotes] = useState(false);
   const [newDeliverable, setNewDeliverable] = useState("");
+  const [isQuizLead, setIsQuizLead] = useState(false);
+
+  // Check for quiz lead data from URL params
+  useEffect(() => {
+    const source = searchParams.get("source");
+    if (source === "quiz") {
+      setIsQuizLead(true);
+      setForm((prev) => ({
+        ...prev,
+        source: "quiz",
+        name: searchParams.get("name") || prev.name,
+        organizationName: searchParams.get("company") || prev.organizationName,
+        affiliateName: searchParams.get("contactName") || prev.affiliateName,
+        affiliateEmail: searchParams.get("email") || prev.affiliateEmail,
+        affiliatePhone: searchParams.get("phone") || prev.affiliatePhone,
+        affiliateCompany: searchParams.get("company") || prev.affiliateCompany,
+        quizScore: searchParams.get("score") || prev.quizScore,
+        quizMaxScore: searchParams.get("maxScore") || prev.quizMaxScore,
+        quizPercentage: searchParams.get("percentage") || prev.quizPercentage,
+        quizLevel: searchParams.get("level") || prev.quizLevel,
+        quizTopStrength: searchParams.get("topStrength") || prev.quizTopStrength,
+        quizPriorityArea: searchParams.get("priorityArea") || prev.quizPriorityArea,
+        quizSubmissionId: searchParams.get("submissionId") || prev.quizSubmissionId,
+        description: searchParams.get("description") || prev.description,
+        notes: searchParams.get("notes") || prev.notes,
+        stage: "lead",
+        probability: "10",
+      }));
+    }
+  }, [searchParams]);
 
   // Fetch affiliates on mount
   useEffect(() => {
@@ -344,6 +396,15 @@ export default function NewOpportunityPage() {
         isSubscription: form.isSubscription,
         monthlyAmount: form.isSubscription ? (parseFloat(form.monthlyAmount) || 0) : null,
         subscriptionTermMonths: form.isSubscription ? (parseInt(form.subscriptionTermMonths) || 12) : null,
+        // Quiz lead information
+        source: form.source || null,
+        quizSubmissionId: form.quizSubmissionId || null,
+        quizScore: form.quizScore ? parseInt(form.quizScore) : null,
+        quizMaxScore: form.quizMaxScore ? parseInt(form.quizMaxScore) : null,
+        quizPercentage: form.quizPercentage ? parseInt(form.quizPercentage) : null,
+        quizLevel: form.quizLevel || null,
+        quizTopStrength: form.quizTopStrength || null,
+        quizPriorityArea: form.quizPriorityArea || null,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -437,6 +498,76 @@ export default function NewOpportunityPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Quiz Lead Information Card - Only shown for quiz leads */}
+          {isQuizLead && (
+            <Card className="border-amber-500/50 bg-amber-500/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-600">
+                  <ClipboardList className="h-5 w-5" />
+                  Quiz Lead Information
+                </CardTitle>
+                <CardDescription>This opportunity was generated from a Legacy Growth IQ™ Quiz submission</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="p-3 bg-background rounded-lg border">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Quiz Score</div>
+                    <div className="text-2xl font-bold">
+                      {form.quizScore}/{form.quizMaxScore}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">({form.quizPercentage}%)</span>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-background rounded-lg border">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Level</div>
+                    <div className="text-lg font-semibold">{form.quizLevel}</div>
+                  </div>
+                  <div className="p-3 bg-background rounded-lg border">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Submission ID</div>
+                    <div className="text-sm font-mono truncate">{form.quizSubmissionId || "N/A"}</div>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+                    <div className="flex items-center gap-2 text-xs text-green-600 uppercase tracking-wide mb-1">
+                      <TrendingUp className="h-3 w-3" />
+                      Top Strength
+                    </div>
+                    <div className="font-medium text-green-700">{form.quizTopStrength || "N/A"}</div>
+                  </div>
+                  <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/30">
+                    <div className="flex items-center gap-2 text-xs text-orange-600 uppercase tracking-wide mb-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Priority Area
+                    </div>
+                    <div className="font-medium text-orange-700">{form.quizPriorityArea || "N/A"}</div>
+                  </div>
+                </div>
+                {/* Contact Info from Quiz */}
+                <div className="p-4 bg-muted rounded-lg space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contact from Quiz</div>
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span>{form.affiliateName || "Not provided"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{form.affiliateEmail || "Not provided"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{form.affiliatePhone || "Not provided"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span>{form.affiliateCompany || "Not provided"}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Affiliate as Client Card */}
           <Card>

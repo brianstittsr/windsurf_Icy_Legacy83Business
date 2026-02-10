@@ -1287,7 +1287,7 @@ export default function SupplierSearchPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Add to existing list</label>
-              <Select value={selectedListId || ""} onValueChange={setSelectedListId}>
+              <Select value={selectedListId || undefined} onValueChange={setSelectedListId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a list" />
                 </SelectTrigger>

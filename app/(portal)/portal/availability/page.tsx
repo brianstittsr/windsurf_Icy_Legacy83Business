@@ -132,6 +132,7 @@ export default function AvailabilityPage() {
     date: "",
     type: "unavailable",
     reason: "",
+    slots: [{ start: "09:00", end: "17:00" }],
   });
 
   // Firebase & Team Member state
@@ -463,11 +464,12 @@ export default function AvailabilityPage() {
       date: newOverride.date,
       type: newOverride.type || "unavailable",
       reason: newOverride.reason,
+      slots: newOverride.type === "custom" ? (newOverride.slots || [{ start: "09:00", end: "17:00" }]) : undefined,
     };
     
     setDateOverrides((prev) => [...prev, override]);
     setIsAddOverrideOpen(false);
-    setNewOverride({ date: "", type: "unavailable", reason: "" });
+    setNewOverride({ date: "", type: "unavailable", reason: "", slots: [{ start: "09:00", end: "17:00" }] });
   };
 
   const removeDateOverride = (id: string) => {
@@ -863,6 +865,16 @@ export default function AvailabilityPage() {
                           <Badge variant={override.type === "unavailable" ? "destructive" : "secondary"}>
                             {override.type === "unavailable" ? "Unavailable" : "Custom Hours"}
                           </Badge>
+                          {override.type === "custom" && override.slots && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {override.slots.map((slot, i) => (
+                                <span key={i}>
+                                  {formatTime(slot.start)} - {formatTime(slot.end)}
+                                  {i < override.slots!.length - 1 && <br />}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {override.reason || "-"}
@@ -1334,7 +1346,7 @@ export default function AvailabilityPage() {
 
       {/* Add Date Override Dialog */}
       <Dialog open={isAddOverrideOpen} onOpenChange={setIsAddOverrideOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Date Override</DialogTitle>
             <DialogDescription>
@@ -1365,6 +1377,80 @@ export default function AvailabilityPage() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Custom Time Slots */}
+            {newOverride.type === "custom" && (
+              <div className="space-y-3">
+                <Label>Custom Hours</Label>
+                {newOverride.slots?.map((slot, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Select
+                      value={slot.start}
+                      onValueChange={(v) => {
+                        const newSlots = [...(newOverride.slots || [])];
+                        newSlots[index] = { ...slot, start: v };
+                        setNewOverride({ ...newOverride, slots: newSlots });
+                      }}
+                    >
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Start" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIME_SLOTS.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {formatTime(time)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground">to</span>
+                    <Select
+                      value={slot.end}
+                      onValueChange={(v) => {
+                        const newSlots = [...(newOverride.slots || [])];
+                        newSlots[index] = { ...slot, end: v };
+                        setNewOverride({ ...newOverride, slots: newSlots });
+                      }}
+                    >
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="End" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIME_SLOTS.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {formatTime(time)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {newOverride.slots && newOverride.slots.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const newSlots = newOverride.slots?.filter((_, i) => i !== index) || [];
+                          setNewOverride({ ...newOverride, slots: newSlots });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newSlots = [...(newOverride.slots || []), { start: "09:00", end: "17:00" }];
+                    setNewOverride({ ...newOverride, slots: newSlots });
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add time slot
+                </Button>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label>Reason (optional)</Label>
               <Input

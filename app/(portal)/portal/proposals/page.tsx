@@ -648,7 +648,7 @@ Make it clear, professional, and highlight the value proposition and expected ou
           </div>
 
           {/* Step Content */}
-          <ScrollArea className="flex-1 px-1">
+          <ScrollArea className="flex-1 px-1 min-h-0" style={{ maxHeight: "calc(90vh - 280px)" }}>
             <div className="py-4 space-y-4">
               {/* Step 1: Basic Info & Document Upload */}
               {currentStep === 1 && (

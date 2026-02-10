@@ -30,6 +30,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/terms",
     "/cookies",
     "/accessibility",
+    "/legacy-journal",
+    "/schedule-a-call",
+    "/quiz",
+    "/quiz-intro",
   ];
 
   const staticSitemap: MetadataRoute.Sitemap = staticPages.map((route) => ({
@@ -54,5 +58,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: page.priority,
   }));
 
-  return [...staticSitemap, ...serviceSitemap];
+  // Blog article pages
+  const blogArticles = [
+    { slug: "5-signs-business-would-collapse-without-you", priority: 0.8 },
+    { slug: "succession-planning-checklist", priority: 0.8 },
+    { slug: "build-leadership-team-you-can-trust", priority: 0.8 },
+    { slug: "exit-strategy-sell-transition-close", priority: 0.8 },
+    { slug: "90-day-business-transformation-blueprint", priority: 0.8 },
+    { slug: "why-most-business-coaches-fail", priority: 0.8 },
+    { slug: "founder-to-ceo-mindset-shift", priority: 0.8 },
+    { slug: "building-business-that-outlives-you", priority: 0.8 },
+    { slug: "hidden-cost-being-indispensable", priority: 0.8 },
+  ];
+
+  const blogSitemap: MetadataRoute.Sitemap = blogArticles.map((article) => ({
+    url: `${baseUrl}/legacy-journal/${article.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly",
+    priority: article.priority,
+  }));
+
+  return [...staticSitemap, ...serviceSitemap, ...blogSitemap];
 }

@@ -290,12 +290,14 @@ export async function reorderNavigationItems(
 ): Promise<void> {
   if (!db) throw new Error("Firebase not initialized");
 
+  const firestoreDb = db; // Assign to non-null variable after check
+
   const collectionName = type === "header" 
     ? NAVIGATION_COLLECTIONS.HEADER_ITEMS 
     : NAVIGATION_COLLECTIONS.FOOTER_ITEMS;
 
   const updates = items.map(item => {
-    const docRef = doc(db, collectionName, item.id);
+    const docRef = doc(firestoreDb, collectionName, item.id);
     return updateDoc(docRef, { order: item.order, updatedAt: serverTimestamp() });
   });
 

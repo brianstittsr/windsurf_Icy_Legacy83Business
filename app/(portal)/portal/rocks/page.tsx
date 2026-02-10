@@ -42,7 +42,7 @@ import {
 import { useTractionData, Rock, Milestone } from "@/lib/hooks/use-eos2-data";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { COLLECTIONS, type TeamMemberDoc } from "@/lib/schema";
+import { COLLECTIONS, type TeamMemberDoc, type UserDoc } from "@/lib/schema";
 import { toast } from "sonner";
 
 // Helper to get initials from name
@@ -106,8 +106,8 @@ function getDaysRemainingInQuarter(): number {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-// Empty rock form
-interface RockForm {
+// Empty action item form
+interface ActionItemForm {
   title: string;
   description: string;
   owner: string;
@@ -118,7 +118,7 @@ interface RockForm {
   milestones: Milestone[];
 }
 
-const emptyRockForm: RockForm = {
+const emptyActionItemForm: ActionItemForm = {
   title: "",
   description: "",
   owner: "",
@@ -129,7 +129,7 @@ const emptyRockForm: RockForm = {
   milestones: [],
 };
 
-export default function RocksPage() {
+export default function ActionItemsPage() {
   const {
     rocks,
     issues,
@@ -141,9 +141,9 @@ export default function RocksPage() {
     deleteRock,
   } = useTractionData();
 
-  const [showRockForm, setShowRockForm] = useState(false);
-  const [editingRock, setEditingRock] = useState<Rock | null>(null);
-  const [rockForm, setRockForm] = useState<RockForm>(emptyRockForm);
+  const [showActionItemForm, setShowActionItemForm] = useState(false);
+  const [editingActionItem, setEditingActionItem] = useState<Rock | null>(null);
+  const [actionItemForm, setActionItemForm] = useState<ActionItemForm>(emptyActionItemForm);
   const [saving, setSaving] = useState(false);
   const [teamMembers, setTeamMembers] = useState<{ id: string; name: string }[]>([]);
   const [newMilestone, setNewMilestone] = useState("");
@@ -151,50 +151,63 @@ export default function RocksPage() {
   const currentQuarter = getCurrentQuarter();
   const daysRemaining = getDaysRemainingInQuarter();
 
-  // Load team members
+  // Load team members and users
   useEffect(() => {
-    const loadTeamMembers = async () => {
+    const loadPeople = async () => {
       if (!db) return;
       try {
+        const members: { id: string; name: string }[] = [];
+        
+        // First try to load team members
         const teamRef = collection(db, COLLECTIONS.TEAM_MEMBERS);
         const teamQuery = query(teamRef, orderBy("firstName"));
-        const snapshot = await getDocs(teamQuery);
+        const teamSnapshot = await getDocs(teamQuery);
         
-        const members: { id: string; name: string }[] = [];
-        snapshot.docs.forEach((doc) => {
+        teamSnapshot.docs.forEach((doc) => {
           const data = doc.data() as TeamMemberDoc;
-          if (data.role === "team") {
-            members.push({
-              id: doc.id,
-              name: `${data.firstName || ""} ${data.lastName || ""}`.trim() || "Unknown",
-            });
+          const name = `${data.firstName || ""} ${data.lastName || ""}`.trim();
+          if (name && !members.find(m => m.id === doc.id)) {
+            members.push({ id: doc.id, name });
           }
         });
+        
+        // Also load users as fallback/additional options
+        const usersRef = collection(db, COLLECTIONS.USERS);
+        const usersSnapshot = await getDocs(usersRef);
+        
+        usersSnapshot.docs.forEach((doc) => {
+          const data = doc.data() as UserDoc;
+          const name = data.name || data.email || "Unknown User";
+          if (name && !members.find(m => m.id === doc.id)) {
+            members.push({ id: doc.id, name });
+          }
+        });
+        
         setTeamMembers(members);
       } catch (error) {
-        console.error("Error loading team members:", error);
+        console.error("Error loading people:", error);
       }
     };
-    loadTeamMembers();
+    loadPeople();
   }, []);
 
   // Stats
-  const totalRocks = rocks.length;
-  const completedRocks = rocks.filter((r) => r.status === "complete").length;
-  const atRiskRocks = rocks.filter((r) => r.status === "at-risk" || r.status === "off-track").length;
-  const avgProgress = totalRocks > 0 ? Math.round(rocks.reduce((sum, r) => sum + r.progress, 0) / totalRocks) : 0;
+  const totalActionItems = rocks.length;
+  const completedActionItems = rocks.filter((r) => r.status === "complete").length;
+  const atRiskActionItems = rocks.filter((r) => r.status === "at-risk" || r.status === "off-track").length;
+  const avgProgress = totalActionItems > 0 ? Math.round(rocks.reduce((sum, r) => sum + r.progress, 0) / totalActionItems) : 0;
 
-  // Open add rock dialog
-  const openAddRock = () => {
-    setEditingRock(null);
-    setRockForm({ ...emptyRockForm, quarter: currentQuarter });
-    setShowRockForm(true);
+  // Open add action item dialog
+  const openAddActionItem = () => {
+    setEditingActionItem(null);
+    setActionItemForm({ ...emptyActionItemForm, quarter: currentQuarter });
+    setShowActionItemForm(true);
   };
 
-  // Open edit rock dialog
-  const openEditRock = (rock: Rock) => {
-    setEditingRock(rock);
-    setRockForm({
+  // Open edit action item dialog
+  const openEditActionItem = (rock: Rock) => {
+    setEditingActionItem(rock);
+    setActionItemForm({
       title: rock.title,
       description: rock.description,
       owner: rock.owner,
@@ -204,16 +217,16 @@ export default function RocksPage() {
       quarter: rock.quarter,
       milestones: rock.milestones || [],
     });
-    setShowRockForm(true);
+    setShowActionItemForm(true);
   };
 
   // Add milestone
   const addMilestone = () => {
     if (!newMilestone.trim()) return;
-    setRockForm({
-      ...rockForm,
+    setActionItemForm({
+      ...actionItemForm,
       milestones: [
-        ...rockForm.milestones,
+        ...actionItemForm.milestones,
         { id: `m-${Date.now()}`, title: newMilestone.trim(), completed: false },
       ],
     });
@@ -222,17 +235,17 @@ export default function RocksPage() {
 
   // Remove milestone
   const removeMilestone = (id: string) => {
-    setRockForm({
-      ...rockForm,
-      milestones: rockForm.milestones.filter((m) => m.id !== id),
+    setActionItemForm({
+      ...actionItemForm,
+      milestones: actionItemForm.milestones.filter((m) => m.id !== id),
     });
   };
 
   // Toggle milestone completion
   const toggleMilestone = (id: string) => {
-    setRockForm({
-      ...rockForm,
-      milestones: rockForm.milestones.map((m) =>
+    setActionItemForm({
+      ...actionItemForm,
+      milestones: actionItemForm.milestones.map((m) =>
         m.id === id ? { ...m, completed: !m.completed } : m
       ),
     });
@@ -240,14 +253,14 @@ export default function RocksPage() {
 
   // Calculate progress from milestones
   const calculateProgress = () => {
-    if (rockForm.milestones.length === 0) return 0;
-    const completed = rockForm.milestones.filter((m) => m.completed).length;
-    return Math.round((completed / rockForm.milestones.length) * 100);
+    if (actionItemForm.milestones.length === 0) return 0;
+    const completed = actionItemForm.milestones.filter((m) => m.completed).length;
+    return Math.round((completed / actionItemForm.milestones.length) * 100);
   };
 
-  // Save rock
-  const handleSaveRock = async () => {
-    if (!rockForm.title.trim() || !rockForm.owner) {
+  // Handle save action item
+  const handleSaveActionItem = async () => {
+    if (!actionItemForm.title.trim() || !actionItemForm.owner) {
       toast.error("Please fill in title and owner");
       return;
     }
@@ -255,49 +268,49 @@ export default function RocksPage() {
     setSaving(true);
     try {
       const progress = calculateProgress();
-      const rockData = {
-        title: rockForm.title,
-        description: rockForm.description,
-        owner: rockForm.owner,
-        ownerId: teamMembers.find((m) => m.name === rockForm.owner)?.id || "",
-        dueDate: rockForm.dueDate,
-        status: progress === 100 ? "complete" as const : rockForm.status,
+      const actionItemData = {
+        title: actionItemForm.title,
+        description: actionItemForm.description,
+        owner: actionItemForm.owner,
+        ownerId: teamMembers.find((m) => m.name === actionItemForm.owner)?.id || "",
+        dueDate: actionItemForm.dueDate,
+        status: progress === 100 ? "complete" as const : actionItemForm.status,
         progress,
-        quarter: rockForm.quarter,
-        milestones: rockForm.milestones,
+        quarter: actionItemForm.quarter,
+        milestones: actionItemForm.milestones,
       };
 
-      if (editingRock) {
-        await updateRock(editingRock.id, rockData);
-        toast.success("Rock updated successfully");
+      if (editingActionItem) {
+        await updateRock(editingActionItem.id, actionItemData);
+        toast.success("Action item updated successfully");
       } else {
-        await addRock(rockData);
-        toast.success("Rock created successfully");
+        await addRock(actionItemData);
+        toast.success("Action item created successfully");
       }
 
-      setShowRockForm(false);
-      setRockForm(emptyRockForm);
-      setEditingRock(null);
+      setShowActionItemForm(false);
+      setActionItemForm(emptyActionItemForm);
+      setEditingActionItem(null);
     } catch (error) {
-      toast.error("Failed to save rock");
+      toast.error("Failed to save action item");
       console.error(error);
     } finally {
       setSaving(false);
     }
   };
 
-  // Delete rock
-  const handleDeleteRock = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this rock?")) return;
+  // Delete action item
+  const handleDeleteActionItem = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this action item?")) return;
     try {
       await deleteRock(id);
-      toast.success("Rock deleted");
+      toast.success("Action item deleted");
     } catch (error) {
-      toast.error("Failed to delete rock");
+      toast.error("Failed to delete action item");
     }
   };
 
-  // Get linked items for a rock
+  // Get linked items for an action item
   const getLinkedIssues = (rock: Rock) => {
     return issues.filter((i) => rock.linkedIssueIds?.includes(i.id));
   };
@@ -323,53 +336,53 @@ export default function RocksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Rocks</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Action Items</h1>
           <p className="text-muted-foreground">
             {currentQuarter} quarterly goals • {daysRemaining} days remaining
           </p>
         </div>
-        <Dialog open={showRockForm} onOpenChange={setShowRockForm}>
+        <Dialog open={showActionItemForm} onOpenChange={setShowActionItemForm}>
           <DialogTrigger asChild>
-            <Button onClick={openAddRock}>
+            <Button onClick={openAddActionItem}>
               <Plus className="mr-2 h-4 w-4" />
-              New Rock
+              New Action Item
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingRock ? "Edit Rock" : "Create New Rock"}</DialogTitle>
+              <DialogTitle>{editingActionItem ? "Edit Action Item" : "Create New Action Item"}</DialogTitle>
               <DialogDescription>
-                Rocks are 90-day priorities that move your business forward
+                Action items are 90-day priorities that move your business forward
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="rock-title">Title *</Label>
+                <Label htmlFor="action-item-title">Title *</Label>
                 <Input
-                  id="rock-title"
+                  id="action-item-title"
                   placeholder="e.g., Launch new product line"
-                  value={rockForm.title}
-                  onChange={(e) => setRockForm({ ...rockForm, title: e.target.value })}
+                  value={actionItemForm.title}
+                  onChange={(e) => setActionItemForm({ ...actionItemForm, title: e.target.value })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="rock-description">Description</Label>
+                <Label htmlFor="action-item-description">Description</Label>
                 <Textarea
-                  id="rock-description"
+                  id="action-item-description"
                   placeholder="Detailed description of what needs to be accomplished"
-                  value={rockForm.description}
-                  onChange={(e) => setRockForm({ ...rockForm, description: e.target.value })}
+                  value={actionItemForm.description}
+                  onChange={(e) => setActionItemForm({ ...actionItemForm, description: e.target.value })}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rock-owner">Owner *</Label>
+                  <Label htmlFor="action-item-owner">Owner *</Label>
                   <Select
-                    value={rockForm.owner}
-                    onValueChange={(v) => setRockForm({ ...rockForm, owner: v })}
+                    value={actionItemForm.owner}
+                    onValueChange={(v) => setActionItemForm({ ...actionItemForm, owner: v })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select owner" />
@@ -385,10 +398,10 @@ export default function RocksPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="rock-quarter">Quarter</Label>
+                  <Label htmlFor="action-item-quarter">Quarter</Label>
                   <Select
-                    value={rockForm.quarter}
-                    onValueChange={(v) => setRockForm({ ...rockForm, quarter: v })}
+                    value={actionItemForm.quarter}
+                    onValueChange={(v) => setActionItemForm({ ...actionItemForm, quarter: v })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -405,20 +418,20 @@ export default function RocksPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rock-due">Due Date</Label>
+                  <Label htmlFor="action-item-due">Due Date</Label>
                   <Input
-                    id="rock-due"
+                    id="action-item-due"
                     type="date"
-                    value={rockForm.dueDate}
-                    onChange={(e) => setRockForm({ ...rockForm, dueDate: e.target.value })}
+                    value={actionItemForm.dueDate}
+                    onChange={(e) => setActionItemForm({ ...actionItemForm, dueDate: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="rock-status">Status</Label>
+                  <Label htmlFor="action-item-status">Status</Label>
                   <Select
-                    value={rockForm.status}
-                    onValueChange={(v: Rock["status"]) => setRockForm({ ...rockForm, status: v })}
+                    value={actionItemForm.status}
+                    onValueChange={(v: Rock["status"]) => setActionItemForm({ ...actionItemForm, status: v })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -448,7 +461,7 @@ export default function RocksPage() {
                   </Button>
                 </div>
                 <div className="space-y-2 mt-2">
-                  {rockForm.milestones.map((milestone) => (
+                  {actionItemForm.milestones.map((milestone) => (
                     <div
                       key={milestone.id}
                       className="flex items-center gap-2 p-2 border rounded-md"
@@ -475,27 +488,27 @@ export default function RocksPage() {
                     </div>
                   ))}
                 </div>
-                {rockForm.milestones.length > 0 && (
+                {actionItemForm.milestones.length > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Progress: {calculateProgress()}% ({rockForm.milestones.filter((m) => m.completed).length}/{rockForm.milestones.length} completed)
+                    Progress: {calculateProgress()}% ({actionItemForm.milestones.filter((m) => m.completed).length}/{actionItemForm.milestones.length} completed)
                   </p>
                 )}
               </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowRockForm(false)}>
+              <Button variant="outline" onClick={() => setShowActionItemForm(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSaveRock} disabled={saving}>
+              <Button onClick={handleSaveActionItem} disabled={saving}>
                 {saving ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : editingRock ? (
+                ) : editingActionItem ? (
                   <Edit className="mr-2 h-4 w-4" />
                 ) : (
                   <Plus className="mr-2 h-4 w-4" />
                 )}
-                {editingRock ? "Update Rock" : "Create Rock"}
+                {editingActionItem ? "Update Action Item" : "Create Action Item"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -506,10 +519,10 @@ export default function RocksPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Rocks</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Action Items</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalRocks}</div>
+            <div className="text-2xl font-bold">{totalActionItems}</div>
             <p className="text-xs text-muted-foreground">This quarter</p>
           </CardContent>
         </Card>
@@ -518,9 +531,9 @@ export default function RocksPage() {
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{completedRocks}</div>
+            <div className="text-2xl font-bold text-green-600">{completedActionItems}</div>
             <p className="text-xs text-muted-foreground">
-              {totalRocks > 0 ? Math.round((completedRocks / totalRocks) * 100) : 0}% completion rate
+              {totalActionItems > 0 ? Math.round((completedActionItems / totalActionItems) * 100) : 0}% completion rate
             </p>
           </CardContent>
         </Card>
@@ -529,7 +542,7 @@ export default function RocksPage() {
             <CardTitle className="text-sm font-medium">At Risk</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{atRiskRocks}</div>
+            <div className="text-2xl font-bold text-orange-600">{atRiskActionItems}</div>
             <p className="text-xs text-muted-foreground">Need attention</p>
           </CardContent>
         </Card>
@@ -544,18 +557,18 @@ export default function RocksPage() {
         </Card>
       </div>
 
-      {/* Rocks List */}
+      {/* Action Items List */}
       {rocks.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Target className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Rocks Yet</h3>
+            <h3 className="text-lg font-semibold mb-2">No Action Items Yet</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Rocks are your 90-day priorities. Create your first rock to start tracking quarterly goals.
+              Action items are your 90-day priorities. Create your first action item to start tracking quarterly goals.
             </p>
-            <Button onClick={openAddRock}>
+            <Button onClick={openAddActionItem}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Your First Rock
+              Create Your First Action Item
             </Button>
           </CardContent>
         </Card>
@@ -582,13 +595,13 @@ export default function RocksPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(rock.status)}
-                      <Button variant="ghost" size="sm" onClick={() => openEditRock(rock)}>
+                      <Button variant="ghost" size="sm" onClick={() => openEditActionItem(rock)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteRock(rock.id)}
+                        onClick={() => handleDeleteActionItem(rock.id)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

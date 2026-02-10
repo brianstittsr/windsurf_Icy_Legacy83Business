@@ -32,6 +32,7 @@ import {
 import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
+import { logOpportunityCreated } from "@/lib/activity-logger";
 
 const categoryIcons: Record<string, React.ElementType> = {
   independence: TrendingUp,
@@ -100,6 +101,40 @@ export default function QuizResultsPage() {
           createdAt: Timestamp.now(),
         });
         submissionId = docRef.id;
+        
+        // Create an Opportunity for this lead
+        try {
+          const opportunityData = {
+            name: `Quiz Lead - ${formData.firstName} ${formData.lastName}`.trim(),
+            organizationName: formData.company || "Unknown",
+            stage: "lead",
+            value: 0,
+            probability: 10,
+            expectedCloseDate: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+            description: `Lead generated from Legacy Growth IQ Quiz.\n\nScore: ${results.totalScore}/${results.maxScore} (${results.percentage}%)\nLevel: ${results.scoreRange.level}\nTop Strength: ${results.topStrength.label}\nPriority Area: ${results.topWeakness.label}`,
+            notes: `Contact Info:\nEmail: ${formData.email}\nPhone: ${formData.phone || "Not provided"}\nCompany: ${formData.company || "Not provided"}\n\nQuiz Submission ID: ${submissionId}`,
+            source: "quiz",
+            quizSubmissionId: submissionId,
+            affiliateId: null,
+            affiliateName: `${formData.firstName} ${formData.lastName}`.trim(),
+            affiliateEmail: formData.email,
+            affiliatePhone: formData.phone || null,
+            affiliateCompany: formData.company || null,
+            deliverables: [],
+            isSubscription: false,
+            monthlyAmount: null,
+            subscriptionTermMonths: null,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          };
+          
+          const oppRef = await addDoc(collection(db, COLLECTIONS.OPPORTUNITIES), opportunityData);
+          await logOpportunityCreated(oppRef.id, opportunityData.name);
+          console.log("Opportunity created for quiz lead:", oppRef.id);
+        } catch (oppError) {
+          console.error("Error creating opportunity from quiz:", oppError);
+          // Continue - don't block the user from seeing results
+        }
         
         // Generate and send PDF report via email
         if (formData.email && submissionId) {
@@ -358,11 +393,11 @@ export default function QuizResultsPage() {
         </Card>
 
         {/* Category Breakdown */}
-        <Card className="bg-slate-800/50 border-slate-700 mb-8">
+        <Card className="bg-slate-800/50 border-slate-700 mb-8 text-white">
           <CardHeader>
             <CardTitle className="text-white">Detailed Breakdown</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 text-white">
             {results.categoryScores.map((category) => {
               const Icon = categoryIcons[category.category] || Target;
               return (

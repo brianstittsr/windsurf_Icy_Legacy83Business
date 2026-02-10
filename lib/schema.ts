@@ -1041,6 +1041,8 @@ export interface PlatformSettingsDoc {
     apiKey?: string;
     ollamaUrl?: string;
     useOllama: boolean;
+    baseUrl?: string;
+    useOpenAICompatible?: boolean;
   };
   // Webhook Events
   webhookEvents?: Record<string, boolean>;
