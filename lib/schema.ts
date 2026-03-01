@@ -1876,6 +1876,28 @@ export interface HeroSlideDoc {
   };
   isPublished: boolean;
   order: number;
+  backgroundImage?: {
+    url: string;
+    source: "pexels" | "unsplash" | "custom";
+    photographer?: string;
+    photographerUrl?: string;
+    alt: string;
+  };
+  animation?: {
+    type: "fade" | "slide-up" | "slide-left" | "zoom" | "none";
+    duration: number;
+    delay: number;
+  };
+  overlay?: {
+    enabled: boolean;
+    color: string;
+    opacity: number;
+  };
+  leadMagnet?: {
+    enabled: boolean;
+    type: "quiz" | "download" | "consultation" | "demo";
+    urgency?: string;
+  };
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy?: string;

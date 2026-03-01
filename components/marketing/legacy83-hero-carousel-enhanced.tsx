@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, CheckCircle, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { legacy83HeroSlides, legacy83TrustIndicators } from "@/lib/legacy83-hero-slides";
+import type { HeroSlideDoc } from "@/lib/schema";
 
 export interface HeroSlide {
   id: string;
@@ -25,12 +26,51 @@ export interface HeroSlide {
   };
   isPublished: boolean;
   order: number;
+  backgroundImage?: {
+    url: string;
+    source: "pexels" | "unsplash" | "custom";
+    photographer?: string;
+    photographerUrl?: string;
+    alt: string;
+  };
+  animation?: {
+    type: "fade" | "slide-up" | "slide-left" | "zoom" | "none";
+    duration: number;
+    delay: number;
+  };
+  overlay?: {
+    enabled: boolean;
+    color: string;
+    opacity: number;
+  };
+  leadMagnet?: {
+    enabled: boolean;
+    type: "quiz" | "download" | "consultation" | "demo";
+    urgency?: string;
+  };
 }
 
 interface Legacy83HeroCarouselProps {
   slides?: HeroSlide[];
   autoPlayInterval?: number;
 }
+
+const getAnimationClass = (type?: string) => {
+  switch (type) {
+    case "slide-up":
+      return "animate-in slide-in-from-bottom-4";
+    case "slide-left":
+      return "animate-in slide-in-from-right-4";
+    case "zoom":
+      return "animate-in zoom-in-95";
+    case "fade":
+      return "animate-in fade-in";
+    case "none":
+      return "";
+    default:
+      return "animate-in fade-in";
+  }
+};
 
 export function Legacy83HeroCarousel({ 
   slides = legacy83HeroSlides, 
@@ -66,36 +106,62 @@ export function Legacy83HeroCarousel({
   }
 
   const currentSlide = publishedSlides[currentIndex];
+  const hasBackgroundImage = currentSlide.backgroundImage?.url;
+  const animationClass = getAnimationClass(currentSlide.animation?.type);
+  const animationDuration = currentSlide.animation?.duration || 500;
+  const animationDelay = currentSlide.animation?.delay || 0;
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white z-0">
-      {/* Background Pattern - Legacy themed */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
-      
-      {/* Accent gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-transparent to-amber-500/10" />
+    <section className="relative overflow-hidden text-white">
+      {hasBackgroundImage ? (
+        <>
+          <div 
+            className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
+            style={{
+              backgroundImage: `url(${currentSlide.backgroundImage!.url})`,
+            }}
+          />
+          {currentSlide.overlay?.enabled && (
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundColor: currentSlide.overlay.color,
+                opacity: (currentSlide.overlay.opacity || 50) / 100,
+              }}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-transparent to-amber-500/10" />
+        </>
+      )}
       
       <div className="relative py-20 md:py-32 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
-          {/* Slide Content with Fade Animation */}
-          <div key={currentSlide.id} className="animate-in fade-in duration-500">
-            {/* Badge */}
+          <div 
+            key={currentSlide.id} 
+            className={cn(animationClass, "duration-500")}
+            style={{
+              animationDuration: `${animationDuration}ms`,
+              animationDelay: `${animationDelay}ms`,
+            }}
+          >
             <Badge variant="outline" className="mb-6 border-amber-500/50 text-amber-400 bg-amber-500/10">
               {currentSlide.badge}
             </Badge>
 
-            {/* Headline */}
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               {currentSlide.headline}{" "}
               <span className="text-amber-400">{currentSlide.highlightedText}</span>
             </h1>
 
-            {/* Subheadline */}
             <p className="mt-6 text-lg text-gray-300 md:text-xl max-w-2xl mx-auto">
               {currentSlide.subheadline}
             </p>
 
-            {/* Key Benefits */}
             <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm">
               {currentSlide.benefits.map((benefit) => (
                 <div key={benefit} className="flex items-center gap-2">
@@ -105,7 +171,15 @@ export function Legacy83HeroCarousel({
               ))}
             </div>
 
-            {/* CTAs */}
+            {currentSlide.leadMagnet?.enabled && currentSlide.leadMagnet.urgency && (
+              <div className="mt-6">
+                <Badge variant="destructive" className="text-sm px-4 py-2 animate-pulse">
+                  <Clock className="h-4 w-4 mr-2" />
+                  {currentSlide.leadMagnet.urgency}
+                </Badge>
+              </div>
+            )}
+
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
               <Button 
                 size="lg" 
@@ -130,10 +204,8 @@ export function Legacy83HeroCarousel({
             </div>
           </div>
 
-          {/* Carousel Navigation */}
           {publishedSlides.length > 1 && (
             <div className="mt-12 flex items-center justify-center gap-4">
-              {/* Prev Button */}
               <button
                 onClick={() => { goToPrev(); setIsAutoPlaying(false); }}
                 className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -142,7 +214,6 @@ export function Legacy83HeroCarousel({
                 <ChevronLeft className="h-5 w-5" />
               </button>
 
-              {/* Dots */}
               <div className="flex gap-2">
                 {publishedSlides.map((_, index) => (
                   <button
@@ -159,7 +230,6 @@ export function Legacy83HeroCarousel({
                 ))}
               </div>
 
-              {/* Next Button */}
               <button
                 onClick={() => { goToNext(); setIsAutoPlaying(false); }}
                 className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -170,7 +240,6 @@ export function Legacy83HeroCarousel({
             </div>
           )}
 
-          {/* Trust Indicators - Legacy 83 Specific */}
           <div className="mt-16 pt-8 border-t border-white/10">
             <p className="text-sm text-gray-400 mb-6">Why Business Owners Trust Legacy 83</p>
             <div className="flex flex-wrap justify-center items-center gap-6 md:gap-10">
@@ -182,10 +251,24 @@ export function Legacy83HeroCarousel({
               ))}
             </div>
           </div>
+
+          {hasBackgroundImage && currentSlide.backgroundImage?.photographer && (
+            <div className="mt-8 text-xs text-gray-400">
+              Photo by{" "}
+              <a
+                href={currentSlide.backgroundImage.photographerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-400 hover:underline"
+              >
+                {currentSlide.backgroundImage.photographer}
+              </a>{" "}
+              on {currentSlide.backgroundImage.source === "pexels" ? "Pexels" : "Unsplash"}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom Gradient */}
       <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />
     </section>
   );

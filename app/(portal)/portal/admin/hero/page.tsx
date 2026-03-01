@@ -9,6 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -26,6 +34,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Plus,
   Pencil,
   Trash2,
@@ -37,7 +51,10 @@ import {
   ArrowUp,
   ArrowDown,
   Loader2,
-  RefreshCw,
+  Image as ImageIcon,
+  Sparkles,
+  Zap,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -46,12 +63,15 @@ import { db } from "@/lib/firebase";
 import { COLLECTIONS, type HeroSlideDoc } from "@/lib/schema";
 import type { HeroSlide } from "@/components/marketing/hero-carousel";
 import { legacy83HeroSlides } from "@/lib/legacy83-hero-slides";
+import { ImageSearch } from "@/components/admin/image-search";
 
 const wizardSteps = [
-  { id: 1, title: "Basic Info", description: "Badge and headline" },
-  { id: 2, title: "Content", description: "Subheadline and benefits" },
-  { id: 3, title: "Actions", description: "Call-to-action buttons" },
-  { id: 4, title: "Review", description: "Preview and publish" },
+  { id: 1, title: "Basic Info", description: "Badge and headline", icon: Sparkles },
+  { id: 2, title: "Content", description: "Subheadline and benefits", icon: TrendingUp },
+  { id: 3, title: "Design", description: "Images and styling", icon: ImageIcon },
+  { id: 4, title: "Animation", description: "Motion and effects", icon: Zap },
+  { id: 5, title: "Actions", description: "Call-to-action buttons", icon: Check },
+  { id: 6, title: "Review", description: "Preview and publish", icon: Eye },
 ];
 
 interface SlideFormData {
@@ -65,6 +85,28 @@ interface SlideFormData {
   secondaryCtaText: string;
   secondaryCtaHref: string;
   isPublished: boolean;
+  backgroundImage?: {
+    url: string;
+    source: "pexels" | "unsplash" | "custom";
+    photographer?: string;
+    photographerUrl?: string;
+    alt: string;
+  };
+  animation: {
+    type: "fade" | "slide-up" | "slide-left" | "zoom" | "none";
+    duration: number;
+    delay: number;
+  };
+  overlay: {
+    enabled: boolean;
+    color: string;
+    opacity: number;
+  };
+  leadMagnet: {
+    enabled: boolean;
+    type: "quiz" | "download" | "consultation" | "demo";
+    urgency?: string;
+  };
 }
 
 const emptyFormData: SlideFormData = {
@@ -78,20 +120,56 @@ const emptyFormData: SlideFormData = {
   secondaryCtaText: "",
   secondaryCtaHref: "",
   isPublished: false,
+  animation: {
+    type: "fade",
+    duration: 500,
+    delay: 0,
+  },
+  overlay: {
+    enabled: false,
+    color: "#000000",
+    opacity: 50,
+  },
+  leadMagnet: {
+    enabled: false,
+    type: "quiz",
+  },
 };
 
-export default function HeroManagementPage() {
-  const [slides, setSlides] = useState<HeroSlide[]>([]);
+const animationTypes = [
+  { value: "fade", label: "Fade In", description: "Smooth opacity transition" },
+  { value: "slide-up", label: "Slide Up", description: "Slide from bottom" },
+  { value: "slide-left", label: "Slide Left", description: "Slide from right" },
+  { value: "zoom", label: "Zoom In", description: "Scale up effect" },
+  { value: "none", label: "No Animation", description: "Instant display" },
+];
+
+const leadMagnetTypes = [
+  { value: "quiz", label: "Quiz", description: "Legacy Growth IQ™ Quiz" },
+  { value: "consultation", label: "Free Consultation", description: "Strategy call booking" },
+  { value: "download", label: "Free Download", description: "Guide or resource" },
+  { value: "demo", label: "Demo Request", description: "Product demonstration" },
+];
+
+const urgencyMessages = [
+  "Limited Time: Free Assessment Ending Soon!",
+  "Join 500+ Business Owners Who Transformed Their Companies",
+  "Only 3 Strategy Slots Available This Week",
+  "Get Results in 90 Days or Your Money Back",
+  "Exclusive Offer: First 10 Clients Get 50% Off",
+];
+
+export default function HeroManagementEnhancedPage() {
+  const [slides, setSlides] = useState<(HeroSlide & Partial<HeroSlideDoc>)[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
-  const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
+  const [editingSlide, setEditingSlide] = useState<(HeroSlide & Partial<HeroSlideDoc>) | null>(null);
   const [formData, setFormData] = useState<SlideFormData>(emptyFormData);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [slideToDelete, setSlideToDelete] = useState<HeroSlide | null>(null);
+  const [slideToDelete, setSlideToDelete] = useState<(HeroSlide & Partial<HeroSlideDoc>) | null>(null);
 
-  // Fetch slides from Firestore
   useEffect(() => {
     if (!db) {
       setLoading(false);
@@ -105,10 +183,9 @@ export default function HeroManagementPage() {
 
     const unsubscribe = onSnapshot(slidesQuery, (snapshot) => {
       if (snapshot.empty) {
-        // Seed with legacy83 slides if collection is empty
         seedInitialSlides();
       } else {
-        const slidesData: HeroSlide[] = snapshot.docs.map((docSnap) => {
+        const slidesData = snapshot.docs.map((docSnap) => {
           const data = docSnap.data() as HeroSlideDoc;
           return {
             id: docSnap.id,
@@ -121,6 +198,10 @@ export default function HeroManagementPage() {
             secondaryCta: data.secondaryCta,
             isPublished: data.isPublished,
             order: data.order,
+            backgroundImage: data.backgroundImage,
+            animation: data.animation,
+            overlay: data.overlay,
+            leadMagnet: data.leadMagnet,
           };
         });
         setSlides(slidesData);
@@ -135,7 +216,6 @@ export default function HeroManagementPage() {
     return () => unsubscribe();
   }, []);
 
-  // Seed initial slides from legacy83HeroSlides
   const seedInitialSlides = async () => {
     if (!db) return;
     
@@ -155,6 +235,20 @@ export default function HeroManagementPage() {
           secondaryCta: slide.secondaryCta,
           isPublished: slide.isPublished,
           order: slide.order,
+          animation: {
+            type: "fade",
+            duration: 500,
+            delay: 0,
+          },
+          overlay: {
+            enabled: false,
+            color: "#000000",
+            opacity: 50,
+          },
+          leadMagnet: {
+            enabled: true,
+            type: "quiz",
+          },
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
         };
@@ -162,14 +256,14 @@ export default function HeroManagementPage() {
       });
 
       await batch.commit();
-      toast.success("Hero slides initialized from defaults");
+      toast.success("Hero slides initialized with defaults");
     } catch (error) {
       console.error("Error seeding slides:", error);
       toast.error("Failed to initialize hero slides");
     }
   };
 
-  const openWizard = (slide?: HeroSlide) => {
+  const openWizard = (slide?: (HeroSlide & Partial<HeroSlideDoc>)) => {
     if (slide) {
       setEditingSlide(slide);
       setFormData({
@@ -183,6 +277,10 @@ export default function HeroManagementPage() {
         secondaryCtaText: slide.secondaryCta.text,
         secondaryCtaHref: slide.secondaryCta.href,
         isPublished: slide.isPublished,
+        backgroundImage: slide.backgroundImage,
+        animation: slide.animation || emptyFormData.animation,
+        overlay: slide.overlay || emptyFormData.overlay,
+        leadMagnet: slide.leadMagnet || emptyFormData.leadMagnet,
       });
     } else {
       setEditingSlide(null);
@@ -216,12 +314,16 @@ export default function HeroManagementPage() {
         secondaryCta: { text: formData.secondaryCtaText, href: formData.secondaryCtaHref },
         isPublished: formData.isPublished,
         order: editingSlide?.order || slides.length + 1,
+        backgroundImage: formData.backgroundImage,
+        animation: formData.animation,
+        overlay: formData.overlay,
+        leadMagnet: formData.leadMagnet,
         createdAt: editingSlide ? Timestamp.now() : Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
 
       await setDoc(doc(db, COLLECTIONS.HERO_SLIDES, slideId), slideDoc);
-      toast.success(editingSlide ? "Slide updated" : "Slide created");
+      toast.success(editingSlide ? "Slide updated successfully" : "Slide created successfully");
       closeWizard();
     } catch (error) {
       console.error("Error saving slide:", error);
@@ -231,7 +333,7 @@ export default function HeroManagementPage() {
     }
   };
 
-  const confirmDelete = (slide: HeroSlide) => {
+  const confirmDelete = (slide: (HeroSlide & Partial<HeroSlideDoc>)) => {
     setSlideToDelete(slide);
     setDeleteDialogOpen(true);
   };
@@ -241,7 +343,7 @@ export default function HeroManagementPage() {
     
     try {
       await deleteDoc(doc(db, COLLECTIONS.HERO_SLIDES, slideToDelete.id));
-      toast.success("Slide deleted");
+      toast.success("Slide deleted successfully");
       setDeleteDialogOpen(false);
       setSlideToDelete(null);
     } catch (error) {
@@ -281,7 +383,6 @@ export default function HeroManagementPage() {
     const swapIndex = direction === "up" ? index - 1 : index + 1;
     [newSlides[index], newSlides[swapIndex]] = [newSlides[swapIndex], newSlides[index]];
     
-    // Update order values in Firestore
     try {
       const batch = writeBatch(db);
       newSlides.forEach((slide, i) => {
@@ -319,12 +420,11 @@ export default function HeroManagementPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Hero Carousel Management</h1>
           <p className="text-muted-foreground">
-            Manage the rotating hero slides on the homepage
+            Create compelling slides with images, animations, and lead generation features
           </p>
         </div>
         <Button onClick={() => openWizard()}>
@@ -333,8 +433,7 @@ export default function HeroManagementPage() {
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Slides</CardTitle>
@@ -355,22 +454,31 @@ export default function HeroManagementPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Drafts</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">With Images</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {slides.filter(s => !s.isPublished).length}
+            <div className="text-2xl font-bold text-blue-600">
+              {slides.filter(s => s.backgroundImage).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Lead Magnets</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {slides.filter(s => s.leadMagnet?.enabled).length}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Slides List */}
       <Card>
         <CardHeader>
           <CardTitle>Hero Slides</CardTitle>
           <CardDescription>
-            Drag to reorder slides. Published slides will appear in the carousel.
+            Manage your carousel slides with advanced design and animation options
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -404,11 +512,39 @@ export default function HeroManagementPage() {
                   </Button>
                 </div>
 
+                {slide.backgroundImage && (
+                  <div className="w-20 h-12 rounded overflow-hidden flex-shrink-0">
+                    <img
+                      src={slide.backgroundImage.url}
+                      alt={slide.backgroundImage.alt}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <Badge variant={slide.isPublished ? "default" : "secondary"}>
                       {slide.isPublished ? "Published" : "Draft"}
                     </Badge>
+                    {slide.backgroundImage && (
+                      <Badge variant="outline">
+                        <ImageIcon className="h-3 w-3 mr-1" />
+                        {slide.backgroundImage.source}
+                      </Badge>
+                    )}
+                    {slide.animation && slide.animation.type !== "none" && (
+                      <Badge variant="outline">
+                        <Zap className="h-3 w-3 mr-1" />
+                        {slide.animation.type}
+                      </Badge>
+                    )}
+                    {slide.leadMagnet?.enabled && (
+                      <Badge variant="outline">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        Lead Magnet
+                      </Badge>
+                    )}
                     <span className="text-sm text-muted-foreground">Order: {slide.order}</span>
                   </div>
                   <h3 className="font-semibold truncate">
@@ -452,9 +588,8 @@ export default function HeroManagementPage() {
         </CardContent>
       </Card>
 
-      {/* Wizard Dialog */}
       <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingSlide ? "Edit Hero Slide" : "Create New Hero Slide"}
@@ -464,64 +599,71 @@ export default function HeroManagementPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Progress Steps */}
           <div className="flex items-center justify-between mb-6">
-            {wizardSteps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                    wizardStep > step.id
-                      ? "bg-primary text-primary-foreground"
-                      : wizardStep === step.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {wizardStep > step.id ? <Check className="h-4 w-4" /> : step.id}
-                </div>
-                {index < wizardSteps.length - 1 && (
+            {wizardSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div key={step.id} className="flex items-center">
                   <div
                     className={cn(
-                      "w-12 h-1 mx-2",
-                      wizardStep > step.id ? "bg-primary" : "bg-muted"
+                      "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium",
+                      wizardStep > step.id
+                        ? "bg-primary text-primary-foreground"
+                        : wizardStep === step.id
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
                     )}
-                  />
-                )}
-              </div>
-            ))}
+                  >
+                    {wizardStep > step.id ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                  </div>
+                  {index < wizardSteps.length - 1 && (
+                    <div
+                      className={cn(
+                        "w-8 h-1 mx-1",
+                        wizardStep > step.id ? "bg-primary" : "bg-muted"
+                      )}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {/* Step Content */}
-          <div className="space-y-4 min-h-[300px]">
+          <div className="space-y-4 min-h-[400px]">
             {wizardStep === 1 && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="badge">Badge Text</Label>
                   <Input
                     id="badge"
-                    placeholder="e.g., Introducing EDGE-X™ — Next-Gen Manufacturing Intelligence"
+                    placeholder="e.g., Introducing the Legacy Growth System™"
                     value={formData.badge}
                     onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    A short, attention-grabbing label that appears above the headline
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="headline">Headline</Label>
                   <Input
                     id="headline"
-                    placeholder="e.g., Win OEM Contracts."
+                    placeholder="e.g., Build a Business That"
                     value={formData.headline}
                     onChange={(e) => setFormData({ ...formData, headline: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="highlightedText">Highlighted Text (shown in green)</Label>
+                  <Label htmlFor="highlightedText">Highlighted Text</Label>
                   <Input
                     id="highlightedText"
-                    placeholder="e.g., Transform"
+                    placeholder="e.g., Outlasts You"
                     value={formData.highlightedText}
                     onChange={(e) => setFormData({ ...formData, highlightedText: e.target.value })}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    This text will be highlighted in your brand color for emphasis
+                  </p>
                 </div>
               </>
             )}
@@ -532,27 +674,244 @@ export default function HeroManagementPage() {
                   <Label htmlFor="subheadline">Subheadline</Label>
                   <Textarea
                     id="subheadline"
-                    placeholder="Describe your value proposition..."
+                    placeholder="Describe your value proposition in one compelling sentence..."
                     value={formData.subheadline}
                     onChange={(e) => setFormData({ ...formData, subheadline: e.target.value })}
                     rows={3}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Clearly communicate the benefit and outcome your audience will receive
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>Key Benefits (up to 3)</Label>
                   {formData.benefits.map((benefit, index) => (
                     <Input
                       key={index}
-                      placeholder={`Benefit ${index + 1}`}
+                      placeholder={`Benefit ${index + 1} (e.g., "90-Day Results")`}
                       value={benefit}
                       onChange={(e) => updateBenefit(index, e.target.value)}
                     />
                   ))}
+                  <p className="text-xs text-muted-foreground">
+                    Short, punchy benefits that appear as badges below the headline
+                  </p>
                 </div>
               </>
             )}
 
             {wizardStep === 3 && (
+              <Tabs defaultValue="image" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="image">Background Image</TabsTrigger>
+                  <TabsTrigger value="overlay">Overlay Settings</TabsTrigger>
+                </TabsList>
+                <TabsContent value="image" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Search Stock Images</Label>
+                    <ImageSearch
+                      onSelect={(image) => {
+                        setFormData({
+                          ...formData,
+                          backgroundImage: {
+                            url: image.url,
+                            source: image.source,
+                            photographer: image.photographer,
+                            photographerUrl: image.photographerUrl,
+                            alt: image.alt,
+                          },
+                        });
+                      }}
+                      selectedImageUrl={formData.backgroundImage?.url}
+                    />
+                  </div>
+                  {formData.backgroundImage && (
+                    <div className="p-4 border rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Selected Image</Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, backgroundImage: undefined })}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <img
+                        src={formData.backgroundImage.url}
+                        alt={formData.backgroundImage.alt}
+                        className="w-full h-40 object-cover rounded"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Photo by{" "}
+                        <a
+                          href={formData.backgroundImage.photographerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          {formData.backgroundImage.photographer}
+                        </a>{" "}
+                        on {formData.backgroundImage.source === "pexels" ? "Pexels" : "Unsplash"}
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+                <TabsContent value="overlay" className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <Label>Enable Overlay</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add a color overlay to improve text readability
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.overlay.enabled}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          overlay: { ...formData.overlay, enabled: checked },
+                        })
+                      }
+                    />
+                  </div>
+                  {formData.overlay.enabled && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="overlayColor">Overlay Color</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="overlayColor"
+                            type="color"
+                            value={formData.overlay.color}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                overlay: { ...formData.overlay, color: e.target.value },
+                              })
+                            }
+                            className="w-20 h-10"
+                          />
+                          <Input
+                            value={formData.overlay.color}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                overlay: { ...formData.overlay, color: e.target.value },
+                              })
+                            }
+                            placeholder="#000000"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Overlay Opacity: {formData.overlay.opacity}%</Label>
+                        <Slider
+                          value={[formData.overlay.opacity]}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              overlay: { ...formData.overlay, opacity: value[0] },
+                            })
+                          }
+                          min={0}
+                          max={100}
+                          step={5}
+                        />
+                      </div>
+                    </>
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
+
+            {wizardStep === 4 && (
+              <>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Animation Type</Label>
+                    <Select
+                      value={formData.animation.type}
+                      onValueChange={(value: any) =>
+                        setFormData({
+                          ...formData,
+                          animation: { ...formData.animation, type: value },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {animationTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            <div>
+                              <div className="font-medium">{type.label}</div>
+                              <div className="text-xs text-muted-foreground">{type.description}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Duration: {formData.animation.duration}ms</Label>
+                      <Slider
+                        value={[formData.animation.duration]}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            animation: { ...formData.animation, duration: value[0] },
+                          })
+                        }
+                        min={200}
+                        max={2000}
+                        step={100}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        How long the animation takes (300-800ms recommended)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Delay: {formData.animation.delay}ms</Label>
+                      <Slider
+                        value={[formData.animation.delay]}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            animation: { ...formData.animation, delay: value[0] },
+                          })
+                        }
+                        min={0}
+                        max={1000}
+                        step={100}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Delay before animation starts
+                      </p>
+                    </div>
+                  </div>
+
+                  <Card className="bg-muted/50">
+                    <CardHeader>
+                      <CardTitle className="text-sm">Animation Best Practices</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm space-y-2">
+                      <p>• <strong>Fade:</strong> Best for professional, subtle transitions</p>
+                      <p>• <strong>Slide Up:</strong> Creates energy and upward momentum</p>
+                      <p>• <strong>Zoom:</strong> Adds impact and draws attention</p>
+                      <p>• <strong>Duration:</strong> 500-800ms feels natural and smooth</p>
+                      <p>• <strong>Delay:</strong> Use sparingly to create anticipation</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
+
+            {wizardStep === 5 && (
               <>
                 <div className="space-y-4">
                   <h4 className="font-medium">Primary Call-to-Action</h4>
@@ -561,7 +920,7 @@ export default function HeroManagementPage() {
                       <Label htmlFor="primaryCtaText">Button Text</Label>
                       <Input
                         id="primaryCtaText"
-                        placeholder="e.g., Get Your Free Assessment"
+                        placeholder="e.g., Take the Legacy Growth IQ™ Quiz"
                         value={formData.primaryCtaText}
                         onChange={(e) => setFormData({ ...formData, primaryCtaText: e.target.value })}
                       />
@@ -570,13 +929,14 @@ export default function HeroManagementPage() {
                       <Label htmlFor="primaryCtaHref">Link URL</Label>
                       <Input
                         id="primaryCtaHref"
-                        placeholder="e.g., /contact"
+                        placeholder="e.g., /quiz-intro"
                         value={formData.primaryCtaHref}
                         onChange={(e) => setFormData({ ...formData, primaryCtaHref: e.target.value })}
                       />
                     </div>
                   </div>
                 </div>
+
                 <div className="space-y-4">
                   <h4 className="font-medium">Secondary Call-to-Action</h4>
                   <div className="grid grid-cols-2 gap-4">
@@ -584,7 +944,7 @@ export default function HeroManagementPage() {
                       <Label htmlFor="secondaryCtaText">Button Text</Label>
                       <Input
                         id="secondaryCtaText"
-                        placeholder="e.g., See Success Stories"
+                        placeholder="e.g., Schedule a Strategy Call"
                         value={formData.secondaryCtaText}
                         onChange={(e) => setFormData({ ...formData, secondaryCtaText: e.target.value })}
                       />
@@ -593,37 +953,185 @@ export default function HeroManagementPage() {
                       <Label htmlFor="secondaryCtaHref">Link URL</Label>
                       <Input
                         id="secondaryCtaHref"
-                        placeholder="e.g., /case-studies"
+                        placeholder="e.g., /schedule-a-call"
                         value={formData.secondaryCtaHref}
                         onChange={(e) => setFormData({ ...formData, secondaryCtaHref: e.target.value })}
                       />
                     </div>
                   </div>
                 </div>
+
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Enable Lead Magnet</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add urgency and conversion optimization
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.leadMagnet.enabled}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          leadMagnet: { ...formData.leadMagnet, enabled: checked },
+                        })
+                      }
+                    />
+                  </div>
+
+                  {formData.leadMagnet.enabled && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Lead Magnet Type</Label>
+                        <Select
+                          value={formData.leadMagnet.type}
+                          onValueChange={(value: any) =>
+                            setFormData({
+                              ...formData,
+                              leadMagnet: { ...formData.leadMagnet, type: value },
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {leadMagnetTypes.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                <div>
+                                  <div className="font-medium">{type.label}</div>
+                                  <div className="text-xs text-muted-foreground">{type.description}</div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Urgency Message (Optional)</Label>
+                        <Select
+                          value={formData.leadMagnet.urgency || ""}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              leadMagnet: { ...formData.leadMagnet, urgency: value || undefined },
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an urgency message" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {urgencyMessages.map((msg, i) => (
+                              <SelectItem key={i} value={msg}>
+                                {msg}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <Card className="bg-muted/50">
+                  <CardHeader>
+                    <CardTitle className="text-sm">CTA Best Practices</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <p>• Use action-oriented language ("Get", "Start", "Discover")</p>
+                    <p>• Be specific about the outcome ("Take the Quiz" vs "Click Here")</p>
+                    <p>• Primary CTA should be your main conversion goal</p>
+                    <p>• Secondary CTA offers an alternative path (lower commitment)</p>
+                    <p>• Urgency messages increase conversion by 20-30%</p>
+                  </CardContent>
+                </Card>
               </>
             )}
 
-            {wizardStep === 4 && (
+            {wizardStep === 6 && (
               <div className="space-y-4">
-                <div className="p-4 bg-black text-white rounded-lg">
-                  <Badge variant="outline" className="mb-2 border-primary/50 text-primary">
-                    {formData.badge || "Badge text"}
-                  </Badge>
-                  <h2 className="text-2xl font-bold">
-                    {formData.headline || "Headline"}{" "}
-                    <span className="text-primary">{formData.highlightedText || "Highlighted"}</span> Your Manufacturing.
-                  </h2>
-                  <p className="mt-2 text-gray-300 text-sm">
-                    {formData.subheadline || "Subheadline text"}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {formData.benefits.filter(b => b).map((benefit, i) => (
-                      <Badge key={i} variant="secondary" className="text-xs">
-                        {benefit}
-                      </Badge>
-                    ))}
+                <div 
+                  className="relative p-8 rounded-lg text-white overflow-hidden"
+                  style={{
+                    backgroundImage: formData.backgroundImage ? `url(${formData.backgroundImage.url})` : undefined,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  {formData.overlay.enabled && formData.backgroundImage && (
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        backgroundColor: formData.overlay.color,
+                        opacity: formData.overlay.opacity / 100,
+                      }}
+                    />
+                  )}
+                  {!formData.backgroundImage && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+                  )}
+                  
+                  <div className="relative z-10 space-y-4">
+                    <Badge variant="outline" className="border-amber-500/50 text-amber-400 bg-amber-500/10">
+                      {formData.badge || "Badge text"}
+                    </Badge>
+                    <h2 className="text-3xl font-bold">
+                      {formData.headline || "Headline"}{" "}
+                      <span className="text-amber-400">{formData.highlightedText || "Highlighted"}</span>
+                    </h2>
+                    <p className="text-gray-300">
+                      {formData.subheadline || "Subheadline text"}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.benefits.filter(b => b).map((benefit, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {benefit}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      {formData.primaryCtaText && (
+                        <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-slate-900">
+                          {formData.primaryCtaText}
+                        </Button>
+                      )}
+                      {formData.secondaryCtaText && (
+                        <Button size="sm" variant="outline" className="border-amber-400 text-amber-400">
+                          {formData.secondaryCtaText}
+                        </Button>
+                      )}
+                    </div>
+                    {formData.leadMagnet.enabled && formData.leadMagnet.urgency && (
+                      <div className="pt-2">
+                        <Badge variant="destructive" className="text-xs">
+                          {formData.leadMagnet.urgency}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium mb-1">Animation</div>
+                    <div className="text-muted-foreground">
+                      {animationTypes.find(a => a.value === formData.animation.type)?.label || "None"} 
+                      {formData.animation.type !== "none" && ` (${formData.animation.duration}ms)`}
+                    </div>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium mb-1">Lead Magnet</div>
+                    <div className="text-muted-foreground">
+                      {formData.leadMagnet.enabled 
+                        ? leadMagnetTypes.find(t => t.value === formData.leadMagnet.type)?.label 
+                        : "Disabled"}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <Label htmlFor="publish">Publish immediately</Label>
@@ -641,7 +1149,6 @@ export default function HeroManagementPage() {
             )}
           </div>
 
-          {/* Navigation */}
           <div className="flex justify-between pt-4 border-t">
             <Button
               variant="outline"
@@ -650,7 +1157,7 @@ export default function HeroManagementPage() {
               <ChevronLeft className="mr-2 h-4 w-4" />
               {wizardStep === 1 ? "Cancel" : "Back"}
             </Button>
-            {wizardStep < 4 ? (
+            {wizardStep < 6 ? (
               <Button onClick={() => setWizardStep(wizardStep + 1)}>
                 Next
                 <ChevronRight className="ml-2 h-4 w-4" />
@@ -669,7 +1176,6 @@ export default function HeroManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

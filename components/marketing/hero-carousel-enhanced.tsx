@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, CheckCircle, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, CheckCircle, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface HeroSlide {
@@ -24,9 +24,30 @@ export interface HeroSlide {
   };
   isPublished: boolean;
   order: number;
+  backgroundImage?: {
+    url: string;
+    source: "pexels" | "unsplash" | "custom";
+    photographer?: string;
+    photographerUrl?: string;
+    alt: string;
+  };
+  animation?: {
+    type: "fade" | "slide-up" | "slide-left" | "zoom" | "none";
+    duration: number;
+    delay: number;
+  };
+  overlay?: {
+    enabled: boolean;
+    color: string;
+    opacity: number;
+  };
+  leadMagnet?: {
+    enabled: boolean;
+    type: "quiz" | "download" | "consultation" | "demo";
+    urgency?: string;
+  };
 }
 
-// Default slides - in production these would come from a database
 const defaultSlides: HeroSlide[] = [
   {
     id: "1",
@@ -39,54 +60,9 @@ const defaultSlides: HeroSlide[] = [
     secondaryCta: { text: "See Success Stories", href: "/case-studies" },
     isPublished: true,
     order: 1,
-  },
-  {
-    id: "2",
-    badge: "V+ TwinEDGE™ — Digital Twin Solutions",
-    headline: "Visualize Your Factory.",
-    highlightedText: "Optimize",
-    subheadline: "Create digital replicas of your manufacturing processes to simulate, analyze, and improve operations before making costly physical changes.",
-    benefits: ["Real-time Monitoring", "Predictive Analytics", "Process Simulation"],
-    primaryCta: { text: "Explore Digital Twins", href: "/services/twinedge" },
-    secondaryCta: { text: "Watch Demo", href: "/demo" },
-    isPublished: true,
-    order: 2,
-  },
-  {
-    id: "3",
-    badge: "V+ IntellEDGE™ — AI-Powered Insights",
-    headline: "Make Smarter Decisions.",
-    highlightedText: "Faster",
-    subheadline: "Leverage artificial intelligence to gain actionable insights from your manufacturing data, predict maintenance needs, and optimize production schedules.",
-    benefits: ["AI-Driven Analytics", "Predictive Maintenance", "Smart Scheduling"],
-    primaryCta: { text: "Discover AI Solutions", href: "/services/intelledge" },
-    secondaryCta: { text: "Learn More", href: "/about" },
-    isPublished: true,
-    order: 3,
-  },
-  {
-    id: "4",
-    badge: "Reshoring Initiative Partner",
-    headline: "Bring Manufacturing",
-    highlightedText: "Home",
-    subheadline: "Join the reshoring movement. We help companies navigate the complexities of bringing manufacturing back to the United States with comprehensive support.",
-    benefits: ["Supply Chain Security", "Quality Control", "Job Creation"],
-    primaryCta: { text: "Start Reshoring", href: "/services/reshoring" },
-    secondaryCta: { text: "View Case Studies", href: "/case-studies" },
-    isPublished: true,
-    order: 4,
-  },
-  {
-    id: "5",
-    badge: "NEW — AntiFragile Supply Chain Analysis",
-    headline: "Build Resilient",
-    highlightedText: "Supply Chains",
-    subheadline: "Go beyond risk mitigation. Our AntiFragile methodology helps your supply chain actually grow stronger from disruptions, volatility, and uncertainty.",
-    benefits: ["Stress Testing", "Redundancy Mapping", "Adaptive Strategies"],
-    primaryCta: { text: "Schedule Discovery Call", href: "/antifragile" },
-    secondaryCta: { text: "Learn More", href: "/antifragile" },
-    isPublished: true,
-    order: 5,
+    animation: { type: "fade", duration: 500, delay: 0 },
+    overlay: { enabled: false, color: "#000000", opacity: 50 },
+    leadMagnet: { enabled: false, type: "consultation" },
   },
 ];
 
@@ -94,6 +70,23 @@ interface HeroCarouselProps {
   slides?: HeroSlide[];
   autoPlayInterval?: number;
 }
+
+const getAnimationClass = (type?: string) => {
+  switch (type) {
+    case "slide-up":
+      return "animate-in slide-in-from-bottom-4";
+    case "slide-left":
+      return "animate-in slide-in-from-right-4";
+    case "zoom":
+      return "animate-in zoom-in-95";
+    case "fade":
+      return "animate-in fade-in";
+    case "none":
+      return "";
+    default:
+      return "animate-in fade-in";
+  }
+};
 
 export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }: HeroCarouselProps) {
   const publishedSlides = slides.filter(s => s.isPublished).sort((a, b) => a.order - b.order);
@@ -111,7 +104,6 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
   const goToSlide = useCallback((index: number) => {
     setCurrentIndex(index);
     setIsAutoPlaying(false);
-    // Resume auto-play after 10 seconds of inactivity
     setTimeout(() => setIsAutoPlaying(true), 10000);
   }, []);
 
@@ -127,33 +119,58 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
   }
 
   const currentSlide = publishedSlides[currentIndex];
+  const hasBackgroundImage = currentSlide.backgroundImage?.url;
+  const animationClass = getAnimationClass(currentSlide.animation?.type);
+  const animationDuration = currentSlide.animation?.duration || 500;
+  const animationDelay = currentSlide.animation?.delay || 0;
 
   return (
-    <section className="relative overflow-hidden bg-black text-white z-0">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1a1a1a_1px,transparent_1px),linear-gradient(to_bottom,#1a1a1a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+    <section className="relative overflow-hidden bg-black text-white">
+      {hasBackgroundImage ? (
+        <>
+          <div 
+            className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
+            style={{
+              backgroundImage: `url(${currentSlide.backgroundImage!.url})`,
+            }}
+          />
+          {currentSlide.overlay?.enabled && (
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundColor: currentSlide.overlay.color,
+                opacity: (currentSlide.overlay.opacity || 50) / 100,
+              }}
+            />
+          )}
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1a1a1a_1px,transparent_1px),linear-gradient(to_bottom,#1a1a1a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+      )}
       
       <div className="relative py-20 md:py-32 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
-          {/* Slide Content with Fade Animation */}
-          <div key={currentSlide.id} className="animate-in fade-in duration-500">
-            {/* Badge */}
+          <div 
+            key={currentSlide.id} 
+            className={cn(animationClass, "duration-500")}
+            style={{
+              animationDuration: `${animationDuration}ms`,
+              animationDelay: `${animationDelay}ms`,
+            }}
+          >
             <Badge variant="outline" className="mb-6 border-primary/50 text-primary">
               {currentSlide.badge}
             </Badge>
 
-            {/* Headline */}
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               {currentSlide.headline}{" "}
               <span className="text-primary">{currentSlide.highlightedText}</span> Your Manufacturing.
             </h1>
 
-            {/* Subheadline */}
             <p className="mt-6 text-lg text-gray-300 md:text-xl max-w-2xl mx-auto">
               {currentSlide.subheadline}
             </p>
 
-            {/* Key Benefits */}
             <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm">
               {currentSlide.benefits.map((benefit) => (
                 <div key={benefit} className="flex items-center gap-2">
@@ -163,7 +180,15 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
               ))}
             </div>
 
-            {/* CTAs */}
+            {currentSlide.leadMagnet?.enabled && currentSlide.leadMagnet.urgency && (
+              <div className="mt-6">
+                <Badge variant="destructive" className="text-sm px-4 py-2 animate-pulse">
+                  <Clock className="h-4 w-4 mr-2" />
+                  {currentSlide.leadMagnet.urgency}
+                </Badge>
+              </div>
+            )}
+
             <div className="mt-10 flex justify-center">
               <Button size="lg" className="text-lg px-8" asChild>
                 <Link href={currentSlide.primaryCta.href}>
@@ -174,10 +199,8 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
             </div>
           </div>
 
-          {/* Carousel Navigation */}
           {publishedSlides.length > 1 && (
             <div className="mt-12 flex items-center justify-center gap-4">
-              {/* Prev Button */}
               <button
                 onClick={() => { goToPrev(); setIsAutoPlaying(false); }}
                 className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -186,7 +209,6 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
                 <ChevronLeft className="h-5 w-5" />
               </button>
 
-              {/* Dots */}
               <div className="flex gap-2">
                 {publishedSlides.map((_, index) => (
                   <button
@@ -203,7 +225,6 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
                 ))}
               </div>
 
-              {/* Next Button */}
               <button
                 onClick={() => { goToNext(); setIsAutoPlaying(false); }}
                 className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -214,7 +235,6 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
             </div>
           )}
 
-          {/* Trust Indicators */}
           <div className="mt-16 pt-8 border-t border-white/10">
             <p className="text-sm text-gray-400 mb-6">Certifications & Partnerships</p>
             <div className="flex flex-wrap justify-center items-center gap-6 md:gap-10">
@@ -240,10 +260,24 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
               </div>
             </div>
           </div>
+
+          {hasBackgroundImage && currentSlide.backgroundImage?.photographer && (
+            <div className="mt-8 text-xs text-gray-400">
+              Photo by{" "}
+              <a
+                href={currentSlide.backgroundImage.photographerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                {currentSlide.backgroundImage.photographer}
+              </a>{" "}
+              on {currentSlide.backgroundImage.source === "pexels" ? "Pexels" : "Unsplash"}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom Gradient */}
       <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />
     </section>
   );

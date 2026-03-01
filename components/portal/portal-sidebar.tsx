@@ -85,6 +85,7 @@ import {
   Briefcase,
   Network,
   Menu,
+  Presentation,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -267,6 +268,12 @@ const adminItems: { title: string; href: string; icon: React.ElementType; badge?
     icon: Plug,
     badge: "CRM",
     featureKey: "gohighlevel",
+  },
+  {
+    title: "Hero Carousel",
+    href: "/portal/admin/hero",
+    icon: Presentation,
+    featureKey: "heroManagement",
   },
   {
     title: "Image Manager",

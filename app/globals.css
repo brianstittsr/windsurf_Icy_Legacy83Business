@@ -120,7 +120,6 @@
     @apply border-border outline-ring/50;
   }
   html {
-    overflow-x: hidden;
     /* WCAG 2.1 - Ensure text can be resized up to 200% */
     font-size: 100%;
   }
@@ -128,7 +127,6 @@
     @apply bg-background text-foreground;
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
     /* WCAG 2.1 - Minimum line height for readability */
     line-height: 1.5;
   }
