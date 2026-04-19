@@ -103,6 +103,9 @@ export async function fileToBase64(file: File): Promise<string> {
  * Convert base64 string to data URL for display
  */
 export function base64ToDataUrl(base64: string, mimeType: string): string {
+  if (!base64 || !mimeType) {
+    return "";
+  }
   return `data:${mimeType};base64,${base64}`;
 }
 
@@ -216,15 +219,16 @@ export async function listImages(category?: ImageCategory): Promise<ImageMetadat
   }
 
   const imagesRef = collection(db, IMAGES_COLLECTION);
-  let q = query(imagesRef, orderBy("createdAt", "desc"));
   
-  if (category) {
-    q = query(imagesRef, where("category", "==", category), orderBy("createdAt", "desc"));
-  }
+  // If filtering by category, don't use orderBy (avoids composite index)
+  // Sort client-side instead
+  const q = category
+    ? query(imagesRef, where("category", "==", category))
+    : query(imagesRef, orderBy("createdAt", "desc"));
 
   const snapshot = await getDocs(q);
   
-  return snapshot.docs.map((doc) => {
+  const images = snapshot.docs.map((doc) => {
     const data = doc.data() as ImageDoc;
     // Return metadata without the base64 data
     return {
@@ -242,6 +246,13 @@ export async function listImages(category?: ImageCategory): Promise<ImageMetadat
       isActive: data.isActive,
     };
   });
+  
+  // Sort client-side if we filtered by category (avoids composite index)
+  if (category) {
+    images.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+  
+  return images;
 }
 
 /**

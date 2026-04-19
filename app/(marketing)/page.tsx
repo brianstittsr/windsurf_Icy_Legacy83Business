@@ -11,8 +11,8 @@ export default function HomePage() {
     <>
       <Legacy83HeroCarousel />
       <Legacy83ServicesOverview />
-      <Legacy83StatsSection />
       <Legacy83HowItWorks />
+      <Legacy83StatsSection />
       <Legacy83Testimonials />
       <Legacy83FAQSection />
       <Legacy83CTASection />

@@ -90,7 +90,7 @@ const seedTeamMembers: Omit<TeamMemberDoc, "id" | "createdAt" | "updatedAt">[] =
   { firstName: "Ed", lastName: "Porter", emailPrimary: "edport21@gmail.com", expertise: "Chief Revenue Officer", role: "affiliate", status: "active" },
   { firstName: "Elizabeth", lastName: "Wu", emailPrimary: "elizabeth@edd-i.com", mobile: "(404) 706-4854", expertise: "Cybergovernance for Executives", role: "affiliate", status: "active" },
   { firstName: "Gina", lastName: "Tabasso", emailPrimary: "gina@barracudab2b.com", emailSecondary: "gina.tabasso@gmail.com", mobile: "(330) 421-9185", expertise: "Project Management/Ops/Six Sigma", role: "affiliate", status: "active" },
-  { firstName: "Icy", lastName: "Williams", emailPrimary: "info@legacy83business.com", mobile: "(513) 335-1978", expertise: "Executive Consulting", role: "admin", status: "active" },
+  { firstName: "Icy", lastName: "Williams", emailPrimary: "info@legacy83business.com", mobile: "(513) 335-1978", expertise: "Executive Consulting", role: "superadmin", status: "active" },
   { firstName: "Jeremy", lastName: "Schumacher", emailPrimary: "jeremyrks@gmail.com", expertise: "CIO/Privacy", role: "affiliate", status: "active" },
   { firstName: "John", lastName: "Kloian", emailPrimary: "john@specdyn.com", emailSecondary: "john.kloian@gmail.com", expertise: "Chief Revenue Officer/Gap Assessments", role: "affiliate", status: "active" },
   { firstName: "Jose Luis", lastName: "Ferandez", emailPrimary: "joseluisfernandez88@gmail.com", emailSecondary: "josefernandez@salesfyconsulting.com", expertise: "Executive AI Training/Coaching", role: "affiliate", status: "active" },

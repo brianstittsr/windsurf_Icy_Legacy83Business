@@ -413,6 +413,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, searchParams } = body;
+    
+    console.log("[ThomasNet API] Received request:", { action, searchParams });
 
     switch (action) {
       case "search_suppliers": {
@@ -430,6 +432,8 @@ export async function POST(request: NextRequest) {
         
         // Search suppliers
         const results = searchSuppliers(searchCriteria);
+        
+        console.log(`[ThomasNet API] Search results: ${results.length} suppliers found`);
         
         return NextResponse.json({
           success: true,
@@ -509,7 +513,10 @@ export async function POST(request: NextRequest) {
         
         // Parse and search
         const parsed = parseSearchQuery(query);
+        console.log("[ThomasNet API] AI search parsed:", parsed);
+        
         const results = searchSuppliers(parsed);
+        console.log(`[ThomasNet API] AI search results: ${results.length} suppliers`);
         
         // Generate AI response
         const aiResponse = {
@@ -537,9 +544,10 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    console.error("ThomasNet API error:", error);
+    console.error("[ThomasNet API] Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error", success: false },
+      { error: "Internal server error", message: errorMessage, success: false },
       { status: 500 }
     );
   }

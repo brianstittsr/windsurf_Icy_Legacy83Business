@@ -40,11 +40,11 @@ async function updateIcyWilliams() {
   await updateDoc(teamMemberDoc.ref, {
     firstName: "Icy",
     lastName: "Williams",
-    role: "admin",
+    role: "superadmin",
     updatedAt: now,
   });
 
-  console.log("Updated team member with firstName: Icy, lastName: Williams, role: admin");
+  console.log("Updated team member with firstName: Icy, lastName: Williams, role: superadmin");
 }
 
 updateIcyWilliams().catch(console.error);

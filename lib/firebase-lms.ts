@@ -462,23 +462,39 @@ export async function getCourses(options?: {
   if (!db) throw new Error("Firebase not initialized");
 
   const coursesRef = collection(db, LMS_COLLECTIONS.COURSES);
-  let q = query(coursesRef, orderBy("createdAt", "desc"));
+  const constraints = [];
 
+  // Build query constraints (orderBy must match where field to avoid composite index)
   if (options?.isPublished !== undefined) {
-    q = query(q, where("isPublished", "==", options.isPublished));
+    constraints.push(where("isPublished", "==", options.isPublished));
   }
   if (options?.categoryId) {
-    q = query(q, where("categoryId", "==", options.categoryId));
+    constraints.push(where("categoryId", "==", options.categoryId));
   }
   if (options?.isFeatured) {
-    q = query(q, where("isFeatured", "==", true));
+    constraints.push(where("isFeatured", "==", true));
   }
+  
+  // Use createdAt order only when no other filters (avoids composite index)
+  if (constraints.length === 0) {
+    constraints.push(orderBy("createdAt", "desc"));
+  }
+  
   if (options?.limitCount) {
-    q = query(q, limit(options.limitCount));
+    constraints.push(limit(options.limitCount));
   }
 
+  const q = query(coursesRef, ...constraints);
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => doc.data() as CourseDoc);
+  
+  // Sort by createdAt client-side if we have other filters (avoids composite index requirement)
+  const courses = snapshot.docs.map((doc) => doc.data() as CourseDoc);
+  
+  if (constraints.length > 0 && !constraints.some(c => c.type === 'orderBy')) {
+    courses.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+  }
+  
+  return courses;
 }
 
 export async function updateCourse(
@@ -1017,23 +1033,42 @@ export async function getWorkshops(options?: {
   if (!db) throw new Error("Firebase not initialized");
 
   const workshopsRef = collection(db, LMS_COLLECTIONS.WORKSHOPS);
-  let q = query(workshopsRef, orderBy("scheduledStart", "asc"));
+  const constraints = [];
 
+  // Build query constraints (orderBy must match where field to avoid composite index)
   if (options?.isPublished !== undefined) {
-    q = query(q, where("isPublished", "==", options.isPublished));
+    constraints.push(where("isPublished", "==", options.isPublished));
   }
   if (options?.workshopType) {
-    q = query(q, where("workshopType", "==", options.workshopType));
+    constraints.push(where("workshopType", "==", options.workshopType));
   }
   if (options?.upcoming) {
-    q = query(q, where("scheduledStart", ">=", Timestamp.now()));
+    constraints.push(where("scheduledStart", ">=", Timestamp.now()));
   }
+  
+  // Use scheduledStart order only when no other filters (avoids composite index)
+  if (constraints.length === 0) {
+    constraints.push(orderBy("scheduledStart", "asc"));
+  }
+  
   if (options?.limitCount) {
-    q = query(q, limit(options.limitCount));
+    constraints.push(limit(options.limitCount));
   }
 
+  const q = query(workshopsRef, ...constraints);
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => doc.data() as WorkshopDoc);
+  
+  // Sort by scheduledStart client-side if we have other filters (avoids composite index requirement)
+  const workshops = snapshot.docs.map((doc) => doc.data() as WorkshopDoc);
+  
+  if (constraints.length > 0 && !constraints.some(c => c.type === 'orderBy')) {
+    workshops.sort((a, b) => {
+      if (!a.scheduledStart || !b.scheduledStart) return 0;
+      return a.scheduledStart.toMillis() - b.scheduledStart.toMillis();
+    });
+  }
+  
+  return workshops;
 }
 
 export async function updateWorkshop(

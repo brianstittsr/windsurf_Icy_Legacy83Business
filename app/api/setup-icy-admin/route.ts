@@ -58,7 +58,7 @@ export async function POST() {
       firstName: "Icy",
       lastName: "Williams",
       displayName: "Icy Williams",
-      role: "admin",
+      role: "superadmin",
       status: "active",
       createdAt: now,
       updatedAt: now,
@@ -78,7 +78,7 @@ export async function POST() {
       
       await teamMemberDoc.ref.update({
         authUid: ICY_UID,
-        role: "admin",
+        role: "superadmin",
         updatedAt: now,
       });
       console.log("Updated existing team member:", teamMemberId);
@@ -89,7 +89,7 @@ export async function POST() {
         emailPrimary: ICY_EMAIL,
         firstName: "Icy",
         lastName: "Williams",
-        role: "admin",
+        role: "superadmin",
         status: "active",
         createdAt: now,
         updatedAt: now,
@@ -105,7 +105,7 @@ export async function POST() {
         email: ICY_EMAIL,
         uid: ICY_UID,
         teamMemberId,
-        role: "admin",
+        role: "superadmin",
       },
     });
 

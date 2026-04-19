@@ -39,11 +39,11 @@ export default function SetupUserPage() {
         currentData = existingTeamMember.data();
         firebaseUid = currentData.firebaseUid || currentData.authUid || null;
         
-        // Update existing team member with admin role AND name
+        // Update existing team member with superadmin role AND name
         await updateDoc(existingTeamMember.ref, {
           firstName: "Icy",
           lastName: "Williams",
-          role: "admin",
+          role: "superadmin",
           updatedAt: now,
         });
         
@@ -59,7 +59,7 @@ export default function SetupUserPage() {
           firstName: "Icy",
           lastName: "Williams",
           expertise: "",
-          role: "admin",
+          role: "superadmin",
           status: "active",
           createdAt: now,
           updatedAt: now,
@@ -75,7 +75,7 @@ export default function SetupUserPage() {
           firstName: "Icy",
           lastName: "Williams",
           displayName: "Icy Williams",
-          role: "admin",
+          role: "superadmin",
           status: "active",
           createdAt: now,
           updatedAt: now,
@@ -91,7 +91,7 @@ export default function SetupUserPage() {
         email: ICY_EMAIL,
         teamMemberId,
         firebaseUid: firebaseUid || "Not linked yet - sign out and sign back in",
-        role: "admin",
+        role: "superadmin",
         previousData: currentData,
       });
 

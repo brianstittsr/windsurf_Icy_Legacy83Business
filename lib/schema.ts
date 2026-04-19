@@ -1877,11 +1877,9 @@ export interface HeroSlideDoc {
   isPublished: boolean;
   order: number;
   backgroundImage?: {
-    url: string;
-    source: "pexels" | "unsplash" | "custom";
-    photographer?: string;
-    photographerUrl?: string;
-    alt: string;
+    imageId: string; // Reference to Image Manager image
+    url: string; // Cached data URL for display
+    name: string; // Image name from Image Manager
   };
   animation?: {
     type: "fade" | "slide-up" | "slide-left" | "zoom" | "none";
@@ -1898,6 +1896,37 @@ export interface HeroSlideDoc {
     type: "quiz" | "download" | "consultation" | "demo";
     urgency?: string;
   };
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+/** Success Story / Testimonial document in Firestore */
+export interface SuccessStoryDoc {
+  id: string;
+  name: string; // Client name (e.g., "Alex Richardson")
+  company: string; // Company name
+  industry: string; // Industry type
+  location: string; // Location (e.g., "Cincinnati, OH")
+  quote: string; // Main testimonial quote
+  challenge: string; // The challenge they faced
+  solution?: string; // How Legacy 83 helped (for featured stories)
+  results: Array<{
+    metric: string;
+    value: string;
+    period?: string; // Optional time period context
+  }>;
+  image?: {
+    imageId: string;
+    url: string;
+    name: string;
+  };
+  isFeatured: boolean; // Featured stories get special layout
+  isPublished: boolean;
+  order: number; // For sorting display order
+  rating: number; // 1-5 star rating
+  tags?: string[]; // For filtering (e.g., ["restaurant", "succession", "profit-growth"])
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy?: string;
@@ -2089,6 +2118,8 @@ export const COLLECTIONS = {
   BACKUP_STORAGE_PROVIDERS: "backupStorageProviders",
   // Hero Slides
   HERO_SLIDES: "heroSlides",
+  // Success Stories (Testimonials)
+  SUCCESS_STORIES: "successStories",
 } as const;
 
 // ============================================================================
@@ -2149,6 +2180,9 @@ export const tractionTeamMembersCollection = () => getCollection<TractionTeamMem
 
 // Bug Tracker collection reference
 export const bugTrackerItemsCollection = () => getCollection<BugTrackerItemDoc>(COLLECTIONS.BUG_TRACKER_ITEMS);
+
+// Success Stories collection reference
+export const successStoriesCollection = () => getCollection<SuccessStoryDoc>(COLLECTIONS.SUCCESS_STORIES);
 
 // ============================================================================
 // Subcollection Helpers

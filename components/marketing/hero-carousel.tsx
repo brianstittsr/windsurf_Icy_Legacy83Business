@@ -24,6 +24,26 @@ export interface HeroSlide {
   };
   isPublished: boolean;
   order: number;
+  backgroundImage?: {
+    imageId: string;
+    url: string;
+    name: string;
+  };
+  animation?: {
+    type: "fade" | "slide-up" | "slide-left" | "zoom" | "none";
+    duration: number;
+    delay: number;
+  };
+  overlay?: {
+    enabled: boolean;
+    color: string;
+    opacity: number;
+  };
+  leadMagnet?: {
+    enabled: boolean;
+    type: "quiz" | "download" | "consultation" | "demo";
+    urgency?: string;
+  };
 }
 
 // Default slides - in production these would come from a database

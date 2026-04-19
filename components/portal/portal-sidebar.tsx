@@ -86,6 +86,8 @@ import {
   Network,
   Menu,
   Presentation,
+  Quote,
+  ArrowRightLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -270,6 +272,12 @@ const adminItems: { title: string; href: string; icon: React.ElementType; badge?
     featureKey: "gohighlevel",
   },
   {
+    title: "GHL Migration",
+    href: "/portal/admin/ghl-migration",
+    icon: ArrowRightLeft,
+    featureKey: "ghlMigration",
+  },
+  {
     title: "Hero Carousel",
     href: "/portal/admin/hero",
     icon: Presentation,
@@ -280,6 +288,18 @@ const adminItems: { title: string; href: string; icon: React.ElementType; badge?
     href: "/portal/admin/images",
     icon: ImageIcon,
     featureKey: "imageManager",
+  },
+  {
+    title: "Book a Call",
+    href: "/portal/admin/book-a-call",
+    icon: Calendar,
+    featureKey: "bookACall",
+  },
+  {
+    title: "Success Stories",
+    href: "/portal/admin/success-stories",
+    icon: Quote,
+    featureKey: "successStories",
   },
   {
     title: "Page Designer",
@@ -298,6 +318,18 @@ const adminItems: { title: string; href: string; icon: React.ElementType; badge?
     href: "/portal/admin/academy",
     icon: GraduationCap,
     featureKey: "academyAdmin",
+  },
+  {
+    title: "Revenue Config",
+    href: "/portal/admin/revenue",
+    icon: DollarSign,
+    featureKey: "revenueConfig",
+  },
+  {
+    title: "Alignable",
+    href: "/portal/admin/alignable",
+    icon: Network,
+    featureKey: "alignable",
   },
   {
     title: "Backup & Restore",

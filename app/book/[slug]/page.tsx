@@ -653,7 +653,7 @@ export default function BookingPage() {
               </div>
               <h2 className="text-2xl font-bold mb-2">Booking Confirmed!</h2>
               <p className="text-muted-foreground mb-6">
-                Your meeting has been scheduled. A confirmation email will be sent to {bookingDetails.email}.
+                Your meeting has been scheduled. A confirmation email will be sent to info@legacy83business.com.
               </p>
               
               <div className="bg-muted rounded-lg p-4 max-w-sm mx-auto text-left space-y-2">

@@ -4,9 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, CheckCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { legacy83HeroSlides, legacy83TrustIndicators } from "@/lib/legacy83-hero-slides";
+import { collection, query, orderBy, onSnapshot, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { COLLECTIONS } from "@/lib/schema";
+import { getImage, base64ToDataUrl } from "@/lib/firebase-images";
 
 export interface HeroSlide {
   id: string;
@@ -25,6 +29,26 @@ export interface HeroSlide {
   };
   isPublished: boolean;
   order: number;
+  backgroundImage?: {
+    imageId: string;
+    url: string;
+    name: string;
+  };
+  animation?: {
+    type: "fade" | "slide-up" | "slide-left" | "zoom" | "none";
+    duration: number;
+    delay: number;
+  };
+  overlay?: {
+    enabled: boolean;
+    color: string;
+    opacity: number;
+  };
+  leadMagnet?: {
+    enabled: boolean;
+    type: "quiz" | "download" | "consultation" | "demo";
+    urgency?: string;
+  };
 }
 
 interface Legacy83HeroCarouselProps {
@@ -33,12 +57,147 @@ interface Legacy83HeroCarouselProps {
 }
 
 export function Legacy83HeroCarousel({ 
-  slides = legacy83HeroSlides, 
+  slides, 
   autoPlayInterval = 6000 
 }: Legacy83HeroCarouselProps) {
-  const publishedSlides = slides.filter(s => s.isPublished).sort((a, b) => a.order - b.order);
+  const [firestoreSlides, setFirestoreSlides] = useState<HeroSlide[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [autoBackgroundImages, setAutoBackgroundImages] = useState<Record<string, string>>({});
+
+  // Fetch slides from Firestore
+  useEffect(() => {
+    if (!db) {
+      setFirestoreSlides(slides || legacy83HeroSlides);
+      setLoading(false);
+      return;
+    }
+
+    const slidesQuery = query(
+      collection(db, COLLECTIONS.HERO_SLIDES),
+      orderBy("order", "asc")
+    );
+
+    const unsubscribe = onSnapshot(slidesQuery, async (snapshot) => {
+      if (snapshot.empty) {
+        setFirestoreSlides(slides || legacy83HeroSlides);
+        setLoading(false);
+        return;
+      }
+
+      const slidesData = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          let backgroundImage = data.backgroundImage;
+
+          // Load image from Image Manager if imageId exists
+          if (backgroundImage?.imageId) {
+            try {
+              const image = await getImage(backgroundImage.imageId);
+              if (image && image.base64Data && image.mimeType) {
+                const dataUrl = base64ToDataUrl(image.base64Data, image.mimeType);
+                if (dataUrl) {
+                  backgroundImage = {
+                    imageId: backgroundImage.imageId,
+                    url: dataUrl,
+                    name: image.name,
+                  };
+                }
+              }
+            } catch (error) {
+              console.error("Failed to load image:", error);
+            }
+          }
+
+          return {
+            id: docSnap.id,
+            badge: data.badge,
+            headline: data.headline,
+            highlightedText: data.highlightedText,
+            subheadline: data.subheadline,
+            benefits: data.benefits,
+            primaryCta: data.primaryCta,
+            secondaryCta: data.secondaryCta,
+            isPublished: data.isPublished,
+            order: data.order,
+            backgroundImage,
+            animation: data.animation,
+            overlay: data.overlay,
+            leadMagnet: data.leadMagnet,
+          };
+        })
+      );
+
+      // Filter only published slides
+      const publishedOnly = slidesData.filter(slide => slide.isPublished);
+      setFirestoreSlides(publishedOnly);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching hero slides:", error);
+      setFirestoreSlides(slides || legacy83HeroSlides);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [slides]);
+
+  const publishedSlides = firestoreSlides;
+
+  // Fetch background images for slides without images
+  useEffect(() => {
+    const fetchBackgroundImages = async () => {
+      const newImages: Record<string, string> = {};
+      
+      for (const slide of publishedSlides) {
+        // Skip if slide already has a background image
+        if (slide.backgroundImage?.url) continue;
+        
+        // Skip if we already fetched an image for this slide
+        if (autoBackgroundImages[slide.id]) continue;
+        
+        // Create search query from headline and highlighted text
+        const searchQuery = `${slide.headline} ${slide.highlightedText}`.trim();
+        
+        try {
+          // Try Pexels first
+          const pexelsResponse = await fetch(`/api/images/pexels?query=${encodeURIComponent(searchQuery)}`);
+          if (pexelsResponse.ok) {
+            const pexelsData = await pexelsResponse.json();
+            if (pexelsData.photos && pexelsData.photos.length > 0) {
+              newImages[slide.id] = pexelsData.photos[0].src.large2x;
+              continue;
+            }
+          } else if (pexelsResponse.status !== 500) {
+            // Log non-500 errors (500 usually means API key not configured)
+            console.warn(`Pexels API returned ${pexelsResponse.status}`);
+          }
+          
+          // Fallback to Unsplash
+          const unsplashResponse = await fetch(`/api/images/unsplash?query=${encodeURIComponent(searchQuery)}`);
+          if (unsplashResponse.ok) {
+            const unsplashData = await unsplashResponse.json();
+            if (unsplashData.results && unsplashData.results.length > 0) {
+              newImages[slide.id] = unsplashData.results[0].urls.regular;
+            }
+          } else if (unsplashResponse.status !== 500) {
+            // Log non-500 errors (500 usually means API key not configured)
+            console.warn(`Unsplash API returned ${unsplashResponse.status}`);
+          }
+        } catch (error) {
+          // Silently ignore network errors to avoid console spam
+        }
+      }
+      
+      if (Object.keys(newImages).length > 0) {
+        setAutoBackgroundImages(prev => ({ ...prev, ...newImages }));
+      }
+    };
+    
+    if (publishedSlides.length > 0) {
+      fetchBackgroundImages();
+    }
+  }, [publishedSlides, autoBackgroundImages]);
 
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % publishedSlides.length);
@@ -61,16 +220,44 @@ export function Legacy83HeroCarousel({
     return () => clearInterval(interval);
   }, [isAutoPlaying, autoPlayInterval, goToNext, publishedSlides.length]);
 
+  if (loading) {
+    return (
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white z-0">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+        <div className="relative py-20 md:py-32 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-amber-400" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   if (publishedSlides.length === 0) {
     return null;
   }
 
   const currentSlide = publishedSlides[currentIndex];
+  const backgroundImageUrl = currentSlide.backgroundImage?.url || autoBackgroundImages[currentSlide.id] || "";
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white z-0">
-      {/* Background Pattern - Legacy themed */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+      {/* Background Image */}
+      {backgroundImageUrl && backgroundImageUrl.trim() !== "" && (
+        <>
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+          />
+          {/* Dark overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-900/80 to-slate-900/90" />
+        </>
+      )}
+      
+      {/* Background Pattern - Legacy themed (only if no image) */}
+      {!backgroundImageUrl && (
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+      )}
       
       {/* Accent gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-transparent to-amber-500/10" />
@@ -117,16 +304,18 @@ export function Legacy83HeroCarousel({
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="text-lg px-8 border-amber-400 text-amber-400 hover:bg-amber-400/20 hover:text-amber-300" 
-                asChild
-              >
-                <Link href={currentSlide.secondaryCta.href}>
-                  {currentSlide.secondaryCta.text}
-                </Link>
-              </Button>
+              {currentSlide.secondaryCta.text && (
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="text-lg px-8 border-amber-400 text-amber-400 hover:bg-amber-400/20 hover:text-amber-300" 
+                  asChild
+                >
+                  <Link href={currentSlide.secondaryCta.href}>
+                    {currentSlide.secondaryCta.text}
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
 

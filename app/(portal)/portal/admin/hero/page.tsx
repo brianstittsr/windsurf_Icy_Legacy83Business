@@ -63,7 +63,7 @@ import { db } from "@/lib/firebase";
 import { COLLECTIONS, type HeroSlideDoc } from "@/lib/schema";
 import type { HeroSlide } from "@/components/marketing/hero-carousel";
 import { legacy83HeroSlides } from "@/lib/legacy83-hero-slides";
-import { ImageSearch } from "@/components/admin/image-search";
+import { ImageManagerPicker } from "@/components/admin/image-manager-picker";
 
 const wizardSteps = [
   { id: 1, title: "Basic Info", description: "Badge and headline", icon: Sparkles },
@@ -86,11 +86,9 @@ interface SlideFormData {
   secondaryCtaHref: string;
   isPublished: boolean;
   backgroundImage?: {
+    imageId: string;
     url: string;
-    source: "pexels" | "unsplash" | "custom";
-    photographer?: string;
-    photographerUrl?: string;
-    alt: string;
+    name: string;
   };
   animation: {
     type: "fade" | "slide-up" | "slide-left" | "zoom" | "none";
@@ -303,7 +301,7 @@ export default function HeroManagementEnhancedPage() {
     setSaving(true);
     try {
       const slideId = editingSlide?.id || `slide-${Date.now()}`;
-      const slideDoc: HeroSlideDoc = {
+      const slideDoc: Partial<HeroSlideDoc> = {
         id: slideId,
         badge: formData.badge,
         headline: formData.headline,
@@ -314,15 +312,25 @@ export default function HeroManagementEnhancedPage() {
         secondaryCta: { text: formData.secondaryCtaText, href: formData.secondaryCtaHref },
         isPublished: formData.isPublished,
         order: editingSlide?.order || slides.length + 1,
-        backgroundImage: formData.backgroundImage,
-        animation: formData.animation,
-        overlay: formData.overlay,
-        leadMagnet: formData.leadMagnet,
         createdAt: editingSlide ? Timestamp.now() : Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
 
-      await setDoc(doc(db, COLLECTIONS.HERO_SLIDES, slideId), slideDoc);
+      // Only include optional fields if they have valid values
+      if (formData.backgroundImage?.imageId && formData.backgroundImage?.url) {
+        slideDoc.backgroundImage = formData.backgroundImage;
+      }
+      if (formData.animation) {
+        slideDoc.animation = formData.animation;
+      }
+      if (formData.overlay) {
+        slideDoc.overlay = formData.overlay;
+      }
+      if (formData.leadMagnet) {
+        slideDoc.leadMagnet = formData.leadMagnet;
+      }
+
+      await setDoc(doc(db, COLLECTIONS.HERO_SLIDES, slideId), slideDoc as HeroSlideDoc);
       toast.success(editingSlide ? "Slide updated successfully" : "Slide created successfully");
       closeWizard();
     } catch (error) {
@@ -516,7 +524,7 @@ export default function HeroManagementEnhancedPage() {
                   <div className="w-20 h-12 rounded overflow-hidden flex-shrink-0">
                     <img
                       src={slide.backgroundImage.url}
-                      alt={slide.backgroundImage.alt}
+                      alt={slide.backgroundImage.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -530,7 +538,7 @@ export default function HeroManagementEnhancedPage() {
                     {slide.backgroundImage && (
                       <Badge variant="outline">
                         <ImageIcon className="h-3 w-3 mr-1" />
-                        {slide.backgroundImage.source}
+                        Image Manager
                       </Badge>
                     )}
                     {slide.animation && slide.animation.type !== "none" && (
@@ -708,21 +716,20 @@ export default function HeroManagementEnhancedPage() {
                 </TabsList>
                 <TabsContent value="image" className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Search Stock Images</Label>
-                    <ImageSearch
+                    <Label>Select Background Image</Label>
+                    <ImageManagerPicker
                       onSelect={(image) => {
                         setFormData({
                           ...formData,
                           backgroundImage: {
+                            imageId: image.id,
                             url: image.url,
-                            source: image.source,
-                            photographer: image.photographer,
-                            photographerUrl: image.photographerUrl,
-                            alt: image.alt,
+                            name: image.name,
                           },
                         });
                       }}
-                      selectedImageUrl={formData.backgroundImage?.url}
+                      selectedImageId={formData.backgroundImage?.imageId}
+                      category="hero"
                     />
                   </div>
                   {formData.backgroundImage && (
@@ -739,20 +746,11 @@ export default function HeroManagementEnhancedPage() {
                       </div>
                       <img
                         src={formData.backgroundImage.url}
-                        alt={formData.backgroundImage.alt}
+                        alt={formData.backgroundImage.name}
                         className="w-full h-40 object-cover rounded"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Photo by{" "}
-                        <a
-                          href={formData.backgroundImage.photographerUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          {formData.backgroundImage.photographer}
-                        </a>{" "}
-                        on {formData.backgroundImage.source === "pexels" ? "Pexels" : "Unsplash"}
+                        {formData.backgroundImage.name}
                       </p>
                     </div>
                   )}

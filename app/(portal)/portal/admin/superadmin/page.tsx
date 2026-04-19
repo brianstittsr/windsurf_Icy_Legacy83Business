@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -39,6 +40,8 @@ import {
   Save,
   Loader2,
   AlertTriangle,
+  Network,
+  Key,
 } from "lucide-react";
 import { db, auth } from "@/lib/firebase";
 import { doc, getDoc, setDoc, Timestamp, collection, query, where, getDocs, updateDoc } from "firebase/firestore";
@@ -126,6 +129,12 @@ export default function SuperAdminPage() {
     pdfOcr: true,
   });
 
+  // API Keys for integrations
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({
+    alignable: "",
+    alignableAccessToken: "",
+  });
+
   // Check if user is superadmin
   useEffect(() => {
     if (!isSuperAdmin(currentUserRole)) {
@@ -154,6 +163,9 @@ export default function SuperAdminPage() {
           if (data.l83ToolsVisibility) {
             setL83ToolsVisibility(prev => ({ ...prev, ...data.l83ToolsVisibility }));
           }
+          if (data.apiKeys) {
+            setApiKeys(prev => ({ ...prev, ...data.apiKeys }));
+          }
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -179,6 +191,7 @@ export default function SuperAdminPage() {
       await setDoc(docRef, {
         sidebarVisibility,
         l83ToolsVisibility,
+        apiKeys,
         updatedAt: Timestamp.now(),
         updatedBy: linkedTeamMember?.id || "unknown",
       }, { merge: true });
@@ -223,6 +236,12 @@ export default function SuperAdminPage() {
       updates[tool.key] = enabled;
     });
     setL83ToolsVisibility(updates);
+    setHasChanges(true);
+  };
+
+  // Update API key
+  const updateApiKey = (key: string, value: string) => {
+    setApiKeys(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
 
@@ -385,6 +404,10 @@ export default function SuperAdminPage() {
           <TabsTrigger value="tools">
             <Wrench className="h-4 w-4 mr-2" />
             L83 Tools
+          </TabsTrigger>
+          <TabsTrigger value="integrations">
+            <Key className="h-4 w-4 mr-2" />
+            Integrations
           </TabsTrigger>
         </TabsList>
 
@@ -555,6 +578,120 @@ export default function SuperAdminPage() {
                       checked={l83ToolsVisibility[tool.key]}
                       onCheckedChange={() => toggleL83Tool(tool.key)}
                     />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Integrations Tab */}
+        <TabsContent value="integrations" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Network className="h-5 w-5" />
+                Alignable Integration
+              </CardTitle>
+              <CardDescription>
+                Configure API credentials for Alignable business networking platform.
+                These keys enable connection with the Alignable API for content exchange and networking.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="alignable-api-key">Alignable API Key</Label>
+                  <Input
+                    id="alignable-api-key"
+                    type="password"
+                    placeholder="Enter your Alignable API key"
+                    value={apiKeys.alignable}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateApiKey("alignable", e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Get your API key from the{" "}
+                    <a 
+                      href="https://developers.alignable.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Alignable Developer Portal
+                    </a>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="alignable-access-token">Alignable Access Token (OAuth)</Label>
+                  <Input
+                    id="alignable-access-token"
+                    type="password"
+                    placeholder="Enter OAuth access token (optional)"
+                    value={apiKeys.alignableAccessToken}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateApiKey("alignableAccessToken", e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    OAuth token provides full access including posting and messaging. Required for complete integration.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium mb-2">Integration Features</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Business profile synchronization</li>
+                    <li>• Network connection management</li>
+                    <li>• Content posting and engagement</li>
+                    <li>• Recommendation exchange</li>
+                    <li>• Direct messaging capabilities</li>
+                    <li>• Analytics and insights</li>
+                  </ul>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <div>
+                    <p className="text-sm font-medium">Connection Status</p>
+                    <p className="text-xs text-muted-foreground">
+                      {apiKeys.alignable || apiKeys.alignableAccessToken 
+                        ? "Credentials configured. Test connection in the Alignable admin panel."
+                        : "No credentials configured. Add API key to enable integration."}
+                    </p>
+                  </div>
+                  <Badge variant={apiKeys.alignable || apiKeys.alignableAccessToken ? "default" : "secondary"}>
+                    {apiKeys.alignable || apiKeys.alignableAccessToken ? "Configured" : "Not Configured"}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Placeholder for future integrations */}
+          <Card className="opacity-75">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                Future Integrations
+              </CardTitle>
+              <CardDescription>
+                Additional third-party integrations coming soon.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {[
+                  { name: "LinkedIn API", status: "Planned", desc: "Professional networking and content sharing" },
+                  { name: "Facebook Business", status: "Planned", desc: "Social media management and analytics" },
+                  { name: "Twitter/X API", status: "Planned", desc: "Social engagement and monitoring" },
+                  { name: "Yelp API", status: "Planned", desc: "Review management and business listings" },
+                  { name: "Google Business", status: "Planned", desc: "Business profile and review management" },
+                  { name: "HubSpot", status: "Planned", desc: "CRM and marketing automation" },
+                ].map((integration) => (
+                  <div key={integration.name} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium">{integration.name}</span>
+                      <Badge variant="outline">{integration.status}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{integration.desc}</p>
                   </div>
                 ))}
               </div>

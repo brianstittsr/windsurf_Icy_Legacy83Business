@@ -97,9 +97,6 @@ export function Legacy83HowItWorks() {
 
         {/* CTA */}
         <div className="mt-16 text-center">
-          <p className="text-lg font-medium mb-4">
-            Ready to start your transformation?
-          </p>
           <Button size="lg" className="bg-amber-500 hover:bg-amber-600 text-slate-900" asChild>
             <Link href="/quiz-intro">
               Take the Legacy Growth IQ™ Quiz

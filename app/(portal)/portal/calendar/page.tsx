@@ -367,9 +367,9 @@ export default function CalendarPage() {
           attendees: newEvent.attendees || [],
           location: newEvent.location || '',
           allDay: newEvent.allDay || false,
-          recurringParentId: newEvent.recurringParentId,
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
+          ...(newEvent.recurringParentId && { recurringParentId: newEvent.recurringParentId }),
         };
         
         const docRef = await addDoc(collection(db, COLLECTIONS.CALENDAR_EVENTS), firestoreEvent);
