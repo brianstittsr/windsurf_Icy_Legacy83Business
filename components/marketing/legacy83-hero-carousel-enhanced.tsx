@@ -8,47 +8,7 @@ import { ArrowRight, CheckCircle, ChevronLeft, ChevronRight, Clock } from "lucid
 import { cn } from "@/lib/utils";
 import { legacy83HeroSlides, legacy83TrustIndicators } from "@/lib/legacy83-hero-slides";
 import type { HeroSlideDoc } from "@/lib/schema";
-
-export interface HeroSlide {
-  id: string;
-  badge: string;
-  headline: string;
-  highlightedText: string;
-  subheadline: string;
-  benefits: string[];
-  primaryCta: {
-    text: string;
-    href: string;
-  };
-  secondaryCta: {
-    text: string;
-    href: string;
-  };
-  isPublished: boolean;
-  order: number;
-  backgroundImage?: {
-    url: string;
-    source: "pexels" | "unsplash" | "custom";
-    photographer?: string;
-    photographerUrl?: string;
-    alt: string;
-  };
-  animation?: {
-    type: "fade" | "slide-up" | "slide-left" | "zoom" | "none";
-    duration: number;
-    delay: number;
-  };
-  overlay?: {
-    enabled: boolean;
-    color: string;
-    opacity: number;
-  };
-  leadMagnet?: {
-    enabled: boolean;
-    type: "quiz" | "download" | "consultation" | "demo";
-    urgency?: string;
-  };
-}
+import type { HeroSlide } from "@/components/marketing/hero-carousel";
 
 interface Legacy83HeroCarouselProps {
   slides?: HeroSlide[];
@@ -252,20 +212,6 @@ export function Legacy83HeroCarousel({
             </div>
           </div>
 
-          {hasBackgroundImage && currentSlide.backgroundImage?.photographer && (
-            <div className="mt-8 text-xs text-gray-400">
-              Photo by{" "}
-              <a
-                href={currentSlide.backgroundImage.photographerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-amber-400 hover:underline"
-              >
-                {currentSlide.backgroundImage.photographer}
-              </a>{" "}
-              on {currentSlide.backgroundImage.source === "pexels" ? "Pexels" : "Unsplash"}
-            </div>
-          )}
         </div>
       </div>
 

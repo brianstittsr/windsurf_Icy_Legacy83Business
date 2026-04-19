@@ -47,7 +47,7 @@ export function Legacy83CTASection() {
             >
               <Link href="/schedule-a-call">
                 <Phone className="mr-2 h-5 w-5" />
-                Schedule a Strategy Call
+                Schedule a Free Strategy Call
               </Link>
             </Button>
           </div>
