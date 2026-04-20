@@ -19,6 +19,11 @@ export const legacy83HeroSlides: HeroSlide[] = [
     secondaryCta: { text: "Schedule a Strategy Call", href: "/schedule-a-call" },
     isPublished: true,
     order: 1,
+    backgroundImage: {
+      imageId: "pexels-legacy-building",
+      url: "https://images.pexels.com/photos/1170412/pexels-photo-1170412.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
+      name: "Business Legacy Building"
+    }
   },
   {
     id: "legacy-2",
@@ -31,6 +36,11 @@ export const legacy83HeroSlides: HeroSlide[] = [
     secondaryCta: { text: "See Success Stories", href: "/success-stories" },
     isPublished: true,
     order: 2,
+    backgroundImage: {
+      imageId: "pexels-business-growth",
+      url: "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
+      name: "Business Team Growth"
+    }
   },
   {
     id: "legacy-3",
@@ -43,6 +53,11 @@ export const legacy83HeroSlides: HeroSlide[] = [
     secondaryCta: { text: "Learn More", href: "/about" },
     isPublished: true,
     order: 3,
+    backgroundImage: {
+      imageId: "pexels-exit-strategy",
+      url: "https://images.pexels.com/photos/3760067/pexels-photo-3760067.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
+      name: "Business Strategy Planning"
+    }
   },
   {
     id: "legacy-4",
@@ -55,6 +70,11 @@ export const legacy83HeroSlides: HeroSlide[] = [
     secondaryCta: { text: "Read Case Studies", href: "/success-stories" },
     isPublished: true,
     order: 4,
+    backgroundImage: {
+      imageId: "pexels-success-team",
+      url: "https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
+      name: "Success Team Celebration"
+    }
   },
   {
     id: "legacy-5",
@@ -67,6 +87,11 @@ export const legacy83HeroSlides: HeroSlide[] = [
     secondaryCta: { text: "Take the Quiz", href: "/quiz-intro" },
     isPublished: true,
     order: 5,
+    backgroundImage: {
+      imageId: "pexels-purpose-growth",
+      url: "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
+      name: "Purposeful Business Growth"
+    }
   },
 ];
 
