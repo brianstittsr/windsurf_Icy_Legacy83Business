@@ -92,7 +92,7 @@ export function Legacy83HeroCarousel({
           let backgroundImage = data.backgroundImage;
 
           // Load image from Image Manager if imageId exists
-          if (backgroundImage?.imageId) {
+          if (backgroundImage?.imageId && !backgroundImage.imageId.startsWith("pexels-") && !backgroundImage.imageId.startsWith("unsplash-")) {
             try {
               const image = await getImage(backgroundImage.imageId);
               if (image && image.base64Data && image.mimeType) {
@@ -107,6 +107,14 @@ export function Legacy83HeroCarousel({
               }
             } catch (error) {
               console.error("Failed to load image:", error);
+            }
+          }
+
+          // If no background image from Firestore, try to get from default slides
+          if (!backgroundImage?.url) {
+            const defaultSlide = legacy83HeroSlides.find(s => s.id === docSnap.id);
+            if (defaultSlide?.backgroundImage?.url) {
+              backgroundImage = defaultSlide.backgroundImage;
             }
           }
 
@@ -144,7 +152,9 @@ export function Legacy83HeroCarousel({
 
   const publishedSlides = firestoreSlides;
 
-  // Fetch background images for slides without images
+  // NOTE: Auto-fetch disabled - using hardcoded Pexels images from legacy83HeroSlides
+  // If you need dynamic image fetching in the future, re-enable this useEffect
+  /*
   useEffect(() => {
     const fetchBackgroundImages = async () => {
       const newImages: Record<string, string> = {};
@@ -168,9 +178,6 @@ export function Legacy83HeroCarousel({
               newImages[slide.id] = pexelsData.photos[0].src.large2x;
               continue;
             }
-          } else if (pexelsResponse.status !== 500) {
-            // Log non-500 errors (500 usually means API key not configured)
-            console.warn(`Pexels API returned ${pexelsResponse.status}`);
           }
           
           // Fallback to Unsplash
@@ -180,12 +187,9 @@ export function Legacy83HeroCarousel({
             if (unsplashData.results && unsplashData.results.length > 0) {
               newImages[slide.id] = unsplashData.results[0].urls.regular;
             }
-          } else if (unsplashResponse.status !== 500) {
-            // Log non-500 errors (500 usually means API key not configured)
-            console.warn(`Unsplash API returned ${unsplashResponse.status}`);
           }
         } catch (error) {
-          // Silently ignore network errors to avoid console spam
+          // Silently ignore network errors
         }
       }
       
@@ -198,6 +202,7 @@ export function Legacy83HeroCarousel({
       fetchBackgroundImages();
     }
   }, [publishedSlides, autoBackgroundImages]);
+  */
 
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % publishedSlides.length);
