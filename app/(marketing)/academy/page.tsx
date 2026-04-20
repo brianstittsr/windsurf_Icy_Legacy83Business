@@ -53,7 +53,7 @@ const fallbackCourses = [
     duration: "4 hours",
     lessons: 12,
     level: "Advanced",
-    image: "/academy/succession-planning.jpg",
+    image: "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=800&h=450&fit=crop",
     slug: "succession-planning-essentials",
   },
   {
@@ -351,7 +351,15 @@ export default function AcademyPage() {
               {fallbackCourses.map((course) => (
               <Card key={course.slug} className="group overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="aspect-video bg-slate-200 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-slate-900/40" />
+                  {course.image && course.image.startsWith("http") ? (
+                    <img
+                      src={course.image}
+                      alt={course.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-slate-900/40" />
+                  )}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Play className="h-6 w-6 text-amber-600 ml-1" />
