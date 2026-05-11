@@ -92,14 +92,7 @@ import {
 import { cn } from "@/lib/utils";
 
 // System Management
-const systemManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
-  {
-    title: "System Documentation",
-    href: "/portal/system-docs",
-    icon: BookOpen,
-    featureKey: "systemDocs",
-  },
-];
+const systemManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [];
 
 // Project Management
 const projectManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
@@ -177,6 +170,12 @@ const legacy83BusinessItems: { title: string; href: string; icon: React.ElementT
     href: "/portal/bug-tracker",
     icon: Bug,
     featureKey: "bugTracker",
+  },
+  {
+    title: "System Documentation",
+    href: "/portal/system-docs",
+    icon: BookOpen,
+    featureKey: "systemDocs",
   },
   {
     title: "Opportunities",
