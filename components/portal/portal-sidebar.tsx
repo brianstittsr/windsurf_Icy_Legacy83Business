@@ -150,12 +150,6 @@ const adminItems: { title: string; href: string; icon: React.ElementType; badge?
     featureKey: "bookACall",
   },
   {
-    title: "Success Stories",
-    href: "/portal/admin/success-stories",
-    icon: Quote,
-    featureKey: "successStories",
-  },
-  {
     title: "Page Designer",
     href: "/portal/admin/page-designer",
     icon: Paintbrush,
@@ -317,6 +311,12 @@ const legacy83BusinessItems: { title: string; href: string; icon: React.ElementT
     href: "/portal/admin/backups",
     icon: Database,
     featureKey: "backups",
+  },
+  {
+    title: "Success Stories",
+    href: "/portal/admin/success-stories",
+    icon: Quote,
+    featureKey: "successStories",
   },
 ];
 
