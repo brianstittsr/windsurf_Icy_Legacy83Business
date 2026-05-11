@@ -782,7 +782,7 @@ export default function BugTrackerPage() {
               </div>
               
               <div className="space-y-2">
-                <Label>Related Page</Label>
+                <Label htmlFor="page">Related Page *</Label>
                 <Select 
                   value={formData.page} 
                   onValueChange={(value) => setFormData({ ...formData, page: value })}
@@ -817,7 +817,7 @@ export default function BugTrackerPage() {
             </Button>
             <Button 
               onClick={handleAddItem}
-              disabled={!formData.title.trim() || !formData.description.trim() || isSaving}
+              disabled={!formData.title.trim() || !formData.description.trim() || formData.page === "none" || isSaving}
             >
               {isSaving ? (
                 <>
