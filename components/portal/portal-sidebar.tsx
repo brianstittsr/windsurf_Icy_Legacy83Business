@@ -94,12 +94,6 @@ import { cn } from "@/lib/utils";
 // System Management
 const systemManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
-    title: "Bug Tracker",
-    href: "/portal/bug-tracker",
-    icon: Bug,
-    featureKey: "bugTracker",
-  },
-  {
     title: "System Documentation",
     href: "/portal/system-docs",
     icon: BookOpen,
@@ -109,6 +103,81 @@ const systemManagementItems: { title: string; href: string; icon: React.ElementT
 
 // Project Management
 const projectManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  {
+    title: "AI Workforce",
+    href: "/portal/ai-workforce",
+    icon: Bot,
+    badge: "AI",
+    featureKey: "aiWorkforce",
+  },
+  {
+    title: "EOS2 Dashboard",
+    href: "/portal/eos2",
+    icon: Target,
+    badge: "EOS",
+    featureKey: "eos2",
+  },
+  {
+    title: "Action Items",
+    href: "/portal/rocks",
+    icon: CheckSquare,
+    featureKey: "rocks",
+  },
+];
+
+// Data
+const dataItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  {
+    title: "Apollo Search",
+    href: "/portal/apollo-search",
+    icon: Search,
+    badge: "AI",
+    featureKey: "apolloSearch",
+  },
+];
+
+// People
+const peopleItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [];
+
+// Productivity
+const productivityItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [];
+
+// Affiliate Center
+const affiliateCenterItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [];
+
+// Content
+const contentItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [];
+
+// Admin
+const adminItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  {
+    title: "Book a Call",
+    href: "/portal/admin/book-a-call",
+    icon: Calendar,
+    featureKey: "bookACall",
+  },
+  {
+    title: "Success Stories",
+    href: "/portal/admin/success-stories",
+    icon: Quote,
+    featureKey: "successStories",
+  },
+  {
+    title: "Page Designer",
+    href: "/portal/admin/page-designer",
+    icon: Paintbrush,
+    featureKey: "pageDesigner",
+  },
+];
+
+// Legacy 83 Business
+const legacy83BusinessItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  {
+    title: "Bug Tracker",
+    href: "/portal/bug-tracker",
+    icon: Bug,
+    featureKey: "bugTracker",
+  },
   {
     title: "Opportunities",
     href: "/portal/opportunities",
@@ -147,41 +216,22 @@ const projectManagementItems: { title: string; href: string; icon: React.Element
     featureKey: "proposals",
   },
   {
-    title: "AI Workforce",
-    href: "/portal/ai-workforce",
-    icon: Bot,
-    badge: "AI",
-    featureKey: "aiWorkforce",
-  },
-  {
     title: "Events",
     href: "/portal/admin/events",
     icon: Ticket,
     featureKey: "events",
   },
   {
-    title: "EOS2 Dashboard",
-    href: "/portal/eos2",
-    icon: Target,
-    badge: "EOS",
-    featureKey: "eos2",
+    title: "Networking",
+    href: "/portal/networking",
+    icon: Handshake,
+    featureKey: "networking",
   },
   {
-    title: "Action Items",
-    href: "/portal/rocks",
-    icon: CheckSquare,
-    featureKey: "rocks",
-  },
-];
-
-// Data
-const dataItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
-  {
-    title: "Apollo Search",
-    href: "/portal/apollo-search",
-    icon: Search,
-    badge: "AI",
-    featureKey: "apolloSearch",
+    title: "Deals",
+    href: "/portal/deals",
+    icon: DollarSign,
+    featureKey: "deals",
   },
   {
     title: "Supplier Search",
@@ -190,10 +240,6 @@ const dataItems: { title: string; href: string; icon: React.ElementType; badge?:
     badge: "AI",
     featureKey: "supplierSearch",
   },
-];
-
-// People
-const peopleItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
     title: "Team Members",
     href: "/portal/admin/team-members",
@@ -212,58 +258,12 @@ const peopleItems: { title: string; href: string; icon: React.ElementType; badge
     icon: Building,
     featureKey: "customers",
   },
-];
-
-// Productivity
-const productivityItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
-  {
-    title: "Networking",
-    href: "/portal/networking",
-    icon: Handshake,
-    featureKey: "networking",
-  },
-  {
-    title: "Deals",
-    href: "/portal/deals",
-    icon: DollarSign,
-    featureKey: "deals",
-  },
-];
-
-// Affiliate Center
-const affiliateCenterItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
-  {
-    title: "Affiliates",
-    href: "/portal/affiliates",
-    icon: UsersRound,
-    featureKey: "affiliates",
-  },
-  {
-    title: "Networking",
-    href: "/portal/networking",
-    icon: Network,
-    featureKey: "networking",
-  },
-  {
-    title: "Deals",
-    href: "/portal/deals",
-    icon: Briefcase,
-    featureKey: "deals",
-  },
-];
-
-// Content
-const contentItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
     title: "Documents",
     href: "/portal/documents",
     icon: FileText,
     featureKey: "documents",
   },
-];
-
-// Admin
-const adminItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
   {
     title: "GoHighLevel",
     href: "/portal/gohighlevel",
@@ -272,7 +272,7 @@ const adminItems: { title: string; href: string; icon: React.ElementType; badge?
     featureKey: "gohighlevel",
   },
   {
-    title: "GHL Migration",
+    title: "GHL Integration",
     href: "/portal/admin/ghl-migration",
     icon: ArrowRightLeft,
     featureKey: "ghlMigration",
@@ -290,34 +290,16 @@ const adminItems: { title: string; href: string; icon: React.ElementType; badge?
     featureKey: "imageManager",
   },
   {
-    title: "Book a Call",
-    href: "/portal/admin/book-a-call",
-    icon: Calendar,
-    featureKey: "bookACall",
-  },
-  {
-    title: "Success Stories",
-    href: "/portal/admin/success-stories",
-    icon: Quote,
-    featureKey: "successStories",
-  },
-  {
-    title: "Page Designer",
-    href: "/portal/admin/page-designer",
-    icon: Paintbrush,
-    featureKey: "pageDesigner",
+    title: "Academy Admin",
+    href: "/portal/admin/academy",
+    icon: GraduationCap,
+    featureKey: "academyAdmin",
   },
   {
     title: "Navigation Manager",
     href: "/portal/admin/navigation",
     icon: Menu,
     featureKey: "navigationManager",
-  },
-  {
-    title: "Academy Admin",
-    href: "/portal/admin/academy",
-    icon: GraduationCap,
-    featureKey: "academyAdmin",
   },
   {
     title: "Revenue Config",
@@ -443,6 +425,7 @@ export function PortalSidebar() {
     affiliateCenter: false,
     content: false,
     admin: false,
+    legacy83Business: true,
   });
 
   const toggleSection = (section: keyof typeof openSections) => {
@@ -540,34 +523,13 @@ export function PortalSidebar() {
           </div>
         )}
 
-        {/* System Management */}
-        {renderSection("systemManagement", "System Management", systemManagementItems)}
-
-        {/* Project Management */}
-        {renderSection("projectManagement", "Project Management", projectManagementItems)}
-
-        {/* Productivity */}
-        {renderSection("productivity", "Productivity", productivityItems)}
-
-        {/* Data */}
-        {renderSection("data", "Data", dataItems)}
-
-        {/* People */}
-        {renderSection("people", "People", peopleItems)}
-
-        {/* Affiliate Center */}
-        {renderSection("affiliateCenter", "Affiliate Center", affiliateCenterItems)}
-
-        {/* Content */}
-        {renderSection("content", "Content", contentItems)}
-
-        {/* Admin */}
-        <Collapsible open={openSections.admin} onOpenChange={() => toggleSection("admin")}>
+        {/* Legacy 83 Business */}
+        <Collapsible open={openSections.legacy83Business} onOpenChange={() => toggleSection("legacy83Business")}>
           <SidebarGroup>
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md flex items-center justify-between pr-2">
-                <span>Admin</span>
-                {openSections.admin ? (
+                <span>Legacy 83 Business</span>
+                {openSections.legacy83Business ? (
                   <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
                 ) : (
                   <ChevronRight className="h-4 w-4 text-sidebar-foreground/60" />
@@ -577,11 +539,11 @@ export function PortalSidebar() {
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {adminItems.filter(item => canSeeFeature(item.featureKey)).map((item) => (
+                  {legacy83BusinessItems.filter(item => canSeeFeature(item.featureKey)).map((item) => (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         asChild
-                        isActive={pathname === item.href || pathname.startsWith(item.href)}
+                        isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
                         tooltip={item.title}
                       >
                         <Link href={item.href}>
@@ -614,6 +576,30 @@ export function PortalSidebar() {
             </CollapsibleContent>
           </SidebarGroup>
         </Collapsible>
+
+        {/* System Management */}
+        {renderSection("systemManagement", "System Management", systemManagementItems)}
+
+        {/* Project Management */}
+        {renderSection("projectManagement", "Project Management", projectManagementItems)}
+
+        {/* Productivity */}
+        {renderSection("productivity", "Productivity", productivityItems)}
+
+        {/* Data */}
+        {renderSection("data", "Data", dataItems)}
+
+        {/* People */}
+        {renderSection("people", "People", peopleItems)}
+
+        {/* Affiliate Center */}
+        {renderSection("affiliateCenter", "Affiliate Center", affiliateCenterItems)}
+
+        {/* Content */}
+        {renderSection("content", "Content", contentItems)}
+
+        {/* Admin */}
+        {renderSection("admin", "Admin", adminItems)}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
