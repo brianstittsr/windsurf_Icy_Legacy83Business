@@ -323,16 +323,48 @@ export default function BookingPage() {
             teamMemberEmail: availability.teamMemberEmail,
             clientName: bookingDetails.name,
             clientEmail: bookingDetails.email,
+            clientPhone: bookingDetails.phone || undefined,
+            clientCompany: bookingDetails.company || undefined,
             meetingType: selectedMeetingType.name,
             date: selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
             time: formatTime(selectedTime),
             duration: selectedMeetingType.duration,
-            notes: bookingDetails.notes,
+            timezone: availability.timezone,
+            notes: bookingDetails.notes || undefined,
           }),
         });
       } catch (emailError) {
         console.error("Error sending notification:", emailError);
         // Don't fail the booking if email fails
+      }
+
+      // Send booking data to LeadConnector webhook
+      try {
+        await fetch('https://services.leadconnectorhq.com/hooks/o1rlj177UVXuz2i8tHHJ/webhook-trigger/f9f11823-9744-4a5e-8b8f-6489e6e3f62f', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: bookingRef.id,
+            teamMemberName: availability.teamMemberName,
+            teamMemberEmail: availability.teamMemberEmail,
+            clientName: bookingDetails.name,
+            clientEmail: bookingDetails.email,
+            clientPhone: bookingDetails.phone || undefined,
+            clientCompany: bookingDetails.company || undefined,
+            clientNotes: bookingDetails.notes || undefined,
+            meetingType: selectedMeetingType.name,
+            date: dateStr,
+            startTime: selectedTime,
+            endTime: endTime,
+            duration: selectedMeetingType.duration,
+            timezone: availability.timezone,
+            status: 'confirmed',
+            bookedAt: new Date().toISOString(),
+          }),
+        });
+      } catch (webhookError) {
+        console.error("Error sending booking to LeadConnector webhook:", webhookError);
+        // Don't fail the booking if webhook fails
       }
       
       // Set confirmed state
@@ -653,7 +685,7 @@ export default function BookingPage() {
               </div>
               <h2 className="text-2xl font-bold mb-2">Booking Confirmed!</h2>
               <p className="text-muted-foreground mb-6">
-                Your meeting has been scheduled. A confirmation email will be sent to info@legacy83business.com.
+                Your meeting has been scheduled. A confirmation email with a calendar invite has been sent to <strong>{bookingDetails.email}</strong> and our team at <strong>info@legacy83business.com</strong>.
               </p>
               
               <div className="bg-muted rounded-lg p-4 max-w-sm mx-auto text-left space-y-2">

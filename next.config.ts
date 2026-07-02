@@ -55,7 +55,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; img-src 'self' https: data: blob:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://*.googleapis.com https://*.google.com https://*.pexels.com https://*.unsplash.com;",
+            value: "default-src 'self'; img-src 'self' https: data: blob:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://*.googleapis.com https://*.google.com https://*.pexels.com https://*.unsplash.com https://services.leadconnectorhq.com;",
           },
         ],
       },
@@ -77,6 +77,16 @@ const nextConfig: NextConfig = {
     return [
       // Add any necessary redirects here
       // Example: redirect old URLs to new ones
+    ];
+  },
+
+  // Rewrites for clean booking URLs
+  async rewrites() {
+    return [
+      {
+        source: "/schedule-a-call",
+        destination: "/book/schedule-a-call",
+      },
     ];
   },
 };

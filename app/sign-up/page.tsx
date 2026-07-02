@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Eye, EyeOff, AlertCircle, Users, Building2, CheckCircle, Factory, UserCheck } from "lucide-react";
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle, Building2 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { findAndLinkTeamMember } from "@/lib/auth-team-member-link";
@@ -19,7 +18,7 @@ import { findAndLinkTeamMember } from "@/lib/auth-team-member-link";
 export default function SignUpPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [accountType, setAccountType] = useState<"affiliate" | "strategic_partner" | "client" | "">("");
+  const [accountType] = useState<"client">("client");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -36,10 +35,6 @@ export default function SignUpPage() {
   const [linkedTeamMember, setLinkedTeamMember] = useState<string | null>(null);
 
   const validateStep1 = () => {
-    if (!accountType) {
-      setError("Please select an account type");
-      return false;
-    }
     setError("");
     return true;
   };
@@ -136,14 +131,8 @@ export default function SignUpPage() {
         sessionStorage.setItem("svp_firebase_uid", firebaseUid);
       }
 
-      // Redirect based on account type
-      if (accountType === "client") {
-        router.push("/onboarding/client");
-      } else if (accountType === "affiliate") {
-        router.push("/portal");
-      } else {
-        router.push("/portal");
-      }
+      // Redirect to client onboarding
+      router.push("/onboarding/client");
     } catch (err) {
       setError("An error occurred during registration. Please try again.");
     } finally {
@@ -188,11 +177,11 @@ export default function SignUpPage() {
         <Card className="shadow-xl border-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl text-center">
-              {step === 1 ? "Choose Account Type" : "Create Your Account"}
+              {step === 1 ? "Register as Legacy83 Business Client" : "Create Your Account"}
             </CardTitle>
             <CardDescription className="text-center">
               {step === 1 
-                ? "Select how you'd like to join Strategic Value+" 
+                ? "Get started with your Legacy83 Business client account" 
                 : "Fill in your details to get started"}
             </CardDescription>
           </CardHeader>
@@ -206,98 +195,23 @@ export default function SignUpPage() {
 
             {step === 1 ? (
               <div className="space-y-4">
-                <RadioGroup
-                  value={accountType}
-                  onValueChange={(value) => setAccountType(value as "affiliate" | "strategic_partner" | "client")}
-                  className="space-y-4"
-                >
-                  <div 
-                    className={`flex items-start space-x-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      accountType === "affiliate" 
-                        ? "border-[#C8A951] bg-[#C8A951]/5" 
-                        : "border-muted hover:border-muted-foreground/50"
-                    }`}
-                    onClick={() => setAccountType("affiliate")}
-                  >
-                    <RadioGroupItem value="affiliate" id="affiliate" className="mt-1" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-[#C8A951]" />
-                        <Label htmlFor="affiliate" className="text-lg font-semibold cursor-pointer">
-                          Affiliate Partner
-                        </Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Join our referral network and earn commissions by connecting manufacturers with V+ services. 
-                        Perfect for consultants, industry experts, and business development professionals.
-                      </p>
-                      <ul className="text-xs text-muted-foreground mt-2 space-y-1">
-                        <li>• Earn referral commissions</li>
-                        <li>• Access networking tools</li>
-                        <li>• One-to-One meeting scheduling</li>
-                        <li>• Training and resources</li>
-                      </ul>
+                <div className="flex items-start space-x-4 p-4 border-2 rounded-lg border-[#C8A951] bg-[#C8A951]/5">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-[#C8A951]" />
+                      <span className="text-lg font-semibold">Legacy83 Business client</span>
                     </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Register as a Legacy83 Business client to access our services and connect with our network of consultants and partners.
+                    </p>
+                    <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <li>• Access to consulting services</li>
+                      <li>• Business growth programs</li>
+                      <li>• Strategic assessments</li>
+                      <li>• Digital transformation support</li>
+                    </ul>
                   </div>
-
-                  <div 
-                    className={`flex items-start space-x-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      accountType === "strategic_partner" 
-                        ? "border-[#C8A951] bg-[#C8A951]/5" 
-                        : "border-muted hover:border-muted-foreground/50"
-                    }`}
-                    onClick={() => setAccountType("strategic_partner")}
-                  >
-                    <RadioGroupItem value="strategic_partner" id="strategic_partner" className="mt-1" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-5 w-5 text-[#C8A951]" />
-                        <Label htmlFor="strategic_partner" className="text-lg font-semibold cursor-pointer">
-                          Strategic Partner
-                        </Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Partner with Strategic Value+ to deliver comprehensive manufacturing solutions. 
-                        Ideal for service providers, technology vendors, and industry organizations.
-                      </p>
-                      <ul className="text-xs text-muted-foreground mt-2 space-y-1">
-                        <li>• Co-branded solutions</li>
-                        <li>• Joint go-to-market opportunities</li>
-                        <li>• Access to manufacturer network</li>
-                        <li>• Priority deal flow</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div 
-                    className={`flex items-start space-x-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      accountType === "client" 
-                        ? "border-[#C8A951] bg-[#C8A951]/5" 
-                        : "border-muted hover:border-muted-foreground/50"
-                    }`}
-                    onClick={() => setAccountType("client")}
-                  >
-                    <RadioGroupItem value="client" id="client" className="mt-1" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Factory className="h-5 w-5 text-[#C8A951]" />
-                        <Label htmlFor="client" className="text-lg font-semibold cursor-pointer">
-                          Client (Customer/Supplier)
-                        </Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Register as a manufacturing customer or supplier to access V+ services and 
-                        connect with our network of consultants and partners.
-                      </p>
-                      <ul className="text-xs text-muted-foreground mt-2 space-y-1">
-                        <li>• Access to V+ consulting services</li>
-                        <li>• Supplier qualification programs</li>
-                        <li>• Manufacturing assessments</li>
-                        <li>• Industry 4.0 transformation support</li>
-                      </ul>
-                    </div>
-                  </div>
-                </RadioGroup>
+                </div>
 
                 <Button 
                   type="button"
