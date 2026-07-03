@@ -32,7 +32,7 @@ import {
   MessageSquare,
   Loader2,
 } from "lucide-react";
-import { collection, getDocs, addDoc, query, where, Timestamp } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, where, Timestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { COLLECTIONS, type TeamMemberAvailabilityDoc, type BookingDoc, type CalendarEventDoc } from "@/lib/schema";
 import { buildGoogleCalendarLink, buildOutlookCalendarLink, buildICSContent, encodeICSForDataUri } from "@/lib/calendar-invite";
@@ -356,7 +356,8 @@ export default function BookingPage() {
       
       await addDoc(collection(db, COLLECTIONS.CALENDAR_EVENTS), calendarEvent);
       
-      // Send email notifications
+      // 1. Send email confirmation with iCal attachment
+      let confirmationEmailSent = false;
       try {
         await fetch('/api/bookings/notify', {
           method: 'POST',
@@ -377,12 +378,16 @@ export default function BookingPage() {
             notes: bookingDetails.notes || undefined,
           }),
         });
+        confirmationEmailSent = true;
+
+        // Update booking to record that the confirmation email was sent
+        await updateDoc(bookingRef, { confirmationEmailSent: true });
       } catch (emailError) {
-        console.error("Error sending notification:", emailError);
-        // Don't fail the booking if email fails
+        console.error("Error sending confirmation email:", emailError);
+        // Don't fail the booking if email fails, but still log it
       }
 
-      // Send booking data to LeadConnector webhook
+      // 2. Submit webhook to GHL to start appointment reminder workflow
       try {
         await fetch('https://services.leadconnectorhq.com/hooks/o1rlj177UVXuz2i8tHHJ/webhook-trigger/5d08cd4b-d5b3-4db4-9e16-26b7bb6b6fa1', {
           method: 'POST',
@@ -404,6 +409,8 @@ export default function BookingPage() {
             timezone: availability.timezone,
             status: 'confirmed',
             bookedAt: new Date().toISOString(),
+            confirmationEmailSent,
+            triggerType: 'appointment_reminder',
             calendar: calendarLinks,
           }),
         });
