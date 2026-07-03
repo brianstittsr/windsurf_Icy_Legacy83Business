@@ -248,7 +248,7 @@ export function CreateReferralDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="svp">SVP (Strategic Value Plus)</SelectItem>
+                  <SelectItem value="svp">Legacy 83</SelectItem>
                   <SelectItem value="affiliate">Another Affiliate</SelectItem>
                 </SelectContent>
               </Select>

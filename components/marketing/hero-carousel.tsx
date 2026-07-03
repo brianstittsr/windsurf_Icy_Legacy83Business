@@ -50,11 +50,11 @@ export interface HeroSlide {
 const defaultSlides: HeroSlide[] = [
   {
     id: "1",
-    badge: "Introducing EDGE-X™ — Next-Gen Manufacturing Intelligence",
-    headline: "Win OEM Contracts.",
+    badge: "Introducing EDGE-X™ — Next-Gen Business Intelligence",
+    headline: "Grow Your Business.",
     highlightedText: "Transform",
-    subheadline: "We help small- and mid-sized U.S. manufacturers become qualified suppliers through ISO certification, operational readiness, and supplier development.",
-    benefits: ["OEM Supplier Qualification", "ISO/QMS Certification", "Industry 4.0 Ready"],
+    subheadline: "We help businesses achieve strategic goals through expert consulting, process optimization, digital transformation, and operational readiness.",
+    benefits: ["Strategic Growth Planning", "Quality & Compliance", "Digital Transformation"],
     primaryCta: { text: "Get Your Free Assessment", href: "/contact" },
     secondaryCta: { text: "See Success Stories", href: "/case-studies" },
     isPublished: true,
@@ -86,12 +86,12 @@ const defaultSlides: HeroSlide[] = [
   },
   {
     id: "4",
-    badge: "Reshoring Initiative Partner",
-    headline: "Bring Manufacturing",
-    highlightedText: "Home",
-    subheadline: "Join the reshoring movement. We help companies navigate the complexities of bringing manufacturing back to the United States with comprehensive support.",
-    benefits: ["Supply Chain Security", "Quality Control", "Job Creation"],
-    primaryCta: { text: "Start Reshoring", href: "/services/reshoring" },
+    badge: "Business Growth Strategy",
+    headline: "Scale Your Business",
+    highlightedText: "Faster",
+    subheadline: "From strategy to execution, we partner with you to unlock sustainable growth, optimize revenue, and build a more resilient organization.",
+    benefits: ["Revenue Growth", "Operational Efficiency", "Strategic Partnerships"],
+    primaryCta: { text: "Start Your Journey", href: "/contact" },
     secondaryCta: { text: "View Case Studies", href: "/case-studies" },
     isPublished: true,
     order: 4,
@@ -165,7 +165,7 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
             {/* Headline */}
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               {currentSlide.headline}{" "}
-              <span className="text-primary">{currentSlide.highlightedText}</span> Your Manufacturing.
+              <span className="text-primary">{currentSlide.highlightedText}</span>
             </h1>
 
             {/* Subheadline */}
@@ -236,27 +236,23 @@ export function HeroCarousel({ slides = defaultSlides, autoPlayInterval = 6000 }
 
           {/* Trust Indicators */}
           <div className="mt-16 pt-8 border-t border-white/10">
-            <p className="text-sm text-gray-400 mb-6">Certifications & Partnerships</p>
+            <p className="text-sm text-gray-400 mb-6">Trusted by businesses across the United States</p>
             <div className="flex flex-wrap justify-center items-center gap-6 md:gap-10">
               <div className="flex flex-col items-center text-center">
                 <span className="text-lg font-bold text-white">ISO 9001</span>
-                <span className="text-xs text-gray-400">Certified</span>
+                <span className="text-xs text-gray-400">Compliant</span>
               </div>
               <div className="flex flex-col items-center text-center">
-                <span className="text-lg font-bold text-white">IATF 16949</span>
-                <span className="text-xs text-gray-400">Automotive</span>
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <span className="text-lg font-bold text-white">MEP</span>
-                <span className="text-xs text-gray-400">Network Partner</span>
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <span className="text-lg font-bold text-white">Reshoring</span>
-                <span className="text-xs text-gray-400">Initiative</span>
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <span className="text-lg font-bold text-white">NIST</span>
+                <span className="text-lg font-bold text-white">EOS®</span>
                 <span className="text-xs text-gray-400">Aligned</span>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <span className="text-lg font-bold text-white">AI</span>
+                <span className="text-xs text-gray-400">Powered Tools</span>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <span className="text-lg font-bold text-white">Legacy 83</span>
+                <span className="text-xs text-gray-400">Partner Network</span>
               </div>
             </div>
           </div>

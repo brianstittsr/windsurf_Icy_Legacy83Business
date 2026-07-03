@@ -16,7 +16,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu,
   ChevronDown,
-  Factory,
   Cpu,
   Brain,
   FileCheck,
@@ -32,15 +31,14 @@ const services = [
   {
     title: "V+ EDGE™",
     href: "/v-edge",
-    description: "Modular Industry 4.0 transformation platform",
+    description: "Modular business transformation platform",
     icon: Wrench,
     items: [
-      { title: "Lean Manufacturing", href: "/v-edge/lean" },
+      { title: "Process Optimization", href: "/v-edge/lean" },
       { title: "Automation", href: "/v-edge/automation" },
-      { title: "Quality & ISO", href: "/v-edge/quality" },
+      { title: "Quality & Compliance", href: "/v-edge/quality" },
       { title: "Digital Transformation", href: "/v-edge/digital" },
       { title: "Workforce Development", href: "/v-edge/workforce" },
-      { title: "Reshoring", href: "/v-edge/reshore" },
     ],
   },
   {
@@ -98,7 +96,7 @@ export function Navbar() {
           />
           <div className="flex flex-col">
             <span className="text-lg font-bold leading-none">Strategic Value+</span>
-            <span className="text-xs text-muted-foreground">Transforming U.S. Manufacturing</span>
+            <span className="text-xs text-muted-foreground">Business Growth & Transformation</span>
           </div>
         </Link>
 

@@ -27,7 +27,6 @@ import {
   Mail,
   Phone,
   Globe,
-  Factory,
   FileText,
   Award,
   Truck,
@@ -97,13 +96,13 @@ const certificationOptions = [
 
 // Services of interest
 const servicesOfInterest = [
-  { id: "lean", name: "Lean Manufacturing" },
+  { id: "strategy", name: "Business Strategy" },
   { id: "quality", name: "Quality Systems & ISO" },
-  { id: "automation", name: "Automation & Industry 4.0" },
+  { id: "automation", name: "Automation & Technology" },
   { id: "workforce", name: "Workforce Development" },
   { id: "supply_chain", name: "Supply Chain Optimization" },
   { id: "digital", name: "Digital Transformation" },
-  { id: "assessment", name: "Manufacturing Assessment" },
+  { id: "assessment", name: "Business Assessment" },
   { id: "training", name: "Training Programs" },
 ];
 
@@ -224,8 +223,6 @@ export default function ClientOnboardingPage() {
         return formData.companyName && formData.companyType && formData.streetAddress && formData.city && formData.state && formData.zipCode;
       case "contacts":
         return formData.contactName && formData.contactEmail && formData.contactPhone;
-      case "manufacturing":
-        return formData.industrySectors.length > 0;
       case "quality":
         return true; // Optional
       case "services":
@@ -244,7 +241,7 @@ export default function ClientOnboardingPage() {
   };
 
   const handleNext = () => {
-    const tabs = ["company", "contacts", "manufacturing", "quality", "services"];
+    const tabs = ["company", "contacts", "quality", "services"];
     const currentIndex = tabs.indexOf(activeTab);
     if (currentIndex < tabs.length - 1) {
       handleTabChange(tabs[currentIndex + 1]);
@@ -252,7 +249,7 @@ export default function ClientOnboardingPage() {
   };
 
   const handleBack = () => {
-    const tabs = ["company", "contacts", "manufacturing", "quality", "services"];
+    const tabs = ["company", "contacts", "quality", "services"];
     const currentIndex = tabs.indexOf(activeTab);
     if (currentIndex > 0) {
       handleTabChange(tabs[currentIndex - 1]);
@@ -291,7 +288,7 @@ export default function ClientOnboardingPage() {
               className="h-10 w-auto"
             />
             <div className="flex flex-col">
-              <span className="text-lg font-bold leading-none">Strategic Value+</span>
+              <span className="text-lg font-bold leading-none">Legacy 83</span>
               <span className="text-xs text-muted-foreground">Client Onboarding</span>
             </div>
           </Link>
@@ -309,17 +306,17 @@ export default function ClientOnboardingPage() {
           {/* Page Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#C8A951] to-[#a08840] mb-4">
-              <Factory className="h-8 w-8 text-white" />
+              <Building2 className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold mb-2">Client Registration</h1>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Complete your company profile to access Strategic Value+ services and connect with our network of manufacturing experts.
+              Complete your company profile to access Legacy 83 services and connect with our network of expert consultants.
             </p>
           </div>
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="company" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Company</span>
@@ -329,11 +326,6 @@ export default function ClientOnboardingPage() {
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Contacts</span>
                 {completedTabs.includes("contacts") && <CheckCircle className="h-3 w-3 text-green-500" />}
-              </TabsTrigger>
-              <TabsTrigger value="manufacturing" className="flex items-center gap-2">
-                <Factory className="h-4 w-4" />
-                <span className="hidden sm:inline">Manufacturing</span>
-                {completedTabs.includes("manufacturing") && <CheckCircle className="h-3 w-3 text-green-500" />}
               </TabsTrigger>
               <TabsTrigger value="quality" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
@@ -833,7 +825,7 @@ export default function ClientOnboardingPage() {
                       id="primaryGoals"
                       value={formData.primaryGoals}
                       onChange={(e) => updateFormData("primaryGoals", e.target.value)}
-                      placeholder="What are your main objectives for working with Strategic Value+?"
+                      placeholder="What are your main objectives for working with Legacy 83?"
                       rows={3}
                     />
                   </div>
@@ -909,7 +901,7 @@ export default function ClientOnboardingPage() {
                         <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
                       </Label>
                       <p className="text-sm text-muted-foreground mt-1">
-                        By submitting this form, you consent to Strategic Value+ contacting you about our services.
+                        By submitting this form, you consent to Legacy 83 contacting you about our services.
                       </p>
                     </div>
                   </div>

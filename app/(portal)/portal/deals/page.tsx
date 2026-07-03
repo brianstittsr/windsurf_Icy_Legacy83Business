@@ -560,7 +560,7 @@ export default function DealsPage() {
             My Referrals ({deals.filter(d => d.referrerId === (linkedTeamMember?.id || profile.id)).length})
           </TabsTrigger>
           <TabsTrigger value="svp">
-            SVP Referrals ({deals.filter(d => d.isSvpReferral).length})
+            Legacy 83 Referrals ({deals.filter(d => d.isSvpReferral).length})
           </TabsTrigger>
         </TabsList>
       </Tabs>

@@ -15,34 +15,34 @@ export function Hero() {
         <div className="mx-auto max-w-4xl text-center">
           {/* Badge */}
           <Badge variant="outline" className="mb-6 border-primary/50 text-primary">
-            Introducing EDGE-X™ — Next-Gen Manufacturing Intelligence
+            Introducing EDGE-X™ — Next-Gen Business Intelligence
           </Badge>
 
           {/* Headline */}
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-            Win OEM Contracts.{" "}
-            <span className="text-primary">Transform</span> Your Manufacturing.
+            Grow Your Business.{" "}
+            <span className="text-primary">Transform</span> Your Operations.
           </h1>
 
           {/* Subheadline */}
           <p className="mt-6 text-lg text-gray-300 md:text-xl max-w-2xl mx-auto">
-            We help small- and mid-sized U.S. manufacturers become qualified suppliers 
-            through ISO certification, operational readiness, and supplier development.
+            We help businesses achieve strategic goals through expert consulting, 
+            process optimization, digital transformation, and operational readiness.
           </p>
 
           {/* Key Benefits */}
           <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-primary" />
-              <span>OEM Supplier Qualification</span>
+              <span>Strategic Growth Planning</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-primary" />
-              <span>ISO/QMS Certification</span>
+              <span>Quality & Compliance</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-primary" />
-              <span>Industry 4.0 Ready</span>
+              <span>Digital Transformation</span>
             </div>
           </div>
 
@@ -64,7 +64,7 @@ export function Hero() {
 
           {/* Trust Indicators */}
           <div className="mt-16 pt-8 border-t border-white/10">
-            <p className="text-sm text-gray-400 mb-6">Trusted by manufacturers across the United States</p>
+            <p className="text-sm text-gray-400 mb-6">Trusted by businesses across the United States</p>
             <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
               {/* Placeholder for client logos */}
               <div className="h-8 w-24 bg-white/20 rounded" />

@@ -374,13 +374,6 @@ export default function SVPToolsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-white/60 rounded-lg">
-              <Factory className="h-5 w-5 text-orange-500" />
-              <div>
-                <p className="font-medium text-sm">Manufacturing Planning</p>
-                <p className="text-xs text-muted-foreground">Plant, Shift, Multi-Site tools</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-white/60 rounded-lg">
               <DollarSign className="h-5 w-5 text-green-500" />
               <div>
                 <p className="font-medium text-sm">Finance Planning</p>

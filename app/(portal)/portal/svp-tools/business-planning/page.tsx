@@ -62,11 +62,11 @@ import { cn } from "@/lib/utils";
 // Mary the SVP Analyst - AI Facilitator Configuration
 const MARY_CONFIG = {
   name: "Mary",
-  title: "SVP Business Analyst",
+  title: "Business Analyst",
   avatar: "👩‍💼",
   color: "#8b5cf6",
   description: "Your AI-powered strategic planning facilitator who guides structured brainstorming sessions and generates actionable insights.",
-  systemPrompt: `You are Mary, the SVP (Strategic Value Plus) Analyst - an expert AI facilitator specializing in strategic business planning. Your role is to:
+  systemPrompt: `You are Mary, the Legacy 83 Business Analyst - an expert AI facilitator specializing in strategic business planning. Your role is to:
 
 1. FACILITATE structured brainstorming sessions by asking probing questions
 2. GATHER comprehensive information through guided discovery
@@ -150,54 +150,6 @@ const PLANNING_CATEGORIES = [
           "What is your technology modernization priority?",
           "How does technology support business objectives?",
           "What are your biggest technical debt items?",
-        ],
-      },
-    ],
-  },
-  {
-    id: "manufacturing",
-    name: "Manufacturing Planning Tools",
-    description: "Production and operations planning for manufacturing",
-    icon: Factory,
-    color: "bg-orange-500",
-    tools: [
-      {
-        id: "plant-manager",
-        name: "Plant Manager Planning Tool",
-        description: "Single facility operations and production planning",
-        icon: Factory,
-        color: "#f97316",
-        focusAreas: ["Production Scheduling", "Equipment Maintenance", "Safety & Compliance", "Workforce Management", "Quality Control"],
-        sampleQuestions: [
-          "What is your current production capacity utilization?",
-          "What are your key safety metrics and concerns?",
-          "How do you handle equipment downtime?",
-        ],
-      },
-      {
-        id: "shift-manager",
-        name: "Shift Manager Planning Tool",
-        description: "Shift-level operations and team coordination",
-        icon: Users,
-        color: "#84cc16",
-        focusAreas: ["Shift Handoffs", "Team Coordination", "Real-time Problem Solving", "Production Targets", "Safety Protocols"],
-        sampleQuestions: [
-          "What information is critical for shift handoffs?",
-          "How do you handle unexpected production issues?",
-          "What are your shift-level KPIs?",
-        ],
-      },
-      {
-        id: "multi-site-ops",
-        name: "Multi-Site Operations Planning Tool",
-        description: "Cross-facility coordination and standardization",
-        icon: Building2,
-        color: "#6366f1",
-        focusAreas: ["Site Standardization", "Resource Sharing", "Best Practice Transfer", "Capacity Balancing", "Central Reporting"],
-        sampleQuestions: [
-          "How do you standardize processes across sites?",
-          "What metrics do you use to compare site performance?",
-          "How do you balance capacity across facilities?",
         ],
       },
     ],

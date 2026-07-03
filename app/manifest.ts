@@ -2,10 +2,10 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Strategic Value+ | Transforming U.S. Manufacturing",
-    short_name: "Strategic Value+",
+    name: "Legacy 83 Business Inc | Business Growth & Transformation",
+    short_name: "Legacy 83",
     description:
-      "We help small- and mid-sized U.S. manufacturers win OEM contracts through supplier qualification, ISO certification, and operational readiness.",
+      "We help businesses grow, optimize operations, and achieve strategic goals through expert consulting, technology, and business development solutions.",
     start_url: "/",
     display: "standalone",
     background_color: "#000000",

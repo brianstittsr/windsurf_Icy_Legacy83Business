@@ -20,7 +20,7 @@ import {
 export const metadata: Metadata = {
   title: "Core Team",
   description:
-    "Meet the Strategic Value+ team - veteran experts with complementary expertise in manufacturing, finance, international business, and technology.",
+    "Meet the Legacy 83 team - veteran experts with complementary expertise in business consulting, finance, international business, and technology.",
 };
 
 const expertiseAreas = [
@@ -38,15 +38,15 @@ const expertiseAreas = [
   },
   {
     icon: Factory,
-    title: "Manufacturing Operations Leaders",
+    title: "Operations Leaders",
     description:
-      "Optimize processes, implement lean principles, and enhance efficiency with insights from operations veterans who have worked on the factory floor.",
+      "Optimize processes, implement lean principles, and enhance efficiency with insights from operations veterans who have led high-performing organizations.",
   },
   {
     icon: TrendingUp,
     title: "Sales & Marketing Strategists",
     description:
-      "Drive growth and expand market reach with targeted strategies tailored to the competitive landscape of manufacturing industries.",
+      "Drive growth and expand market reach with targeted strategies tailored to the competitive landscape of your industry.",
   },
   {
     icon: Award,
@@ -79,7 +79,7 @@ const values = [
     icon: Target,
     title: "Dedication to Your Success",
     description:
-      "We don't just consult—we partner with you. Our team is deeply invested in your success, and we take pride in seeing your business thrive. With Strategic Value+ Solutions, you gain trusted advisors committed to driving your business forward.",
+      "We don't just consult—we partner with you. Our team is deeply invested in your success, and we take pride in seeing your business thrive. With Legacy 83, you gain trusted advisors committed to driving your business forward.",
   },
 ];
 
@@ -103,7 +103,7 @@ export default function CompanyPage() {
             <p className="mt-4 text-lg text-gray-400 max-w-3xl mx-auto">
               Our greatest strength lies in our team—a vetted collection of seasoned consultants 
               who bring a wealth of experience, specialized knowledge, and a shared passion for 
-              transforming manufacturing businesses.
+              transforming businesses.
             </p>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function CompanyPage() {
           <div className="flex flex-wrap justify-center gap-6 text-center">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-primary" />
-              <span className="font-medium">Six Sigma & Lean Manufacturing</span>
+              <span className="font-medium">Six Sigma & Process Optimization</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-primary" />

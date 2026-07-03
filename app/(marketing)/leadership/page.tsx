@@ -9,7 +9,7 @@ import { ArrowRight, Linkedin, Mail } from "lucide-react";
 export const metadata: Metadata = {
   title: "Leadership Team",
   description:
-    "Meet the Strategic Value+ leadership team - veteran experts driving manufacturing transformation.",
+    "Meet the Legacy 83 leadership team - veteran experts driving business growth and transformation.",
 };
 
 const leadershipTeam = [
@@ -75,8 +75,8 @@ export default function LeadershipPage() {
               Leadership <span className="text-primary">Team</span>
             </h1>
             <p className="mt-6 text-xl text-gray-300">
-              Veteran experts with decades of combined experience in manufacturing, 
-              technology, and business transformation.
+              Veteran experts with decades of combined experience in business consulting,
+              technology, and organizational transformation.
             </p>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function LeadershipPage() {
           </h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
             Schedule a free consultation to discuss how our leadership team can help 
-            transform your manufacturing operations.
+            transform your business operations.
           </p>
           <Button size="lg" className="mt-8 text-lg px-8" asChild>
             <Link href="/contact">
