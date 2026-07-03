@@ -54,6 +54,19 @@ const companySizes = [
 
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    company: "",
+    jobTitle: "",
+    companySize: "",
+    industry: "",
+    service: "",
+    message: "",
+    newsletter: false,
+  });
   const [bookCallOpen, setBookCallOpen] = useState(false);
   const [isBookingCall, setIsBookingCall] = useState(false);
   const [bookCallForm, setBookCallForm] = useState({
@@ -72,15 +85,55 @@ export default function ContactPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const payload = {
+        firstName: contactForm.firstName,
+        lastName: contactForm.lastName,
+        email: contactForm.email,
+        phone: contactForm.phone || undefined,
+        company: contactForm.company,
+        jobTitle: contactForm.jobTitle || undefined,
+        companySize: contactForm.companySize,
+        industry: contactForm.industry || undefined,
+        service: contactForm.service,
+        message: contactForm.message || undefined,
+        newsletter: contactForm.newsletter,
+        source: "contact-page",
+        submittedAt: new Date().toISOString(),
+      };
 
-    toast.success("Thank you for your inquiry!", {
-      description: "We'll get back to you within 24 hours.",
-    });
+      await fetch("https://services.leadconnectorhq.com/hooks/o1rlj177UVXuz2i8tHHJ/webhook-trigger/TpKQ9HtCcac86vGd6sc7", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    setIsSubmitting(false);
-    (e.target as HTMLFormElement).reset();
+      toast.success("Thank you for your inquiry!", {
+        description: "We'll get back to you within 24 hours.",
+      });
+
+      setContactForm({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        company: "",
+        jobTitle: "",
+        companySize: "",
+        industry: "",
+        service: "",
+        message: "",
+        newsletter: false,
+      });
+      (e.target as HTMLFormElement).reset();
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      toast.error("Failed to submit inquiry", {
+        description: "Please try again or contact us directly.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleBookCall = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -173,40 +226,80 @@ export default function ContactPage() {
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="firstName">First Name *</Label>
-                        <Input id="firstName" required placeholder="John" />
+                        <Input
+                          id="firstName"
+                          required
+                          placeholder="John"
+                          value={contactForm.firstName}
+                          onChange={(e) => setContactForm({ ...contactForm, firstName: e.target.value })}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="lastName">Last Name *</Label>
-                        <Input id="lastName" required placeholder="Smith" />
+                        <Input
+                          id="lastName"
+                          required
+                          placeholder="Smith"
+                          value={contactForm.lastName}
+                          onChange={(e) => setContactForm({ ...contactForm, lastName: e.target.value })}
+                        />
                       </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="email">Email *</Label>
-                        <Input id="email" type="email" required placeholder="john@company.com" />
+                        <Input
+                          id="email"
+                          type="email"
+                          required
+                          placeholder="john@company.com"
+                          value={contactForm.email}
+                          onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone">Phone</Label>
-                        <Input id="phone" type="tel" placeholder="(555) 123-4567" />
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="(513) 335-1978"
+                          value={contactForm.phone}
+                          onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                        />
                       </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="company">Company Name *</Label>
-                        <Input id="company" required placeholder="Your Company Inc." />
+                        <Input
+                          id="company"
+                          required
+                          placeholder="Your Company Inc."
+                          value={contactForm.company}
+                          onChange={(e) => setContactForm({ ...contactForm, company: e.target.value })}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="title">Job Title</Label>
-                        <Input id="title" placeholder="VP Operations" />
+                        <Input
+                          id="title"
+                          placeholder="VP Operations"
+                          value={contactForm.jobTitle}
+                          onChange={(e) => setContactForm({ ...contactForm, jobTitle: e.target.value })}
+                        />
                       </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="size">Company Size *</Label>
-                        <Select required>
+                        <Select
+                          required
+                          value={contactForm.companySize}
+                          onValueChange={(value) => setContactForm({ ...contactForm, companySize: value })}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select company size" />
                           </SelectTrigger>
@@ -221,13 +314,22 @@ export default function ContactPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="industry">Industry</Label>
-                        <Input id="industry" placeholder="e.g., Automotive, Aerospace" />
+                        <Input
+                          id="industry"
+                          placeholder="e.g., Automotive, Aerospace"
+                          value={contactForm.industry}
+                          onChange={(e) => setContactForm({ ...contactForm, industry: e.target.value })}
+                        />
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="service">Service of Interest *</Label>
-                      <Select required>
+                      <Select
+                        required
+                        value={contactForm.service}
+                        onValueChange={(value) => setContactForm({ ...contactForm, service: value })}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a service" />
                         </SelectTrigger>
@@ -247,11 +349,17 @@ export default function ContactPage() {
                         id="message"
                         placeholder="What challenges are you facing? What outcomes are you hoping to achieve?"
                         rows={4}
+                        value={contactForm.message}
+                        onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                       />
                     </div>
 
                     <div className="flex items-start space-x-2">
-                      <Checkbox id="newsletter" />
+                      <Checkbox
+                        id="newsletter"
+                        checked={contactForm.newsletter}
+                        onCheckedChange={(checked) => setContactForm({ ...contactForm, newsletter: checked === true })}
+                      />
                       <Label htmlFor="newsletter" className="text-sm font-normal">
                         Subscribe to our newsletter for manufacturing insights and industry updates
                       </Label>
@@ -285,10 +393,10 @@ export default function ContactPage() {
                     <div>
                       <p className="font-medium">Email</p>
                       <Link
-                        href="mailto:info@strategicvalueplus.com"
+                        href="mailto:info@legacy83business.com"
                         className="text-muted-foreground hover:text-primary"
                       >
-                        info@strategicvalueplus.com
+                        info@legacy83business.com
                       </Link>
                     </div>
                   </div>
@@ -297,10 +405,10 @@ export default function ContactPage() {
                     <div>
                       <p className="font-medium">Phone</p>
                       <Link
-                        href="tel:+1-555-123-4567"
+                        href="tel:+1-513-335-1978"
                         className="text-muted-foreground hover:text-primary"
                       >
-                        (555) 123-4567
+                        (513) 335-1978
                       </Link>
                     </div>
                   </div>
@@ -389,7 +497,7 @@ export default function ContactPage() {
                               type="tel"
                               value={bookCallForm.phone}
                               onChange={(e) => setBookCallForm({ ...bookCallForm, phone: e.target.value })}
-                              placeholder="(555) 123-4567"
+                              placeholder="(513) 335-1978"
                             />
                           </div>
                           <div className="space-y-2">
