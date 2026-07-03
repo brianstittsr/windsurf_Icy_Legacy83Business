@@ -35,6 +35,7 @@ import {
 import { collection, getDocs, addDoc, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { COLLECTIONS, type TeamMemberAvailabilityDoc, type BookingDoc, type CalendarEventDoc } from "@/lib/schema";
+import { buildGoogleCalendarLink, buildOutlookCalendarLink, buildICSContent, encodeICSForDataUri } from "@/lib/calendar-invite";
 
 // Generate time slots for a given day
 const generateTimeSlots = (startTime: string, endTime: string, duration: number): string[] => {
@@ -297,6 +298,49 @@ export default function BookingPage() {
       // Create calendar event
       const startDateTime = new Date(`${dateStr}T${selectedTime}`);
       const endDateTime = new Date(`${dateStr}T${endTime}`);
+
+      // Build calendar invite links and ICS content for GHL email
+      const calendarSummary = `${selectedMeetingType.name} with ${availability.teamMemberName}`;
+      const calendarDescription = [
+        `Meeting: ${selectedMeetingType.name}`,
+        `With: ${availability.teamMemberName}`,
+        `Client: ${bookingDetails.name} <${bookingDetails.email}>`,
+        bookingDetails.phone ? `Phone: ${bookingDetails.phone}` : null,
+        bookingDetails.company ? `Company: ${bookingDetails.company}` : null,
+        bookingDetails.notes ? `Notes: ${bookingDetails.notes}` : null,
+      ].filter(Boolean).join("\n");
+
+      const icsContent = buildICSContent({
+        uid: `booking-${bookingRef.id}@legacy83business.com`,
+        summary: calendarSummary,
+        description: calendarDescription,
+        organizerEmail: availability.teamMemberEmail,
+        organizerName: availability.teamMemberName,
+        attendeeEmail: bookingDetails.email,
+        attendeeName: bookingDetails.name,
+        startDate: startDateTime,
+        endDate: endDateTime,
+        timezone: availability.timezone,
+      });
+
+      const calendarLinks = {
+        googleCalendar: buildGoogleCalendarLink({
+          summary: calendarSummary,
+          description: calendarDescription,
+          startDate: startDateTime,
+          endDate: endDateTime,
+          timezone: availability.timezone,
+        }),
+        outlookCalendar: buildOutlookCalendarLink({
+          summary: calendarSummary,
+          description: calendarDescription,
+          startDate: startDateTime,
+          endDate: endDateTime,
+          timezone: availability.timezone,
+        }),
+        icsDownload: encodeICSForDataUri(icsContent),
+        icsContent,
+      };
       
       const calendarEvent: Omit<CalendarEventDoc, 'id'> = {
         title: `Meeting with ${bookingDetails.name}`,
@@ -360,6 +404,7 @@ export default function BookingPage() {
             timezone: availability.timezone,
             status: 'confirmed',
             bookedAt: new Date().toISOString(),
+            calendar: calendarLinks,
           }),
         });
       } catch (webhookError) {
