@@ -93,6 +93,23 @@ export const legacy83HeroSlides: HeroSlide[] = [
       name: "Purposeful Business Growth"
     }
   },
+  {
+    id: "legacy-kdm-250",
+    badge: "250 Year",
+    headline: "50% Off for",
+    highlightedText: "KDM Consortium",
+    subheadline: "Celebrate 250 years of legacy-building with an exclusive 50% discount on our business coaching and consulting packages. Limited-time offer for KDM Consortium members.",
+    benefits: ["50% Off Packages", "250-Year Framework", "Limited-Time Offer"],
+    primaryCta: { text: "Claim Your 50% Off", href: "/schedule-a-call" },
+    secondaryCta: { text: "Learn More", href: "/services" },
+    isPublished: true,
+    order: 6,
+    backgroundImage: {
+      imageId: "pexels-kdm-consortium",
+      url: "https://images.pexels.com/photos/3184416/pexels-photo-3184416.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
+      name: "KDM Consortium Partnership"
+    }
+  },
 ];
 
 /**
