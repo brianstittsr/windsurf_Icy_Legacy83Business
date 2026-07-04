@@ -163,6 +163,41 @@ export default function QuizResultsPage() {
             // Continue showing results even if report generation fails
           }
         }
+
+        // Send quiz lead data to LeadConnector webhook
+        try {
+          await fetch("https://services.leadconnectorhq.com/hooks/o1rlj177UVXuz2i8tHHJ/webhook-trigger/8RIbOCvZ24D7BqqBK5L0", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              submissionId: currentSubmissionId,
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+              phone: formData.phone || undefined,
+              company: formData.company || undefined,
+              quizName: "Legacy Growth IQ Assessment",
+              totalScore: results.totalScore,
+              maxScore: results.maxScore,
+              percentage: results.percentage,
+              scoreLevel: results.scoreRange.level,
+              topStrength: results.topStrength.label,
+              priorityArea: results.topWeakness.label,
+              categoryScores: results.categoryScores.map((cat) => ({
+                category: cat.category,
+                label: cat.label,
+                score: cat.score,
+                maxScore: cat.maxScore,
+                percentage: cat.percentage,
+              })),
+              source: "quiz-results-page",
+              submittedAt: new Date().toISOString(),
+            }),
+          });
+        } catch (webhookError) {
+          console.error("Error sending quiz lead to LeadConnector webhook:", webhookError);
+          // Continue showing results even if webhook fails
+        }
       }
       
       // Store lead info locally as well

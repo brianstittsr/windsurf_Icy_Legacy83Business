@@ -36,6 +36,7 @@ import { collection, getDocs, addDoc, query, where, Timestamp, updateDoc } from 
 import { db } from "@/lib/firebase";
 import { COLLECTIONS, type TeamMemberAvailabilityDoc, type BookingDoc, type CalendarEventDoc } from "@/lib/schema";
 import { buildGoogleCalendarLink, buildOutlookCalendarLink, buildICSContent, encodeICSForDataUri } from "@/lib/calendar-invite";
+import { logOpportunityCreated } from "@/lib/activity-logger";
 
 // Generate time slots for a given day
 const generateTimeSlots = (startTime: string, endTime: string, duration: number): string[] => {
@@ -294,7 +295,41 @@ export default function BookingPage() {
       };
       
       const bookingRef = await addDoc(collection(db, COLLECTIONS.BOOKINGS), bookingData);
-      
+
+      // Create an Opportunity for this booking
+      try {
+        const opportunityData = {
+          name: `Meeting Request - ${bookingDetails.name}`,
+          organizationName: bookingDetails.company || "Unknown",
+          stage: "lead",
+          value: 0,
+          probability: 30,
+          expectedCloseDate: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+          description: `Meeting scheduled via /schedule-a-call.\n\nMeeting Type: ${selectedMeetingType.name}\nDate: ${dateStr}\nTime: ${selectedTime} - ${endTime}\nDuration: ${selectedMeetingType.duration} minutes\nTimezone: ${availability.timezone}\nTeam Member: ${availability.teamMemberName}`,
+          notes: `Contact Info:\nEmail: ${bookingDetails.email}\nPhone: ${bookingDetails.phone || "Not provided"}\nCompany: ${bookingDetails.company || "Not provided"}\n\nBooking ID: ${bookingRef.id}\n\nClient Notes: ${bookingDetails.notes || "None"}`,
+          source: "schedule-a-call",
+          bookingId: bookingRef.id,
+          affiliateId: null,
+          affiliateName: bookingDetails.name,
+          affiliateEmail: bookingDetails.email,
+          affiliatePhone: bookingDetails.phone || null,
+          affiliateCompany: bookingDetails.company || null,
+          deliverables: [],
+          isSubscription: false,
+          monthlyAmount: null,
+          subscriptionTermMonths: null,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        };
+
+        const oppRef = await addDoc(collection(db, COLLECTIONS.OPPORTUNITIES), opportunityData);
+        await logOpportunityCreated(oppRef.id, opportunityData.name);
+        console.log("Opportunity created for schedule-a-call:", oppRef.id);
+      } catch (oppError) {
+        console.error("Error creating opportunity from schedule-a-call:", oppError);
+        // Continue - don't block the booking if opportunity creation fails
+      }
+
       // Create calendar event
       const startDateTime = new Date(`${dateStr}T${selectedTime}`);
       const endDateTime = new Date(`${dateStr}T${endTime}`);
