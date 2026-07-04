@@ -296,6 +296,9 @@ export default function BugTrackerPage() {
   const updateStatus = async (id: string, status: BugTrackerItemStatus) => {
     if (!db) return;
 
+    const item = items.find((i) => i.id === id);
+    const previousStatus = item?.status;
+
     try {
       const itemRef = doc(db, COLLECTIONS.BUG_TRACKER_ITEMS, id);
       await updateDoc(itemRef, {
@@ -303,10 +306,53 @@ export default function BugTrackerPage() {
         updatedAt: serverTimestamp(),
       });
       toast.success(`Status updated to ${status.replace("_", " ")}`);
-      
+
       // Update selected item if viewing
       if (selectedItem?.id === id) {
         setSelectedItem({ ...selectedItem, status });
+      }
+
+      // Send email notification when item is resolved/completed
+      if (status === "resolved" && item && profile) {
+        try {
+          await fetch("/api/bug-tracker/notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: item.id,
+              title: item.title,
+              description: item.description,
+              type: item.type,
+              status,
+              priority: item.priority,
+              page: item.page,
+              reporterName: item.reporterName,
+              reporterId: item.reporterId,
+              assigneeName: item.assigneeName,
+              assigneeId: item.assigneeId,
+              tags: item.tags,
+              createdAt: item.createdAt.toISOString(),
+              updatedAt: new Date().toISOString(),
+              comments: item.comments.map((comment) => ({
+                id: comment.id,
+                author: comment.author,
+                authorId: comment.authorId,
+                content: comment.content,
+                createdAt: comment.createdAt.toISOString(),
+              })),
+              previousStatus,
+              resolvedByName:
+                profile.firstName && profile.lastName
+                  ? `${profile.firstName} ${profile.lastName}`
+                  : profile.email || "Unknown User",
+              resolvedByEmail: profile.email || undefined,
+              resolvedAt: new Date().toISOString(),
+            }),
+          });
+        } catch (emailError) {
+          console.error("Error sending bug tracker completion email:", emailError);
+          // Don't block the status update if email fails
+        }
       }
     } catch (error) {
       console.error("Error updating status:", error);
