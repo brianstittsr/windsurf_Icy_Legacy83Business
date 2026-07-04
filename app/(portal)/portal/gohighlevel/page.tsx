@@ -64,6 +64,9 @@ import {
 } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/lib/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { COLLECTIONS, type PlatformSettingsDoc } from "@/lib/schema";
 
 // Types
 interface GHLIntegration {
@@ -142,14 +145,14 @@ interface ImportedWorkflow {
   importedAt: string;
 }
 
-// Workflow Templates for Strategic Value Plus
+// Workflow Templates for Legacy 83 Business
 const WORKFLOW_TEMPLATES = [
   {
     id: 'supplier_onboarding',
     name: 'Supplier Onboarding',
-    description: 'Welcome new suppliers to the V+ network with a comprehensive onboarding sequence',
+    description: 'Welcome new suppliers to the Legacy 83 Business network with a comprehensive onboarding sequence',
     category: 'onboarding',
-    defaultPrompt: 'Create a supplier onboarding sequence for Strategic Value Plus that welcomes new manufacturing suppliers, introduces our services, and guides them through the certification process over 7 days',
+    defaultPrompt: 'Create a supplier onboarding sequence for Legacy 83 Business that welcomes new manufacturing suppliers, introduces our services, and guides them through the certification process over 7 days',
     suggestedType: 'email',
   },
   {
@@ -157,7 +160,7 @@ const WORKFLOW_TEMPLATES = [
     name: 'Workshop Lead Nurture',
     description: 'Nurture leads interested in Supplier Success Workshops',
     category: 'nurture',
-    defaultPrompt: 'Create a 5-day nurture sequence for manufacturers interested in V+ Supplier Success Workshops, highlighting benefits of becoming OEM-ready and CMMC certified',
+    defaultPrompt: 'Create a 5-day nurture sequence for manufacturers interested in Legacy 83 Business Supplier Success Workshops, highlighting benefits of becoming OEM-ready and CMMC certified',
     suggestedType: 'mixed',
   },
   {
@@ -165,7 +168,7 @@ const WORKFLOW_TEMPLATES = [
     name: 'CMMC Readiness Campaign',
     description: 'Guide defense suppliers through CMMC certification preparation',
     category: 'nurture',
-    defaultPrompt: 'Create an educational sequence about CMMC certification requirements for defense supply chain manufacturers, with calls to action for V+ readiness assessments',
+    defaultPrompt: 'Create an educational sequence about CMMC certification requirements for defense supply chain manufacturers, with calls to action for Legacy 83 Business readiness assessments',
     suggestedType: 'email',
   },
   {
@@ -179,7 +182,7 @@ const WORKFLOW_TEMPLATES = [
   {
     id: 'event_reminder',
     name: 'Event/Webinar Reminder',
-    description: 'Remind registrants about upcoming V+ events and webinars',
+    description: 'Remind registrants about upcoming Legacy 83 Business events and webinars',
     category: 'event',
     defaultPrompt: 'Create an event reminder sequence with confirmations 1 week before, 1 day before, and 1 hour before the event, plus a follow-up after',
     suggestedType: 'email',
@@ -187,9 +190,9 @@ const WORKFLOW_TEMPLATES = [
   {
     id: 'reengagement',
     name: 'Supplier Re-engagement',
-    description: 'Re-engage inactive suppliers in the V+ network',
+    description: 'Re-engage inactive suppliers in the Legacy 83 Business network',
     category: 'reengagement',
-    defaultPrompt: 'Create a re-engagement campaign for suppliers who haven\'t engaged with V+ in 90 days, highlighting new OEM opportunities and success stories',
+    defaultPrompt: 'Create a re-engagement campaign for suppliers who haven\'t engaged with Legacy 83 Business in 90 days, highlighting new OEM opportunities and success stories',
     suggestedType: 'mixed',
   },
 ];
@@ -280,6 +283,46 @@ export default function GoHighLevelPage() {
     }
   }, []);
 
+  // Load any GoHighLevel API credentials saved in Settings and create a working integration
+  const seedIntegrationFromSettings = useCallback(async () => {
+    if (!db) return;
+    try {
+      const settingsRef = doc(db, COLLECTIONS.PLATFORM_SETTINGS, "global");
+      const settingsSnap = await getDoc(settingsRef);
+      if (!settingsSnap.exists()) return;
+
+      const settings = settingsSnap.data() as PlatformSettingsDoc;
+      const ghl = settings.integrations?.gohighlevel;
+      if (!ghl?.apiKey || !ghl?.locationId) return;
+
+      const response = await fetch("/api/gohighlevel/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Legacy 83 Business GoHighLevel",
+          description: "Auto-configured from Settings > Integrations",
+          apiToken: ghl.apiKey,
+          locationId: ghl.locationId,
+          agencyId: ghl.agencyId || "",
+          syncContacts: true,
+          syncOpportunities: true,
+          syncCalendars: true,
+          syncPipelines: false,
+          syncCampaigns: false,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        console.log("GoHighLevel integration auto-created from Settings");
+        await fetchIntegrations();
+      } else {
+        console.error("Failed to auto-create GoHighLevel integration:", data.error);
+      }
+    } catch (error) {
+      console.error("Error seeding GoHighLevel integration from settings:", error);
+    }
+  }, [fetchIntegrations]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -292,6 +335,12 @@ export default function GoHighLevelPage() {
     };
     loadData();
   }, [fetchIntegrations, fetchWorkflows, fetchImportedWorkflows]);
+
+  useEffect(() => {
+    if (!loading && integrations.length === 0 && db) {
+      seedIntegrationFromSettings();
+    }
+  }, [loading, integrations.length, db, seedIntegrationFromSettings]);
 
   // Test connection
   const testConnection = async (id: string) => {
@@ -638,7 +687,7 @@ export default function GoHighLevelPage() {
                 </Badge>
               </h1>
               <p className="text-sm text-muted-foreground">
-                Manage CRM integrations and AI-powered marketing automation for V+
+                Manage CRM integrations and AI-powered marketing automation for Legacy 83 Business
               </p>
             </div>
           </div>
@@ -813,7 +862,7 @@ export default function GoHighLevelPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-orange-500" />
-                      Workflow Templates for V+
+                      Workflow Templates for Legacy 83 Business
                     </CardTitle>
                     <CardDescription>
                       Select a template to get started or write your own description
@@ -853,7 +902,7 @@ export default function GoHighLevelPage() {
                     <Textarea
                       value={workflowPrompt}
                       onChange={(e) => setWorkflowPrompt(e.target.value)}
-                      placeholder="e.g., Create a 5-day email sequence for new suppliers that introduces V+ services, explains the certification process, and schedules a discovery call..."
+                      placeholder="e.g., Create a 5-day email sequence for new suppliers that introduces Legacy 83 Business services, explains the certification process, and schedules a discovery call..."
                       rows={4}
                     />
                     <div className="flex gap-4">
@@ -903,21 +952,21 @@ export default function GoHighLevelPage() {
                     <div className="space-y-2 text-sm">
                       <button 
                         className="w-full text-left p-3 rounded-lg border hover:bg-muted transition-colors"
-                        onClick={() => setWorkflowPrompt("Create a welcome sequence for new manufacturing suppliers joining the V+ network. Include an introduction to our services, information about OEM opportunities, and a call to schedule a Supplier Success Workshop.")}
+                        onClick={() => setWorkflowPrompt("Create a welcome sequence for new manufacturing suppliers joining the Legacy 83 Business network. Include an introduction to our services, information about OEM opportunities, and a call to schedule a Supplier Success Workshop.")}
                       >
                         <span className="font-medium">Supplier Welcome Series</span>
-                        <p className="text-muted-foreground mt-1">Welcome new suppliers with V+ services overview and workshop invitation</p>
+                        <p className="text-muted-foreground mt-1">Welcome new suppliers with Legacy 83 Business services overview and workshop invitation</p>
                       </button>
                       <button 
                         className="w-full text-left p-3 rounded-lg border hover:bg-muted transition-colors"
-                        onClick={() => setWorkflowPrompt("Create a CMMC certification awareness campaign for defense supply chain manufacturers. Explain the requirements, timeline, and how V+ can help them achieve compliance.")}
+                        onClick={() => setWorkflowPrompt("Create a CMMC certification awareness campaign for defense supply chain manufacturers. Explain the requirements, timeline, and how Legacy 83 Business can help them achieve compliance.")}
                       >
                         <span className="font-medium">CMMC Awareness Campaign</span>
-                        <p className="text-muted-foreground mt-1">Educate defense suppliers about CMMC requirements and V+ certification services</p>
+                        <p className="text-muted-foreground mt-1">Educate defense suppliers about CMMC requirements and Legacy 83 Business certification services</p>
                       </button>
                       <button 
                         className="w-full text-left p-3 rounded-lg border hover:bg-muted transition-colors"
-                        onClick={() => setWorkflowPrompt("Create a follow-up sequence for suppliers who attended a V+ webinar but haven't scheduled a consultation. Include case studies and success stories from similar manufacturers.")}
+                        onClick={() => setWorkflowPrompt("Create a follow-up sequence for suppliers who attended a Legacy 83 Business webinar but haven't scheduled a consultation. Include case studies and success stories from similar manufacturers.")}
                       >
                         <span className="font-medium">Webinar Follow-up</span>
                         <p className="text-muted-foreground mt-1">Convert webinar attendees with case studies and consultation offers</p>
@@ -1144,7 +1193,7 @@ export default function GoHighLevelPage() {
           <DialogHeader>
             <DialogTitle>Add GoHighLevel Integration</DialogTitle>
             <DialogDescription>
-              Connect a GoHighLevel account to sync supplier data with V+
+              Connect a GoHighLevel account to sync supplier data with Legacy 83 Business
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1154,7 +1203,7 @@ export default function GoHighLevelPage() {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="V+ Main Account"
+                placeholder="Legacy 83 Business Main Account"
               />
             </div>
             <div className="space-y-2">

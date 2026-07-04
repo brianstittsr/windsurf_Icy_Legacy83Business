@@ -680,6 +680,25 @@ function SettingsPageContent() {
                       </div>
                     </div>
                   )}
+
+                  {/* GoHighLevel-specific link to integration management */}
+                  {config.id === "gohighlevel" && (
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">Integration Management</p>
+                          <p className="text-xs text-muted-foreground">
+                            Manage connected accounts, workflows, and sync settings
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href="/portal/gohighlevel">
+                            Manage GoHighLevel
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
