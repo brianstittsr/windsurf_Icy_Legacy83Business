@@ -45,7 +45,7 @@ import {
   CalendarPlus,
   X,
 } from "lucide-react";
-import { collection, getDocs, updateDoc, deleteDoc, doc, Timestamp, addDoc } from "firebase/firestore";
+import { collection, getDocs, updateDoc, deleteDoc, doc, Timestamp, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { COLLECTIONS, type OneToOneQueueItemDoc, type CalendarEventDoc } from "@/lib/schema";
 import { showError, showSuccess } from "@/lib/toast";
@@ -168,22 +168,66 @@ export default function CalendarPage() {
     }
   };
 
+  // Listen to built-in Firestore calendar events in real time
+  const loadCalendarEvents = () => {
+    if (!db) return;
+
+    const eventsQuery = query(
+      collection(db, COLLECTIONS.CALENDAR_EVENTS),
+      orderBy("startDate", "asc")
+    );
+
+    return onSnapshot(
+      eventsQuery,
+      (snapshot) => {
+        const firestoreEvents: CalendarEventData[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data() as CalendarEventDoc;
+          firestoreEvents.push({
+            id: docSnap.id,
+            title: data.title || "Untitled Event",
+            description: data.description,
+            startDate: data.startDate.toDate(),
+            endDate: data.endDate.toDate(),
+            allDay: data.allDay,
+            type: data.type === "one-to-one" ? "meeting" : data.type,
+            color: data.color,
+            attendees: data.attendees,
+            location: data.location,
+            recurringParentId: data.recurringParentId,
+          });
+        });
+
+        setEvents((prev) => {
+          // Keep GHL events and replace Firestore events
+          const ghlEvents = prev.filter((event) => event.id.startsWith("ghl-"));
+          return [...ghlEvents, ...firestoreEvents];
+        });
+      },
+      (error) => {
+        console.error("Error loading calendar events:", error);
+      }
+    );
+  };
+
   // Initial load: Do full historical sync first time, then incremental syncs
   useEffect(() => {
     fetchOneToOneQueue();
-    
+
+    const unsubscribeCalendar = loadCalendarEvents();
+
     // Check if we need to do a full historical sync (first time)
     const checkAndSync = async () => {
       // First try incremental (will use cache if available)
       await fetchGhlCalendarEvents("incremental", false);
-      
+
       // If no events found, do a full historical sync
       if (ghlEvents.length === 0 && !hasCompletedInitialSync) {
         console.log("No cached events found, performing full historical sync...");
         await fetchGhlCalendarEvents("full", true);
       }
     };
-    
+
     checkAndSync();
 
     // Set up auto-refresh interval (5 minutes = 300000ms) for incremental syncs
@@ -192,7 +236,10 @@ export default function CalendarPage() {
       fetchGhlCalendarEvents("incremental", true);
     }, 300000);
 
-    return () => clearInterval(syncInterval);
+    return () => {
+      clearInterval(syncInterval);
+      unsubscribeCalendar?.();
+    };
   }, []);
 
   // Schedule a 1-to-1 meeting

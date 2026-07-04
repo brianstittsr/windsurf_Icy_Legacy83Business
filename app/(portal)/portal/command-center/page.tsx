@@ -28,7 +28,7 @@ import {
   Bug,
 } from "lucide-react";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, getDocs, Timestamp, onSnapshot } from "firebase/firestore";
 import { COLLECTIONS, type OpportunityDoc, type ProjectDoc, type ActionItemDoc, type ActivityDoc, type TeamMemberDoc } from "@/lib/schema";
 import type { CalendarEventDoc } from "@/lib/schema";
 import { DataMigrationBanner } from "@/components/portal/data-migration-banner";
@@ -226,46 +226,6 @@ export default function CommandCenterPage() {
           }
         });
 
-        // Fetch today's meetings/calendar events
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        const eventsRef = collection(db, COLLECTIONS.CALENDAR_EVENTS);
-        const todayEventsQuery = query(
-          eventsRef,
-          where("startDate", ">=", Timestamp.fromDate(today)),
-          where("startDate", "<", Timestamp.fromDate(tomorrow)),
-          orderBy("startDate", "asc"),
-          limit(5)
-        );
-        
-        try {
-          const eventsSnapshot = await getDocs(todayEventsQuery);
-          const meetingsData: MeetingDisplay[] = [];
-          eventsSnapshot.forEach((doc) => {
-            const data = doc.data() as CalendarEventDoc;
-            const startDate = data.startDate?.toDate();
-            const endDate = data.endDate?.toDate();
-            const durationMins = startDate && endDate 
-              ? Math.round((endDate.getTime() - startDate.getTime()) / 60000)
-              : 30;
-            
-            meetingsData.push({
-              id: doc.id,
-              title: data.title || "Meeting",
-              time: startDate ? startDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "",
-              duration: `${durationMins} min`,
-              attendees: data.attendees?.length || 0,
-            });
-          });
-          setMeetings(meetingsData);
-        } catch {
-          // Calendar events collection may not exist yet
-          setMeetings([]);
-        }
-
         // Fetch action items (Traction Todos)
         const todosRef = collection(db, COLLECTIONS.TRACTION_TODOS);
         const todosQuery = query(todosRef, where("status", "!=", "complete"), orderBy("status"), orderBy("dueDate", "asc"), limit(5));
@@ -403,6 +363,55 @@ export default function CommandCenterPage() {
     }
 
     fetchDashboardData();
+  }, []);
+
+  // Real-time listener for today's meetings
+  useEffect(() => {
+    if (!db) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const eventsRef = collection(db, COLLECTIONS.CALENDAR_EVENTS);
+    const todayEventsQuery = query(
+      eventsRef,
+      where("startDate", ">=", Timestamp.fromDate(today)),
+      where("startDate", "<", Timestamp.fromDate(tomorrow)),
+      orderBy("startDate", "asc"),
+      limit(5)
+    );
+
+    const unsubscribe = onSnapshot(
+      todayEventsQuery,
+      (snapshot) => {
+        const meetingsData: MeetingDisplay[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data() as CalendarEventDoc;
+          const startDate = data.startDate?.toDate();
+          const endDate = data.endDate?.toDate();
+          const durationMins = startDate && endDate
+            ? Math.round((endDate.getTime() - startDate.getTime()) / 60000)
+            : 30;
+
+          meetingsData.push({
+            id: doc.id,
+            title: data.title || "Meeting",
+            time: startDate ? startDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "",
+            duration: `${durationMins} min`,
+            attendees: data.attendees?.length || 0,
+          });
+        });
+        setMeetings(meetingsData);
+      },
+      (error) => {
+        console.error("Error listening to today's meetings:", error);
+        setMeetings([]);
+      }
+    );
+
+    return () => unsubscribe();
   }, []);
 
   // Loading skeleton

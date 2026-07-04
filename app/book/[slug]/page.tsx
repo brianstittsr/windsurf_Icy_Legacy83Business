@@ -385,12 +385,19 @@ export default function BookingPage() {
         type: 'meeting',
         color: '#C8A951',
         attendees: [bookingDetails.name, availability.teamMemberName],
+        meetingId: bookingRef.id,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
-      
-      await addDoc(collection(db, COLLECTIONS.CALENDAR_EVENTS), calendarEvent);
-      
+
+      try {
+        await addDoc(collection(db, COLLECTIONS.CALENDAR_EVENTS), calendarEvent);
+        console.log("Calendar event created for booking:", bookingRef.id);
+      } catch (calendarError) {
+        console.error("Error creating calendar event for booking:", calendarError);
+        // Don't fail the booking if calendar event creation fails
+      }
+
       // 1. Send email confirmation with iCal attachment
       let confirmationEmailSent = false;
       try {
