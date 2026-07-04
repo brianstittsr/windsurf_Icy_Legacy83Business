@@ -147,7 +147,7 @@ export default function TeamMembersPage() {
     bio: "",
     linkedIn: "",
     website: "",
-    role: "affiliate" as "superadmin" | "admin" | "team" | "affiliate" | "consultant",
+    role: "affiliate" as "superadmin" | "admin" | "team" | "affiliate" | "consultant" | "client",
     status: "active" as "active" | "inactive" | "pending",
     // Leadership flags
     isCEO: false,

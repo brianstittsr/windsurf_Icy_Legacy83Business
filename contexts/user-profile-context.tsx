@@ -18,10 +18,11 @@ export interface UserProfile {
   location: string;
   bio: string;
   avatarUrl: string;
-  role: "admin" | "affiliate" | "customer" | "team_member";
+  role: "admin" | "affiliate" | "customer" | "team_member" | "client";
   
   // Affiliate-specific fields
   isAffiliate: boolean;
+  isClient: boolean;
   affiliateOnboardingComplete: boolean;
   affiliateAgreementSigned: boolean;
   affiliateAgreementDate: string | null;
@@ -67,6 +68,7 @@ const defaultProfile: UserProfile = {
   avatarUrl: "",
   role: "team_member",
   isAffiliate: false,
+  isClient: false,
   affiliateOnboardingComplete: false,
   affiliateAgreementSigned: false,
   affiliateAgreementDate: null,
@@ -159,8 +161,10 @@ function mapTeamMemberToProfile(teamMember: TeamMemberDoc): Partial<UserProfile>
     avatarUrl: teamMember.avatar || "",
     role: teamMember.role === "admin" ? "admin" : 
           teamMember.role === "affiliate" ? "affiliate" : 
-          teamMember.role === "consultant" ? "affiliate" : "team_member",
+          teamMember.role === "consultant" ? "affiliate" :
+          teamMember.role === "client" ? "client" : "team_member",
     isAffiliate: teamMember.role === "affiliate" || teamMember.role === "consultant",
+    isClient: teamMember.role === "client" || teamMember.isClient,
   };
 }
 

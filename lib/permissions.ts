@@ -7,9 +7,10 @@
  * - team: Internal team members with access to core features
  * - affiliate: External partners with limited access
  * - consultant: External consultants with specific access
+ * - client: External clients with access to their own data and services
  */
 
-export type UserRole = "superadmin" | "admin" | "team" | "affiliate" | "consultant";
+export type UserRole = "superadmin" | "admin" | "team" | "affiliate" | "consultant" | "client";
 
 export interface Permission {
   canViewSidebar: boolean;
@@ -24,6 +25,7 @@ export interface Permission {
   canViewAnalytics: boolean;
   canManageSettings: boolean;
   canManageIntegrations: boolean;
+  canViewClientDashboard: boolean;
 }
 
 // Define permissions for each role
@@ -41,6 +43,7 @@ const rolePermissions: Record<UserRole, Permission> = {
     canViewAnalytics: true,
     canManageSettings: true,
     canManageIntegrations: true,
+    canViewClientDashboard: false,
   },
   admin: {
     canViewSidebar: true,
@@ -55,6 +58,7 @@ const rolePermissions: Record<UserRole, Permission> = {
     canViewAnalytics: true,
     canManageSettings: true,
     canManageIntegrations: true,
+    canViewClientDashboard: false,
   },
   team: {
     canViewSidebar: true,
@@ -69,6 +73,7 @@ const rolePermissions: Record<UserRole, Permission> = {
     canViewAnalytics: true,
     canManageSettings: false,
     canManageIntegrations: false,
+    canViewClientDashboard: false,
   },
   affiliate: {
     canViewSidebar: true,
@@ -83,6 +88,7 @@ const rolePermissions: Record<UserRole, Permission> = {
     canViewAnalytics: false,
     canManageSettings: false,
     canManageIntegrations: false,
+    canViewClientDashboard: false,
   },
   consultant: {
     canViewSidebar: true,
@@ -97,6 +103,22 @@ const rolePermissions: Record<UserRole, Permission> = {
     canViewAnalytics: false,
     canManageSettings: false,
     canManageIntegrations: false,
+    canViewClientDashboard: false,
+  },
+  client: {
+    canViewSidebar: true,
+    canConfigureSidebar: false,
+    canViewL83Tools: false,
+    canConfigureL83Tools: false,
+    canManageUsers: false,
+    canDeleteUsers: false,
+    canDeleteSuperAdmin: false,
+    canManageDocuments: false,
+    canAccessAdmin: false,
+    canViewAnalytics: false,
+    canManageSettings: false,
+    canManageIntegrations: false,
+    canViewClientDashboard: true,
   },
 };
 

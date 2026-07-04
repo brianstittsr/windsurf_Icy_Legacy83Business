@@ -11,9 +11,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle, Building2 } from "lucide-react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { findAndLinkTeamMember } from "@/lib/auth-team-member-link";
+import { COLLECTIONS } from "@/lib/schema";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -70,6 +72,35 @@ export default function SignUpPage() {
     }
   };
 
+  const createClientTeamMember = async (firebaseUid: string) => {
+    if (!db) return null;
+
+    try {
+      const teamMemberData = {
+        firstName,
+        lastName,
+        emailPrimary: email.toLowerCase().trim(),
+        mobile: phone,
+        company,
+        role: "client" as const,
+        status: "active" as const,
+        expertise: "",
+        firebaseUid,
+        isClient: true,
+        clientSince: Timestamp.now(),
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+
+      const docRef = await addDoc(collection(db, COLLECTIONS.TEAM_MEMBERS), teamMemberData);
+      console.log("Client team member created:", docRef.id);
+      return docRef.id;
+    } catch (error) {
+      console.error("Error creating client team member:", error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -103,10 +134,17 @@ export default function SignUpPage() {
           if (teamMember) {
             setLinkedTeamMember(`${teamMember.firstName} ${teamMember.lastName}`);
             console.log(`Linked to existing Team Member: ${teamMember.firstName} ${teamMember.lastName}`);
-            
+
             // Store team member info in session
             sessionStorage.setItem("svp_team_member_id", teamMember.id);
             sessionStorage.setItem("svp_user_role", teamMember.role);
+          } else {
+            // Create a new client team member record
+            const clientTeamMemberId = await createClientTeamMember(firebaseUid);
+            if (clientTeamMemberId) {
+              sessionStorage.setItem("svp_team_member_id", clientTeamMemberId);
+              sessionStorage.setItem("svp_user_role", "client");
+            }
           }
         } catch (authError: any) {
           // Handle specific Firebase Auth errors
