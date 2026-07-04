@@ -114,7 +114,7 @@ export default function QuizResultsPage() {
             name: `Quiz Lead - ${formData.firstName} ${formData.lastName}`.trim(),
             organizationName: formData.company || "Unknown",
             stage: "lead",
-            value: 0,
+            value: 10000,
             probability: 10,
             expectedCloseDate: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
             description: `Lead generated from Legacy Growth IQ Quiz.\n\nScore: ${results.totalScore}/${results.maxScore} (${results.percentage}%)\nLevel: ${results.scoreRange.level}\nTop Strength: ${results.topStrength.label}\nPriority Area: ${results.topWeakness.label}`,

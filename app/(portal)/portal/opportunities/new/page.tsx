@@ -88,7 +88,7 @@ const initialForm: OpportunityForm = {
   name: "",
   organizationName: "",
   stage: "lead",
-  value: "",
+  value: "10000",
   probability: "25",
   expectedCloseDate: "",
   description: "",

@@ -302,7 +302,7 @@ export default function BookingPage() {
           name: `Meeting Request - ${bookingDetails.name}`,
           organizationName: bookingDetails.company || "Unknown",
           stage: "lead",
-          value: 0,
+          value: 10000,
           probability: 30,
           expectedCloseDate: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
           description: `Meeting scheduled via /schedule-a-call.\n\nMeeting Type: ${selectedMeetingType.name}\nDate: ${dateStr}\nTime: ${selectedTime} - ${endTime}\nDuration: ${selectedMeetingType.duration} minutes\nTimezone: ${availability.timezone}\nTeam Member: ${availability.teamMemberName}`,
