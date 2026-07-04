@@ -34,7 +34,6 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
 import { logOpportunityCreated } from "@/lib/activity-logger";
-import html2pdf from "html2pdf.js";
 
 const categoryIcons: Record<string, React.ElementType> = {
   independence: TrendingUp,
@@ -240,6 +239,7 @@ export default function QuizResultsPage() {
         jsPDF: { unit: "in" as const, format: "letter" as const, orientation: "portrait" as const },
       };
 
+      const html2pdf = (await import("html2pdf.js")).default;
       await html2pdf().set(opt).from(element).save();
 
       document.body.removeChild(element);
