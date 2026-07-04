@@ -311,7 +311,61 @@ const MOCK_SUPPLIERS: SupplierResult[] = [
     employeeCount: "50-99",
     thomasnetUrl: "https://www.thomasnet.com/profile/northwest-composites",
   },
+  {
+    id: "tn-021",
+    companyName: "Premier Packaging Solutions",
+    description: "Custom packaging design and manufacturing. Corrugated boxes, protective packaging, retail displays, and sustainable packaging options.",
+    location: "Atlanta, GA",
+    city: "Atlanta",
+    state: "GA",
+    phone: "(404) 555-2345",
+    website: "www.premierpackagingsolutions.com",
+    categories: ["Packaging", "Corrugated Boxes", "Protective Packaging", "Retail Displays"],
+    certifications: ["ISO 9001:2015", "FSC Certified"],
+    employeeCount: "100-249",
+    thomasnetUrl: "https://www.thomasnet.com/profile/premier-packaging",
+  },
+  {
+    id: "tn-022",
+    companyName: "Great Lakes Casting & Foundry",
+    description: "Full-service metal casting and foundry operations. Aluminum, iron, and steel castings with CNC machining and finishing capabilities.",
+    location: "Milwaukee, WI",
+    city: "Milwaukee",
+    state: "WI",
+    phone: "(414) 555-6789",
+    website: "www.greatlakescasting.com",
+    categories: ["Casting", "Foundry", "Sand Casting", "CNC Machining"],
+    certifications: ["ISO 9001:2015", "AFS Certified"],
+    employeeCount: "250-499",
+    thomasnetUrl: "https://www.thomasnet.com/profile/great-lakes-casting",
+  },
 ];
+
+// Category ID to search terms mapping (matches frontend supplierCategories IDs)
+const CATEGORY_SEARCH_TERMS: Record<string, string[]> = {
+  machining: ["machining", "cnc", "milling", "turning", "lathe"],
+  "metal-fabrication": ["metal fabrication", "fabrication", "sheet metal", "welding"],
+  plastic: ["plastic", "injection molding", "thermoforming", "extrusion"],
+  electronics: ["electronics", "electronic", "pcb", "circuit board", "electronic assembly"],
+  automotive: ["automotive", "auto parts", "vehicle", "car parts"],
+  aerospace: ["aerospace", "aircraft", "aviation"],
+  medical: ["medical", "medical device", "healthcare", "surgical"],
+  packaging: ["packaging", "packages", "containers", "cartons"],
+  casting: ["casting", "foundry", "die casting", "sand casting"],
+  assembly: ["assembly", "contract assembly", "electronic assembly"],
+};
+
+function buildSupplierSearchText(supplier: SupplierResult): string {
+  return [
+    supplier.companyName,
+    supplier.description,
+    supplier.location,
+    supplier.city,
+    supplier.state,
+    ...(supplier.categories || []),
+    ...(supplier.certifications || []),
+  ].join(" ").toLowerCase();
+}
 
 // Helper to parse search query into search terms
 function parseSearchQuery(query: string): { keywords: string; location?: string; category?: string } {
@@ -369,43 +423,47 @@ function parseSearchQuery(query: string): { keywords: string; location?: string;
 }
 
 // Search suppliers from mock database
-function searchSuppliers(searchParams: { keywords: string; location?: string }): SupplierResult[] {
-  const { keywords, location } = searchParams;
-  
+function searchSuppliers(searchParams: { keywords?: string; location?: string; category?: string }): SupplierResult[] {
+  const { keywords, location, category } = searchParams;
+
   let results = [...MOCK_SUPPLIERS];
-  
-  // Filter by keywords
-  if (keywords && keywords.trim()) {
-    const searchTerms = keywords.toLowerCase().split(/\s+/);
+
+  // Filter by category or keywords
+  if (category && CATEGORY_SEARCH_TERMS[category]) {
+    const categoryTerms = CATEGORY_SEARCH_TERMS[category];
     results = results.filter(supplier => {
-      const searchableText = [
-        supplier.companyName,
-        supplier.description,
-        ...(supplier.categories || []),
-        ...(supplier.certifications || []),
-      ].join(" ").toLowerCase();
-      
+      const searchableText = buildSupplierSearchText(supplier);
+      return categoryTerms.some(term => searchableText.includes(term));
+    });
+  } else if (keywords && keywords.trim()) {
+    const searchTerms = keywords
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(term => term.length > 1 && !["in", "the", "and", "for", "with", "near", "from"].includes(term));
+
+    results = results.filter(supplier => {
+      const searchableText = buildSupplierSearchText(supplier);
       return searchTerms.some(term => searchableText.includes(term));
     });
   }
-  
+
   // Filter by location
   if (location) {
     const locationLower = location.toLowerCase().trim();
     const stateAbbr = STATE_MAP[locationLower] || locationLower;
-    
+
     results = results.filter(supplier => {
       const supplierState = supplier.state?.toLowerCase() || "";
       const supplierCity = supplier.city?.toLowerCase() || "";
       const supplierLocation = supplier.location?.toLowerCase() || "";
-      
+
       return supplierState === stateAbbr ||
         supplierState.includes(locationLower) ||
         supplierCity.includes(locationLower) ||
         supplierLocation.includes(locationLower);
     });
   }
-  
+
   return results;
 }
 
@@ -428,8 +486,9 @@ export async function POST(request: NextRequest) {
         const searchCriteria = {
           keywords: parsed.keywords || query,
           location: location || parsed.location,
+          category: parsed.category,
         };
-        
+
         // Search suppliers
         const results = searchSuppliers(searchCriteria);
         
@@ -449,10 +508,11 @@ export async function POST(request: NextRequest) {
       case "search_by_category": {
         const category = searchParams?.category || "";
         const location = searchParams?.location || "";
-        
+
         const results = searchSuppliers({
-          keywords: category,
+          keywords: "",
           location: location || undefined,
+          category: category,
         });
         
         return NextResponse.json({
