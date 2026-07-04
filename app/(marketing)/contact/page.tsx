@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
+import { logOpportunityCreated } from "@/lib/activity-logger";
 
 const services = [
   "Supplier Readiness & OEM Qualification",
@@ -108,6 +109,41 @@ export default function ContactPage() {
         body: JSON.stringify(payload),
       });
 
+      // Create an Opportunity for this contact form submission
+      if (db) {
+        try {
+          const opportunityData = {
+            name: `Contact Form Lead - ${contactForm.firstName} ${contactForm.lastName}`.trim(),
+            organizationName: contactForm.company || "Unknown",
+            stage: "lead",
+            value: 0,
+            probability: 20,
+            expectedCloseDate: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+            description: `Lead submitted through the contact form.\n\nService of Interest: ${contactForm.service || "Not specified"}\nCompany Size: ${contactForm.companySize || "Not specified"}\nIndustry: ${contactForm.industry || "Not specified"}`,
+            notes: `Contact Info:\nEmail: ${contactForm.email}\nPhone: ${contactForm.phone || "Not provided"}\nCompany: ${contactForm.company || "Not provided"}\nJob Title: ${contactForm.jobTitle || "Not provided"}\n\nMessage:\n${contactForm.message || "No message provided"}`,
+            source: "contact-form",
+            affiliateId: null,
+            affiliateName: `${contactForm.firstName} ${contactForm.lastName}`.trim(),
+            affiliateEmail: contactForm.email,
+            affiliatePhone: contactForm.phone || null,
+            affiliateCompany: contactForm.company || null,
+            deliverables: [],
+            isSubscription: false,
+            monthlyAmount: null,
+            subscriptionTermMonths: null,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          };
+
+          const oppRef = await addDoc(collection(db, COLLECTIONS.OPPORTUNITIES), opportunityData);
+          await logOpportunityCreated(oppRef.id, opportunityData.name);
+          console.log("Opportunity created for contact form submission:", oppRef.id);
+        } catch (oppError) {
+          console.error("Error creating opportunity from contact form:", oppError);
+          // Don't block the form submission if opportunity creation fails
+        }
+      }
+
       toast.success("Thank you for your inquiry!", {
         description: "We'll get back to you within 24 hours.",
       });
@@ -160,6 +196,39 @@ export default function ContactPage() {
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       });
+
+      // Create an Opportunity for this book-a-call request
+      try {
+        const opportunityData = {
+          name: `Book a Call Request - ${bookCallForm.firstName} ${bookCallForm.lastName}`.trim(),
+          organizationName: bookCallForm.company || "Unknown",
+          stage: "lead",
+          value: 0,
+          probability: 25,
+          expectedCloseDate: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+          description: `Book a call request from the contact page.\n\nPreferred Date: ${bookCallForm.preferredDate || "Not specified"}\nPreferred Time: ${bookCallForm.preferredTime || "Not specified"}`,
+          notes: `Contact Info:\nEmail: ${bookCallForm.email}\nPhone: ${bookCallForm.phone || "Not provided"}\nCompany: ${bookCallForm.company || "Not provided"}\nJob Title: ${bookCallForm.jobTitle || "Not provided"}\n\nMessage:\n${bookCallForm.message || "No message provided"}`,
+          source: "contact-page-book-call",
+          affiliateId: null,
+          affiliateName: `${bookCallForm.firstName} ${bookCallForm.lastName}`.trim(),
+          affiliateEmail: bookCallForm.email,
+          affiliatePhone: bookCallForm.phone || null,
+          affiliateCompany: bookCallForm.company || null,
+          deliverables: [],
+          isSubscription: false,
+          monthlyAmount: null,
+          subscriptionTermMonths: null,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        };
+
+        const oppRef = await addDoc(collection(db, COLLECTIONS.OPPORTUNITIES), opportunityData);
+        await logOpportunityCreated(oppRef.id, opportunityData.name);
+        console.log("Opportunity created for book-a-call request:", oppRef.id);
+      } catch (oppError) {
+        console.error("Error creating opportunity from book-a-call request:", oppError);
+        // Don't block the form submission if opportunity creation fails
+      }
 
       toast.success("Call request submitted!", {
         description: "We'll contact you shortly to schedule your call.",
