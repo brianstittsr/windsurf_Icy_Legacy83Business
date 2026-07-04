@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, updateDoc, Timestamp, query, where, getDocs, limit } from "firebase/firestore";
 import { COLLECTIONS, QuizReportTemplateDoc } from "@/lib/schema";
+import nodemailer from "nodemailer";
 
 // Default report template if none configured
 const defaultTemplate: Omit<QuizReportTemplateDoc, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -526,7 +527,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Submission not found" }, { status: 404 });
     }
 
-    const submission = { id: submissionSnap.id, ...submissionSnap.data() };
+    const submission = { id: submissionSnap.id, ...submissionSnap.data() } as Record<string, any>;
 
     // Get active report template or use default
     let template = defaultTemplate;
@@ -548,9 +549,76 @@ export async function POST(request: NextRequest) {
     // Generate HTML report
     const reportHTML = generateReportHTML(submission, template);
 
+    // Send email with report
+    let emailSent = false;
+    if (sendEmail && submission.respondentEmail) {
+      try {
+        const gmailUser = process.env.GMAIL_SMTP_USER;
+        const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+
+        if (gmailUser && gmailAppPassword) {
+          const transporter = nodemailer.createTransport({
+            host: process.env.GMAIL_SMTP_HOST || "smtp.gmail.com",
+            port: Number(process.env.GMAIL_SMTP_PORT) || 587,
+            secure: false,
+            auth: {
+              user: gmailUser,
+              pass: gmailAppPassword,
+            },
+          });
+
+          const { emailSettings, branding } = template;
+          const subject = emailSettings.subject || "Your Legacy Growth IQ Assessment Results";
+          const fromName = emailSettings.fromName || branding.companyName || "Legacy 83 Business";
+          const replyTo = emailSettings.replyTo || branding.contactEmail || "info@legacy83business.com";
+          const introText = emailSettings.introText || "Thank you for completing the Legacy Growth IQ Assessment! Attached is your personalized report with insights and recommendations for building a sustainable business legacy.";
+          const signatureText = emailSettings.signatureText || "Best regards,\nThe Legacy 83 Team";
+
+          const introHtml = `<p style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px;">${introText.replace(/\n/g, "<br/>")}</p>`;
+          const signatureHtml = `
+            <div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #666; padding: 20px 0; border-top: 1px solid #ddd; margin-top: 20px;">
+              <p style="white-space: pre-line;">${signatureText}</p>
+              <p style="font-size: 12px; margin-top: 20px;">
+                <strong>${branding.companyName}</strong><br/>
+                ${branding.contactEmail} | ${branding.contactPhone}<br/>
+                <a href="${branding.website}">${branding.website}</a>
+              </p>
+            </div>
+          `;
+
+          const emailBody = reportHTML.replace(
+            "</body>",
+            `${introHtml}\n${signatureHtml}\n</body>`
+          );
+
+          const toAddresses = [submission.respondentEmail];
+          const internalEmail = "info@legacy83business.com";
+          if (internalEmail !== submission.respondentEmail) {
+            toAddresses.push(internalEmail);
+          }
+
+          await transporter.sendMail({
+            from: `"${fromName}" <${gmailUser}>`,
+            to: toAddresses.join(", "),
+            replyTo,
+            subject,
+            html: emailBody,
+          });
+
+          emailSent = true;
+          console.log("Quiz report email sent to:", toAddresses.join(", "));
+        } else {
+          console.error("Gmail SMTP credentials not configured — quiz report email not sent");
+        }
+      } catch (emailError) {
+        console.error("Error sending quiz report email:", emailError);
+      }
+    }
+
     // Update submission with report generation timestamp
     await updateDoc(submissionRef, {
       reportSentAt: Timestamp.now(),
+      reportEmailSent: emailSent,
       updatedAt: Timestamp.now(),
     });
 
@@ -559,6 +627,7 @@ export async function POST(request: NextRequest) {
       success: true,
       reportHTML,
       submission,
+      emailSent,
       template: {
         emailSettings: template.emailSettings,
         branding: template.branding,

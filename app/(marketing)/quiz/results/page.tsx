@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
 import { logOpportunityCreated } from "@/lib/activity-logger";
+import html2pdf from "html2pdf.js";
 
 const categoryIcons: Record<string, React.ElementType> = {
   independence: TrendingUp,
@@ -55,6 +57,10 @@ export default function QuizResultsPage() {
     company: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reportHTML, setReportHTML] = useState<string | null>(null);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isEmailingResults, setIsEmailingResults] = useState(false);
 
   useEffect(() => {
     const storedAnswers = sessionStorage.getItem("quizAnswers");
@@ -76,7 +82,7 @@ export default function QuizResultsPage() {
       const storedAnswers = sessionStorage.getItem("quizAnswers");
       const answers = storedAnswers ? JSON.parse(storedAnswers) : {};
       
-      let submissionId = "";
+      let currentSubmissionId = "";
       
       // Save submission to Firestore
       if (db && results) {
@@ -100,7 +106,8 @@ export default function QuizResultsPage() {
           followUpStatus: "pending",
           createdAt: Timestamp.now(),
         });
-        submissionId = docRef.id;
+        currentSubmissionId = docRef.id;
+        setSubmissionId(currentSubmissionId);
         
         // Create an Opportunity for this lead
         try {
@@ -112,9 +119,9 @@ export default function QuizResultsPage() {
             probability: 10,
             expectedCloseDate: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
             description: `Lead generated from Legacy Growth IQ Quiz.\n\nScore: ${results.totalScore}/${results.maxScore} (${results.percentage}%)\nLevel: ${results.scoreRange.level}\nTop Strength: ${results.topStrength.label}\nPriority Area: ${results.topWeakness.label}`,
-            notes: `Contact Info:\nEmail: ${formData.email}\nPhone: ${formData.phone || "Not provided"}\nCompany: ${formData.company || "Not provided"}\n\nQuiz Submission ID: ${submissionId}`,
+            notes: `Contact Info:\nEmail: ${formData.email}\nPhone: ${formData.phone || "Not provided"}\nCompany: ${formData.company || "Not provided"}\n\nQuiz Submission ID: ${currentSubmissionId}`,
             source: "quiz",
-            quizSubmissionId: submissionId,
+            quizSubmissionId: currentSubmissionId,
             affiliateId: null,
             affiliateName: `${formData.firstName} ${formData.lastName}`.trim(),
             affiliateEmail: formData.email,
@@ -137,27 +144,18 @@ export default function QuizResultsPage() {
         }
         
         // Generate and send PDF report via email
-        if (formData.email && submissionId) {
+        if (formData.email && currentSubmissionId) {
           try {
             const reportResponse = await fetch("/api/quiz/generate-report", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ submissionId, sendEmail: true }),
+              body: JSON.stringify({ submissionId: currentSubmissionId, sendEmail: true }),
             });
             
             if (reportResponse.ok) {
               const reportData = await reportResponse.json();
-              // Open PDF in new window for download
               if (reportData.reportHTML) {
-                const printWindow = window.open('', '_blank');
-                if (printWindow) {
-                  printWindow.document.write(reportData.reportHTML);
-                  printWindow.document.close();
-                  // Auto-trigger print dialog for PDF save
-                  setTimeout(() => {
-                    printWindow.print();
-                  }, 500);
-                }
+                setReportHTML(reportData.reportHTML);
               }
             }
           } catch (reportError) {
@@ -185,6 +183,70 @@ export default function QuizResultsPage() {
       ...prev,
       [e.target.name]: e.target.value,
     }));
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!reportHTML) {
+      toast.error("Report not available. Please try submitting the form again.");
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+    try {
+      const element = document.createElement("div");
+      element.innerHTML = reportHTML;
+      document.body.appendChild(element);
+
+      const opt = {
+        margin: 0.5,
+        filename: `Legacy-Growth-IQ-Report-${formData.firstName}-${formData.lastName}.pdf`,
+        image: { type: "jpeg" as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "in" as const, format: "letter" as const, orientation: "portrait" as const },
+      };
+
+      await html2pdf().set(opt).from(element).save();
+
+      document.body.removeChild(element);
+      toast.success("Your PDF report is downloading.");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleEmailResults = async () => {
+    if (!submissionId || !formData.email) {
+      toast.error("Report not available. Please try submitting the form again.");
+      return;
+    }
+
+    setIsEmailingResults(true);
+    try {
+      const response = await fetch("/api/quiz/generate-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissionId, sendEmail: true }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.emailSent) {
+          toast.success("Results emailed to you and our team.");
+        } else {
+          toast.error("Could not send results email. Please try again.");
+        }
+      } else {
+        toast.error("Could not send results email. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error emailing results:", error);
+      toast.error("Failed to email results. Please try again.");
+    } finally {
+      setIsEmailingResults(false);
+    }
   };
 
   if (!results) {
@@ -364,14 +426,14 @@ export default function QuizResultsPage() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-4xl font-bold">{results.totalScore}</span>
-                  <span className="text-sm text-gray-400">of {results.maxScore}</span>
+                  <span className="text-4xl font-bold text-white">{results.totalScore}</span>
+                  <span className="text-sm text-white">of {results.maxScore}</span>
                 </div>
               </div>
 
               {/* Score Description */}
               <div className="flex-1 text-center md:text-left">
-                <h2 className="text-xl font-semibold mb-2">Your Legacy Growth IQ™ Score</h2>
+                <h2 className="text-xl font-semibold mb-2 text-white">Your Legacy Growth IQ™ Score</h2>
                 <p className="text-gray-400 mb-4">{results.scoreRange.description}</p>
                 <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                   <div className="text-center">
@@ -479,13 +541,23 @@ export default function QuizResultsPage() {
 
         {/* Share / Download */}
         <div className="flex flex-col sm:flex-row justify-center gap-4 text-center">
-          <Button variant="ghost" className="text-gray-400 hover:text-white">
+          <Button
+            variant="ghost"
+            className="text-gray-400 hover:text-white"
+            onClick={handleDownloadPDF}
+            disabled={isGeneratingPDF || !reportHTML}
+          >
             <Download className="mr-2 h-4 w-4" />
-            Download PDF Report
+            {isGeneratingPDF ? "Generating PDF..." : "Download PDF Report"}
           </Button>
-          <Button variant="ghost" className="text-gray-400 hover:text-white">
+          <Button
+            variant="ghost"
+            className="text-gray-400 hover:text-white"
+            onClick={handleEmailResults}
+            disabled={isEmailingResults || !submissionId}
+          >
             <Mail className="mr-2 h-4 w-4" />
-            Email My Results
+            {isEmailingResults ? "Emailing..." : "Email My Results"}
           </Button>
         </div>
 
