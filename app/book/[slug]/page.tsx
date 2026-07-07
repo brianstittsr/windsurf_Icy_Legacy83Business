@@ -403,6 +403,31 @@ export default function BookingPage() {
         // Don't fail the booking if calendar event creation fails
       }
 
+      // 2. Create the appointment in the connected GoHighLevel calendar
+      try {
+        const ghlResponse = await fetch('/api/gohighlevel/calendar-events/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: `${selectedMeetingType.name} with ${bookingDetails.name}`,
+            description: calendarEvent.description,
+            startTime: startDateTime.toISOString(),
+            endTime: endDateTime.toISOString(),
+            location: 'Virtual Meeting',
+          }),
+        });
+
+        const ghlResult = await ghlResponse.json();
+        if (ghlResult.success) {
+          console.log("GHL calendar event created for booking:", bookingRef.id, ghlResult.event?.ghlEventId);
+        } else {
+          console.error("GHL calendar event creation returned error:", ghlResult.error);
+        }
+      } catch (ghlError) {
+        console.error("Error creating GHL calendar event for booking:", ghlError);
+        // Don't fail the booking if GHL calendar creation fails
+      }
+
       // 1. Send email confirmation with iCal attachment
       let confirmationEmailSent = false;
       try {
