@@ -189,7 +189,7 @@ export default function SupplierSearchPage() {
           message: data.interpretation || `Found ${data.total} suppliers`,
         };
       }
-      return { results: [], message: "Search failed. Please try again." };
+      return { results: [], message: data.error || "Search failed. Please try again." };
     } catch (error) {
       console.error("Search error:", error);
       return { results: [], message: "Search failed. Please try again." };

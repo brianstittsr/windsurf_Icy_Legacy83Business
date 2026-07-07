@@ -470,15 +470,20 @@ function searchSuppliers(searchParams: { keywords?: string; location?: string; c
   return results;
 }
 
+interface AIRealSearchResult {
+  success: boolean;
+  data?: SupplierResult[];
+  error?: string;
+}
+
 /**
  * Attempts to find real suppliers using OpenAI's web search capability.
- * Falls back to null if no API key is configured or the call fails.
+ * Returns a structured result so callers can surface any error instead of silently falling back to mock data.
  */
-async function searchRealSuppliersWithAI(query: string): Promise<SupplierResult[] | null> {
+async function searchRealSuppliersWithAI(query: string): Promise<AIRealSearchResult> {
   const config = await getLLMConfig();
   if (!config?.apiKey) {
-    console.log("[ThomasNet API] No LLM API key configured, skipping real supplier search");
-    return null;
+    return { success: false, error: "No LLM API key is configured. Set OPENAI_API_KEY in your environment or add an LLM configuration in platform settings." };
   }
 
   try {
@@ -497,14 +502,12 @@ async function searchRealSuppliersWithAI(query: string): Promise<SupplierResult[
     const start = outputText.indexOf("[");
     const end = outputText.lastIndexOf("]");
     if (start === -1 || end === -1 || end <= start) {
-      console.log("[ThomasNet API] AI response did not contain a JSON array");
-      return null;
+      return { success: false, error: "The AI response did not contain a valid JSON array of suppliers." };
     }
 
     const parsed = JSON.parse(outputText.slice(start, end + 1));
     if (!Array.isArray(parsed)) {
-      console.log("[ThomasNet API] AI response parsed JSON is not an array");
-      return null;
+      return { success: false, error: "The AI response parsed JSON is not an array." };
     }
 
     const suppliers: SupplierResult[] = parsed
@@ -525,10 +528,11 @@ async function searchRealSuppliersWithAI(query: string): Promise<SupplierResult[
       }));
 
     console.log(`[ThomasNet API] Real supplier search returned ${suppliers.length} results`);
-    return suppliers;
+    return { success: true, data: suppliers };
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
     console.error("[ThomasNet API] Real supplier search error:", error);
-    return null;
+    return { success: false, error: `Real supplier search failed: ${message}` };
   }
 }
 
@@ -640,25 +644,31 @@ export async function POST(request: NextRequest) {
         const parsed = parseSearchQuery(query);
         console.log("[ThomasNet API] AI search parsed:", parsed);
 
-        // Try real-time AI web search first
-        let realResults = await searchRealSuppliersWithAI(query);
-        let source = "ai";
+        // Use real-time AI web search only; do not fall back to mock data
+        const realSearchResult = await searchRealSuppliersWithAI(query);
 
-        // Fall back to local mock database if real search is unavailable or empty
-        if (!realResults || realResults.length === 0) {
-          realResults = searchSuppliers(parsed);
-          source = "mock";
-          console.log(`[ThomasNet API] AI search results: ${realResults.length} suppliers (from mock database)`);
-        } else {
-          console.log(`[ThomasNet API] AI search results: ${realResults.length} suppliers (from web search)`);
+        if (!realSearchResult.success) {
+          return NextResponse.json({
+            success: false,
+            results: [],
+            total: 0,
+            error: realSearchResult.error || "Real supplier search failed.",
+            suggestions: [
+              "Check that an LLM API key is configured in platform settings or as OPENAI_API_KEY",
+              "Verify the configured model supports web search",
+              "Try a more specific supplier query",
+            ],
+          }, { status: 503 });
         }
 
+        let results = realSearchResult.data || [];
+        console.log(`[ThomasNet API] AI search results: ${results.length} suppliers (from web search)`);
+
         // Filter real results by location if requested
-        let results = realResults;
-        if (parsed.location && source === "ai") {
+        if (parsed.location) {
           const locationLower = parsed.location.toLowerCase().trim();
           const stateAbbr = STATE_MAP[locationLower] || locationLower;
-          results = results.filter(supplier => {
+          results = results.filter((supplier: SupplierResult) => {
             const supplierState = supplier.state?.toLowerCase() || "";
             const supplierCity = supplier.city?.toLowerCase() || "";
             const supplierLocation = supplier.location?.toLowerCase() || "";
@@ -674,7 +684,7 @@ export async function POST(request: NextRequest) {
           interpretation: `Searching for ${parsed.keywords || "suppliers"}${parsed.location ? ` in ${parsed.location}` : ""}.`,
           results,
           total: results.length,
-          source,
+          source: "ai",
           refinementSuggestions: [
             results.length > 10 ? "Add a location to narrow results" : null,
             results.length === 0 ? "Try broader search terms" : null,
