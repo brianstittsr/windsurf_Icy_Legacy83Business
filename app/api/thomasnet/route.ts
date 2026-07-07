@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
+import { getLLMConfig } from "@/lib/openai-config";
 
 // State name to abbreviation mapping
 const STATE_MAP: Record<string, string> = {
@@ -428,22 +430,23 @@ function searchSuppliers(searchParams: { keywords?: string; location?: string; c
 
   let results = [...MOCK_SUPPLIERS];
 
-  // Filter by category or keywords
-  if (category && CATEGORY_SEARCH_TERMS[category]) {
-    const categoryTerms = CATEGORY_SEARCH_TERMS[category];
-    results = results.filter(supplier => {
-      const searchableText = buildSupplierSearchText(supplier);
-      return categoryTerms.some(term => searchableText.includes(term));
-    });
-  } else if (keywords && keywords.trim()) {
-    const searchTerms = keywords
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(term => term.length > 1 && !["in", "the", "and", "for", "with", "near", "from"].includes(term));
+  // Build a single set of active filters. Category and keywords are combined with AND logic.
+  const categoryTerms = category && CATEGORY_SEARCH_TERMS[category] ? CATEGORY_SEARCH_TERMS[category] : null;
+  const keywordTerms = keywords && keywords.trim()
+    ? keywords
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(term => term.length > 1 && !["in", "the", "and", "for", "with", "near", "from", "of", "a", "an", "to"].includes(term))
+    : [];
 
+  if (categoryTerms || keywordTerms.length > 0) {
     results = results.filter(supplier => {
       const searchableText = buildSupplierSearchText(supplier);
-      return searchTerms.some(term => searchableText.includes(term));
+      const matchesCategory = categoryTerms ? categoryTerms.some(term => searchableText.includes(term)) : true;
+      const matchesKeywords = keywordTerms.length > 0
+        ? keywordTerms.some(term => searchableText.includes(term))
+        : true;
+      return matchesCategory && matchesKeywords;
     });
   }
 
@@ -465,6 +468,68 @@ function searchSuppliers(searchParams: { keywords?: string; location?: string; c
   }
 
   return results;
+}
+
+/**
+ * Attempts to find real suppliers using OpenAI's web search capability.
+ * Falls back to null if no API key is configured or the call fails.
+ */
+async function searchRealSuppliersWithAI(query: string): Promise<SupplierResult[] | null> {
+  const config = await getLLMConfig();
+  if (!config?.apiKey) {
+    console.log("[ThomasNet API] No LLM API key configured, skipping real supplier search");
+    return null;
+  }
+
+  try {
+    const openai = new OpenAI({
+      apiKey: config.apiKey,
+      baseURL: config.baseUrl || undefined,
+    });
+
+    const response = await openai.responses.create({
+      model: config.model || "gpt-4o",
+      tools: [{ type: "web_search" }],
+      input: `Find real manufacturing suppliers for this query: "${query}". Return ONLY a JSON array of supplier objects. Each object must include: companyName (string), description (string), location (string), phone (string), website (string), categories (array of strings), certifications (array of strings), employeeCount (string). Do not include markdown, code blocks, or any other text.`,
+    });
+
+    const outputText = response.output_text || "";
+    const start = outputText.indexOf("[");
+    const end = outputText.lastIndexOf("]");
+    if (start === -1 || end === -1 || end <= start) {
+      console.log("[ThomasNet API] AI response did not contain a JSON array");
+      return null;
+    }
+
+    const parsed = JSON.parse(outputText.slice(start, end + 1));
+    if (!Array.isArray(parsed)) {
+      console.log("[ThomasNet API] AI response parsed JSON is not an array");
+      return null;
+    }
+
+    const suppliers: SupplierResult[] = parsed
+      .filter((item) => item && typeof item.companyName === "string")
+      .map((item, index) => ({
+        id: `ai-${Date.now()}-${index}`,
+        companyName: item.companyName,
+        description: typeof item.description === "string" ? item.description : "",
+        location: typeof item.location === "string" ? item.location : "",
+        city: typeof item.location === "string" ? item.location.split(",")[0]?.trim() : "",
+        state: typeof item.location === "string" ? item.location.split(",")[1]?.trim() : "",
+        phone: typeof item.phone === "string" ? item.phone : "",
+        website: typeof item.website === "string" ? item.website : "",
+        categories: Array.isArray(item.categories) ? item.categories : [],
+        certifications: Array.isArray(item.certifications) ? item.certifications : [],
+        employeeCount: typeof item.employeeCount === "string" ? item.employeeCount : "",
+        thomasnetUrl: "",
+      }));
+
+    console.log(`[ThomasNet API] Real supplier search returned ${suppliers.length} results`);
+    return suppliers;
+  } catch (error) {
+    console.error("[ThomasNet API] Real supplier search error:", error);
+    return null;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -574,15 +639,42 @@ export async function POST(request: NextRequest) {
         // Parse and search
         const parsed = parseSearchQuery(query);
         console.log("[ThomasNet API] AI search parsed:", parsed);
-        
-        const results = searchSuppliers(parsed);
-        console.log(`[ThomasNet API] AI search results: ${results.length} suppliers`);
+
+        // Try real-time AI web search first
+        let realResults = await searchRealSuppliersWithAI(query);
+        let source = "ai";
+
+        // Fall back to local mock database if real search is unavailable or empty
+        if (!realResults || realResults.length === 0) {
+          realResults = searchSuppliers(parsed);
+          source = "mock";
+          console.log(`[ThomasNet API] AI search results: ${realResults.length} suppliers (from mock database)`);
+        } else {
+          console.log(`[ThomasNet API] AI search results: ${realResults.length} suppliers (from web search)`);
+        }
+
+        // Filter real results by location if requested
+        let results = realResults;
+        if (parsed.location && source === "ai") {
+          const locationLower = parsed.location.toLowerCase().trim();
+          const stateAbbr = STATE_MAP[locationLower] || locationLower;
+          results = results.filter(supplier => {
+            const supplierState = supplier.state?.toLowerCase() || "";
+            const supplierCity = supplier.city?.toLowerCase() || "";
+            const supplierLocation = supplier.location?.toLowerCase() || "";
+            return supplierState === stateAbbr ||
+              supplierState.includes(locationLower) ||
+              supplierCity.includes(locationLower) ||
+              supplierLocation.includes(locationLower);
+          });
+        }
         
         // Generate AI response
         const aiResponse = {
           interpretation: `Searching for ${parsed.keywords || "suppliers"}${parsed.location ? ` in ${parsed.location}` : ""}.`,
           results,
           total: results.length,
+          source,
           refinementSuggestions: [
             results.length > 10 ? "Add a location to narrow results" : null,
             results.length === 0 ? "Try broader search terms" : null,
