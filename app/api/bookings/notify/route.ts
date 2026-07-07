@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { buildGoogleCalendarLink, buildOutlookCalendarLink, encodeICSForDataUri } from "@/lib/calendar-invite";
 
 const INTERNAL_NOTIFY_EMAIL = "info@legacy83business.com";
 const FROM_EMAIL = process.env.GMAIL_SMTP_USER || "bookings@legacy83business.com";
@@ -83,6 +84,12 @@ function buildICS(params: {
   ].join("\r\n");
 }
 
+function parseBookingDate(dateStr: string, timeStr: string, durationMinutes: number): { startDate: Date; endDate: Date } {
+  const startDate = new Date(`${dateStr} ${timeStr}`);
+  const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+  return { startDate, endDate };
+}
+
 function buildClientHTML(params: {
   clientName: string;
   teamMemberName: string;
@@ -91,8 +98,21 @@ function buildClientHTML(params: {
   time: string;
   duration: number;
   notes?: string;
+  calendarLinks?: {
+    googleCalendar: string;
+    outlookCalendar: string;
+    icsDownload: string;
+  };
 }): string {
-  const { clientName, teamMemberName, meetingType, date, time, duration, notes } = params;
+  const { clientName, teamMemberName, meetingType, date, time, duration, notes, calendarLinks } = params;
+  const calendarButtons = calendarLinks ? `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <p style="margin: 0 0 12px 0; color: #666; font-size: 14px;">Add this meeting to your calendar:</p>
+      <a href="${calendarLinks.googleCalendar}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #C8A951; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 4px; margin: 4px; font-size: 14px;">Google Calendar</a>
+      <a href="${calendarLinks.outlookCalendar}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #C8A951; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 4px; margin: 4px; font-size: 14px;">Outlook</a>
+      <a href="${calendarLinks.icsDownload}" download="meeting-invite.ics" style="display: inline-block; background: #C8A951; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 4px; margin: 4px; font-size: 14px;">Download iCal</a>
+    </div>
+  ` : "";
   return `
     <!DOCTYPE html>
     <html>
@@ -101,6 +121,8 @@ function buildClientHTML(params: {
         <h1 style="color: #C8A951; margin-bottom: 4px;">Legacy 83 Business</h1>
         <p style="color: #666; margin: 0;">Meeting Confirmation</p>
       </div>
+
+      ${calendarButtons}
 
       <div style="background: #f9f5eb; border-left: 4px solid #C8A951; padding: 20px; border-radius: 4px; margin-bottom: 24px;">
         <h2 style="margin: 0 0 16px 0; color: #1a1a1a;">Your Meeting is Confirmed! ✅</h2>
@@ -155,8 +177,21 @@ function buildInternalHTML(params: {
   duration: number;
   bookingId: string;
   notes?: string;
+  calendarLinks?: {
+    googleCalendar: string;
+    outlookCalendar: string;
+    icsDownload: string;
+  };
 }): string {
-  const { clientName, clientEmail, clientPhone, clientCompany, teamMemberName, meetingType, date, time, duration, bookingId, notes } = params;
+  const { clientName, clientEmail, clientPhone, clientCompany, teamMemberName, meetingType, date, time, duration, bookingId, notes, calendarLinks } = params;
+  const calendarButtons = calendarLinks ? `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <p style="margin: 0 0 12px 0; color: #666; font-size: 14px;">Add this meeting to your calendar:</p>
+      <a href="${calendarLinks.googleCalendar}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #C8A951; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 4px; margin: 4px; font-size: 14px;">Google Calendar</a>
+      <a href="${calendarLinks.outlookCalendar}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #C8A951; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 4px; margin: 4px; font-size: 14px;">Outlook</a>
+      <a href="${calendarLinks.icsDownload}" download="meeting-invite.ics" style="display: inline-block; background: #C8A951; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 4px; margin: 4px; font-size: 14px;">Download iCal</a>
+    </div>
+  ` : "";
   return `
     <!DOCTYPE html>
     <html>
@@ -165,6 +200,8 @@ function buildInternalHTML(params: {
         <h1 style="color: #C8A951; margin-bottom: 4px;">Legacy 83 Business</h1>
         <p style="color: #666; margin: 0;">New Booking Notification</p>
       </div>
+
+      ${calendarButtons}
 
       <div style="background: #fff3cd; border-left: 4px solid #C8A951; padding: 20px; border-radius: 4px; margin-bottom: 24px;">
         <h2 style="margin: 0 0 8px 0; color: #1a1a1a;">📅 New Meeting Booked</h2>
@@ -289,6 +326,25 @@ export async function POST(request: NextRequest) {
       timezone,
     });
 
+    const { startDate, endDate } = parseBookingDate(date, time, duration);
+    const calendarLinks = {
+      googleCalendar: buildGoogleCalendarLink({
+        summary: calendarSummary,
+        description: calendarDescription,
+        startDate,
+        endDate,
+        timezone,
+      }),
+      outlookCalendar: buildOutlookCalendarLink({
+        summary: calendarSummary,
+        description: calendarDescription,
+        startDate,
+        endDate,
+        timezone,
+      }),
+      icsDownload: encodeICSForDataUri(generatedIcsContent),
+    };
+
     const icsAttachment = {
       filename: "meeting-invite.ics",
       content: Buffer.from(generatedIcsContent),
@@ -311,6 +367,7 @@ export async function POST(request: NextRequest) {
           time,
           duration,
           notes,
+          calendarLinks,
         }),
         attachments: [icsAttachment],
       });
@@ -337,6 +394,7 @@ export async function POST(request: NextRequest) {
           duration,
           bookingId,
           notes,
+          calendarLinks,
         }),
         attachments: [icsAttachment],
       });
