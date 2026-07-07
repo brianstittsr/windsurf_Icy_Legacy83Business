@@ -44,7 +44,7 @@ export interface PopupConfig {
 
 // Default configuration
 export const defaultPopupConfig: PopupConfig = {
-  enabled: true,
+  enabled: false,
   title: "Strategic Value+ Solutions",
   subtitle: "Take advantage of our complimentary 45-minute Impact Session to resolve your pressing pain points.",
   description: "Our Value+ Team will develop quality-driven strategies to address your primary issues and transform your company.",
