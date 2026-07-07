@@ -150,6 +150,13 @@ export function Legacy83Footer() {
           </div>
         </div>
       </div>
+
+      <script
+        src="https://widgets.leadconnectorhq.com/loader.js"
+        data-resources-url="https://widgets.leadconnectorhq.com/chat-widget/loader.js"
+        data-widget-id="6a4c60fddbe2962ef69213ba"
+        data-source="WEB_USER"
+      />
     </footer>
   );
 }
