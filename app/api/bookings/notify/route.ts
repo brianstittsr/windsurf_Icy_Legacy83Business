@@ -18,6 +18,8 @@ interface BookingNotificationRequest {
   duration: number;
   timezone?: string;
   notes?: string;
+  /** Optional pre-built RFC 5545 ICS calendar content. */
+  icsContent?: string;
 }
 
 /**
@@ -237,6 +239,7 @@ export async function POST(request: NextRequest) {
       duration,
       timezone = "America/New_York",
       notes,
+      icsContent,
     } = body;
 
     const gmailUser = process.env.GMAIL_SMTP_USER;
@@ -273,7 +276,7 @@ export async function POST(request: NextRequest) {
       .filter(Boolean)
       .join("\n");
 
-    const icsContent = buildICS({
+    const generatedIcsContent = icsContent || buildICS({
       uid,
       summary: calendarSummary,
       description: calendarDescription,
@@ -288,7 +291,7 @@ export async function POST(request: NextRequest) {
 
     const icsAttachment = {
       filename: "meeting-invite.ics",
-      content: Buffer.from(icsContent),
+      content: Buffer.from(generatedIcsContent),
       contentType: "text/calendar; method=REQUEST",
     };
 

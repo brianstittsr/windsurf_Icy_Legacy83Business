@@ -109,6 +109,11 @@ export default function BookingPage() {
     time: string;
     meetingType: string;
   } | null>(null);
+  const [confirmedCalendarLinks, setConfirmedCalendarLinks] = useState<{
+    googleCalendar: string;
+    outlookCalendar: string;
+    icsDownload: string;
+  } | null>(null);
 
   // Fetch availability by slug
   useEffect(() => {
@@ -418,6 +423,7 @@ export default function BookingPage() {
             duration: selectedMeetingType.duration,
             timezone: availability.timezone,
             notes: bookingDetails.notes || undefined,
+            icsContent: calendarLinks.icsContent,
           }),
         });
         confirmationEmailSent = true;
@@ -466,6 +472,11 @@ export default function BookingPage() {
         date: selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
         time: formatTime(selectedTime),
         meetingType: selectedMeetingType.name,
+      });
+      setConfirmedCalendarLinks({
+        googleCalendar: calendarLinks.googleCalendar,
+        outlookCalendar: calendarLinks.outlookCalendar,
+        icsDownload: calendarLinks.icsDownload,
       });
       setStep('confirmed');
       
@@ -801,6 +812,26 @@ export default function BookingPage() {
                 </div>
               </div>
 
+              {confirmedCalendarLinks && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={confirmedCalendarLinks.googleCalendar} target="_blank" rel="noopener noreferrer">
+                      Google Calendar
+                    </a>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={confirmedCalendarLinks.outlookCalendar} target="_blank" rel="noopener noreferrer">
+                      Outlook
+                    </a>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={confirmedCalendarLinks.icsDownload} download="meeting-invite.ics">
+                      Download iCal
+                    </a>
+                  </Button>
+                </div>
+              )}
+
               <div className="mt-6">
                 <Button
                   variant="outline"
@@ -811,6 +842,7 @@ export default function BookingPage() {
                     setSelectedTime(null);
                     setBookingDetails({ name: '', email: '', phone: '', company: '', notes: '' });
                     setConfirmedBooking(null);
+                    setConfirmedCalendarLinks(null);
                   }}
                 >
                   Book Another Meeting
