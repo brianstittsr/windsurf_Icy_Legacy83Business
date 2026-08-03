@@ -1463,6 +1463,9 @@ export interface BookingDoc {
   cancelReason?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  // SMS consent (A2P 10DLC compliance)
+  smsConsentTransactional?: boolean;
+  smsConsentMarketing?: boolean;
 }
 
 // ============================================================================

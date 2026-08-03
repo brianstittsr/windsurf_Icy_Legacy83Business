@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Calendar,
   Clock,
@@ -32,6 +33,7 @@ import {
   MessageSquare,
   Loader2,
 } from "lucide-react";
+import Link from "next/link";
 import { collection, getDocs, addDoc, query, where, Timestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { COLLECTIONS, type TeamMemberAvailabilityDoc, type BookingDoc, type CalendarEventDoc } from "@/lib/schema";
@@ -104,6 +106,8 @@ export default function BookingPage() {
     company: '',
     notes: '',
   });
+  const [smsConsentTransactional, setSmsConsentTransactional] = useState(false);
+  const [smsConsentMarketing, setSmsConsentMarketing] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<{
     date: string;
     time: string;
@@ -297,6 +301,8 @@ export default function BookingPage() {
         bookedAt: Timestamp.now(),
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
+        smsConsentTransactional: smsConsentTransactional,
+        smsConsentMarketing: smsConsentMarketing,
       };
       
       const bookingRef = await addDoc(collection(db, COLLECTIONS.BOOKINGS), bookingData);
@@ -747,7 +753,7 @@ export default function BookingPage() {
                 <div className="space-y-2">
                   <Label htmlFor="phone">
                     <Phone className="h-4 w-4 inline mr-1" />
-                    Phone Number
+                    Phone Number <span className="text-muted-foreground text-xs">(optional)</span>
                   </Label>
                   <Input
                     id="phone"
@@ -781,6 +787,36 @@ export default function BookingPage() {
                   onChange={(e) => setBookingDetails({ ...bookingDetails, notes: e.target.value })}
                   rows={3}
                 />
+              </div>
+
+              {/* SMS Opt-In Checkboxes */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="sms-transactional"
+                    checked={smsConsentTransactional}
+                    onCheckedChange={(checked) => setSmsConsentTransactional(checked === true)}
+                  />
+                  <label htmlFor="sms-transactional" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                    I consent to receive non-marketing text messages from Legacy 83 Business Inc about appointment reminders and service inquiries. Message frequency may vary, message &amp; data rates may apply. I am 18 or older. Text HELP for assistance, reply STOP to opt out.
+                  </label>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="sms-marketing"
+                    checked={smsConsentMarketing}
+                    onCheckedChange={(checked) => setSmsConsentMarketing(checked === true)}
+                  />
+                  <label htmlFor="sms-marketing" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                    I consent to receive marketing text messages, about special offers, discounts, and service updates, from Legacy 83 Business Inc at the phone number provided. Message frequency may vary. Message &amp; data rates may apply. I am 18 or older. Text HELP for assistance, reply STOP to opt out.
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  View our{" "}
+                  <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>{" "}
+                  and{" "}
+                  <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>.
+                </p>
               </div>
 
               <div className="pt-4">
@@ -866,6 +902,8 @@ export default function BookingPage() {
                     setSelectedDate(null);
                     setSelectedTime(null);
                     setBookingDetails({ name: '', email: '', phone: '', company: '', notes: '' });
+                    setSmsConsentTransactional(false);
+                    setSmsConsentMarketing(false);
                     setConfirmedBooking(null);
                     setConfirmedCalendarLinks(null);
                   }}

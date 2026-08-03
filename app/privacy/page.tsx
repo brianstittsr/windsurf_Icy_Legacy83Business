@@ -22,7 +22,7 @@ export default function PrivacyPage() {
         
         <div className="prose prose-slate dark:prose-invert max-w-none">
           <p className="text-muted-foreground mb-6">
-            Last updated: December 2024
+            Last updated: August 2026
           </p>
 
           <section className="mb-8">
@@ -49,6 +49,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 mt-2 space-y-2">
               <li>Provide and maintain our services</li>
               <li>Process your requests and transactions</li>
+              <li>Send appointment confirmations, reminders, and responses to service inquiries via SMS</li>
               <li>Send you important updates and communications</li>
               <li>Improve our platform and services</li>
               <li>Comply with legal obligations</li>
@@ -56,14 +57,34 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">4. Data Security</h2>
+            <h2 className="text-2xl font-semibold mb-4">4. SMS Text Messaging</h2>
             <p>
-              We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction.
+              By opting into our SMS services, you represent that you are at least 18 years of age. We use SMS text messaging to send appointment confirmations, reminders, responses to service inquiries, and occasional marketing messages regarding seasonal specials and discounts to those who provide secondary consent. Message frequency varies based on your interactions with our service. Message and data rates may apply.
+            </p>
+            <p className="mt-4">
+              <strong>Mandatory Non-Sharing Clause:</strong> No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. Information sharing to subcontractors in support services, such as customer service, is permitted. All other use case categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties.
+            </p>
+            <p className="mt-4">
+              We do not sell, rent, or trade customer lists or personal data to any third parties. We do not share your data with affiliates or partners for their own marketing purposes.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">5. Your Rights</h2>
+            <h2 className="text-2xl font-semibold mb-4">5. Data Security</h2>
+            <p>
+              We implement reasonable administrative, technical, and physical safeguards to protect your personal information against unauthorized access, alteration, disclosure, or destruction. All form submissions on our website are protected using SSL (Secure Sockets Layer) encryption to ensure the secure transmission of your data.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">6. Children&apos;s Privacy (COPPA)</h2>
+            <p>
+              Our website is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If we become aware that we have inadvertently collected information from a child under 13, we will take steps to delete such information. By opting into our SMS services, you represent that you are at least 18 years of age.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">7. Your Rights</h2>
             <p>You have the right to:</p>
             <ul className="list-disc pl-6 mt-2 space-y-2">
               <li>Access your personal data</li>
@@ -71,19 +92,26 @@ export default function PrivacyPage() {
               <li>Request deletion of your data</li>
               <li>Object to processing of your data</li>
               <li>Request data portability</li>
+              <li>Opt out of SMS messaging at any time by replying STOP</li>
             </ul>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">6. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-4">8. Contact Us</h2>
             <p>
               If you have any questions about this Privacy Policy, please contact us at:
             </p>
-            <p className="mt-2">
-              <strong>Legacy 83 Business Inc</strong><br />
-              Email: privacy@legacy83business.com<br />
-              Website: <Link href="https://legacy83business.com" className="text-primary hover:underline">legacy83business.com</Link>
-            </p>
+            <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+              <p>
+                <strong>Legacy 83 Business Inc</strong><br />
+                EIN: 84-3055745<br />
+                4724 Vine Street<br />
+                Cincinnati, OH 45217<br />
+                Phone: <a href="tel:+15133351978" className="text-primary hover:underline">(513) 335-1978</a><br />
+                Email: <a href="mailto:info@legacy83business.com" className="text-primary hover:underline">info@legacy83business.com</a><br />
+                Website: <Link href="https://legacy83business.com" className="text-primary hover:underline">legacy83business.com</Link>
+              </p>
+            </div>
           </section>
         </div>
       </div>

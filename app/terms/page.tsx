@@ -22,7 +22,7 @@ export default function TermsPage() {
         
         <div className="prose prose-slate dark:prose-invert max-w-none">
           <p className="text-muted-foreground mb-6">
-            Last updated: December 2024
+            Last updated: August 2026
           </p>
 
           <section className="mb-8">
@@ -63,36 +63,76 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">5. Intellectual Property</h2>
+            <h2 className="text-2xl font-semibold mb-4">5. SMS Messaging Program</h2>
+            <p>
+              Our messaging program includes service updates, appointment confirmations, reminders, responses to service inquiries, and marketing promotions (if you have provided marketing consent). The program is designed to ensure optimal customer support and respond to service-related inquiries.
+            </p>
+            <h3 className="text-xl font-semibold mt-6 mb-3">Opt-Out</h3>
+            <p>
+              You can cancel the SMS service at any time. Just text &quot;STOP&quot; to (513) 335-1978. After you send the SMS message &quot;STOP&quot; to us, we will send you an SMS message to confirm that you have been unsubscribed.
+            </p>
+            <h3 className="text-xl font-semibold mt-6 mb-3">Support</h3>
+            <p>
+              If you are experiencing issues with the messaging program, you can reply with the keyword HELP for more assistance.
+            </p>
+            <h3 className="text-xl font-semibold mt-6 mb-3">Frequency, Rates &amp; Liability</h3>
+            <p>
+              Message and data rates may apply. Message frequency varies based on your interactions with our service. Carriers are not liable for delayed or undelivered messages.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">6. Age Restriction &amp; Legal Representation</h2>
+            <p>
+              By using this service, you represent and warrant that you are at least 18 years of age. If you are under 18 years old, you may not use or access our services or opt into our messaging program.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">7. Privacy Policy</h2>
+            <p>
+              Your use of the messaging program is also governed by our Privacy Policy. View it here:{" "}
+              <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">8. Intellectual Property</h2>
             <p>
               All content, features, and functionality of the Legacy 83 platform are owned by Legacy 83 Business Inc and are protected by intellectual property laws. You may not copy, modify, or distribute our content without permission.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">6. Limitation of Liability</h2>
+            <h2 className="text-2xl font-semibold mb-4">9. Limitation of Liability</h2>
             <p>
               Legacy 83 shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use our services.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">7. Changes to Terms</h2>
+            <h2 className="text-2xl font-semibold mb-4">10. Changes to Terms</h2>
             <p>
               We reserve the right to modify these terms at any time. We will notify users of significant changes via email or platform notification.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">8. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-4">11. Contact Us</h2>
             <p>
               If you have any questions about these Terms of Service, please contact us at:
             </p>
-            <p className="mt-2">
-              <strong>Legacy 83 Business Inc</strong><br />
-              Email: legal@legacy83business.com<br />
-              Website: <Link href="https://legacy83business.com" className="text-primary hover:underline">legacy83business.com</Link>
-            </p>
+            <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+              <p>
+                <strong>Legacy 83 Business Inc</strong><br />
+                EIN: 84-3055745<br />
+                4724 Vine Street<br />
+                Cincinnati, OH 45217<br />
+                Phone: <a href="tel:+15133351978" className="text-primary hover:underline">(513) 335-1978</a><br />
+                Email: <a href="mailto:info@legacy83business.com" className="text-primary hover:underline">info@legacy83business.com</a><br />
+                Website: <Link href="https://legacy83business.com" className="text-primary hover:underline">legacy83business.com</Link>
+              </p>
+            </div>
           </section>
         </div>
       </div>
