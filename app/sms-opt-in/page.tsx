@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Phone, Mail, User } from "lucide-react";
@@ -25,7 +24,10 @@ export default function SmsOptInPage() {
           <CardContent className="space-y-6">
             <p className="text-muted-foreground">
               By submitting this form, you consent to receive SMS text messages from{" "}
-              <strong>Legacy 83 Business Inc</strong> at the phone number you provide. These messages may include appointment confirmations, reminders, responses to service inquiries, and marketing promotions about special offers, discounts, and service updates.
+              <strong>Legacy 83 Business Inc</strong> at the phone number you provide. These messages may include appointment confirmations, reminders, responses to service inquiries, and marketing promotions about special offers, discounts, and service updates. Message frequency may vary. Message and data rates may apply. You must be at least 18 years old to opt in. Reply STOP to opt out at any time. Text HELP for assistance. View our{" "}
+              <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>{" "}
+              and{" "}
+              <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>.
             </p>
 
             <form className="space-y-4" action="/api/sms-opt-in" method="POST">
@@ -55,29 +57,40 @@ export default function SmsOptInPage() {
 
               <div className="space-y-4 pt-2">
                 <div className="flex items-start gap-3">
-                  <Checkbox id="sms-consent-transactional" name="smsConsentTransactional" />
+                  <input
+                    type="checkbox"
+                    id="sms-consent-transactional"
+                    name="smsConsentTransactional"
+                    value="on"
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
                   <label
                     htmlFor="sms-consent-transactional"
                     className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
                   >
-                    I consent to receive non-marketing text messages from Legacy 83 Business Inc at the phone number provided above. These messages may include appointment confirmations, reminders, and responses to service inquiries. Message frequency varies. Message & data rates may apply. I am at least 18 years of age. Text HELP for assistance or reply STOP to opt out at any time.
+                    I consent to receive non-marketing text messages from Legacy 83 Business Inc. Message types include appointment confirmations, reminders, and responses to service inquiries. Message frequency may vary. Message and data rates may apply. I am at least 18 years of age. Reply STOP to opt out. Text HELP for assistance.
                   </label>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Checkbox id="sms-consent-marketing" name="smsConsentMarketing" />
+                  <input
+                    type="checkbox"
+                    id="sms-consent-marketing"
+                    name="smsConsentMarketing"
+                    value="on"
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
                   <label
                     htmlFor="sms-consent-marketing"
                     className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
                   >
-                    I consent to receive marketing text messages from Legacy 83 Business Inc at the phone number provided above. These messages may include special offers, discounts, and service updates. Message frequency varies. Message & data rates may apply. I am at least 18 years of age. Text HELP for assistance or reply STOP to opt out at any time.
+                    I consent to receive marketing text messages from Legacy 83 Business Inc. Message types include special offers, discounts, and service updates. Message frequency may vary. Message and data rates may apply. I am at least 18 years of age. Reply STOP to opt out. Text HELP for assistance.
                   </label>
                 </div>
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Your consent is optional and not required to use our services. You may opt out at any time by texting STOP to{" "}
-                <a href="tel:+15133351978" className="text-primary hover:underline">(513) 335-1978</a>. For assistance, text HELP. View our{" "}
+                Your consent is optional and not required to use our services. You may opt out at any time by replying STOP to messages from Legacy 83 Business Inc. For assistance, text HELP. View our{" "}
                 <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>{" "}
                 and{" "}
                 <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>.

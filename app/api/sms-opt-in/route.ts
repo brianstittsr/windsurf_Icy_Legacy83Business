@@ -8,8 +8,8 @@ const smsOptInSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required"),
   phone: z.string().min(10, "Valid phone number is required"),
-  smsConsentTransactional: z.enum(["on", "off"]).optional().default("off"),
-  smsConsentMarketing: z.enum(["on", "off"]).optional().default("off"),
+  smsConsentTransactional: z.literal("on").optional(),
+  smsConsentMarketing: z.literal("on").optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
       name,
       email,
       phone,
-      smsConsentTransactional: smsConsentTransactional === "on",
-      smsConsentMarketing: smsConsentMarketing === "on",
+      smsConsentTransactional: smsConsentTransactional === "on" || false,
+      smsConsentMarketing: smsConsentMarketing === "on" || false,
       source: "sms-opt-in-page",
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
