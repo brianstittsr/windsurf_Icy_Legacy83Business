@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, DM_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import Script from "next/script";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -101,6 +102,14 @@ export default function RootLayout({
       <head>
         {/* Skip to main content link for keyboard users - WCAG 2.4.1 */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* GoHighLevel Chat Widget */}
+        <Script
+          src="https://widgets.leadconnectorhq.com/loader.js"
+          data-resources-url="https://widgets.leadconnectorhq.com/chat-widget/loader.js"
+          data-widget-id="6a4c60fddbe2962ef69213ba"
+          data-source="WEB_USER"
+          strategy="afterInteractive"
+        />
       </head>
       <body className={`${manrope.variable} ${dmSans.variable} font-sans antialiased`}>
         {/* Skip to main content link - WCAG 2.4.1 Bypass Blocks */}
