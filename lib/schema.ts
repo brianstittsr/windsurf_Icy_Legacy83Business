@@ -2088,6 +2088,8 @@ export const COLLECTIONS = {
   // Team Member Availability & Bookings
   TEAM_MEMBER_AVAILABILITY: "teamMemberAvailability",
   BOOKINGS: "bookings",
+  // SMS Opt-In Consent (A2P 10DLC compliance)
+  SMS_OPT_INS: "smsOptIns",
   // DocuSeal Integration Collections
   DOCUSEAL_TEMPLATES: "docusealTemplates",
   DOCUSEAL_SUBMISSIONS: "docusealSubmissions",

@@ -84,7 +84,14 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">7. Your Rights</h2>
+            <h2 className="text-2xl font-semibold mb-4">7. Cookies &amp; Tracking Technologies</h2>
+            <p>
+              We use cookies and similar tracking technologies to enhance your experience, analyze website traffic, and understand how you interact with our platform. These technologies may collect information such as your IP address, browser type, device information, pages visited, and referring/exit pages. You can control or disable cookies through your browser settings. Please note that disabling cookies may affect certain features of our website. We do not use cookies to track your mobile opt-in status or consent decisions for SMS messaging.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">8. Your Rights</h2>
             <p>You have the right to:</p>
             <ul className="list-disc pl-6 mt-2 space-y-2">
               <li>Access your personal data</li>
@@ -97,7 +104,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">8. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-4">9. Contact Us</h2>
             <p>
               If you have any questions about this Privacy Policy, please contact us at:
             </p>
