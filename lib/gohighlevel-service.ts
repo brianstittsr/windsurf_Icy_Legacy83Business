@@ -338,6 +338,21 @@ export class GoHighLevelService {
     return this.request('DELETE', `/contacts/${contactId}/tags`, { tags });
   }
 
+  /**
+   * Add a contact to a marketing campaign.
+   * https://services.leadconnectorhq.com/contacts/{contactId}/campaigns/{campaignId}
+   */
+  async addContactToCampaign(contactId: string, campaignId: string): Promise<GHLResponse<{ success: boolean }>> {
+    return this.request('POST', `/contacts/${contactId}/campaigns/${campaignId}`, {});
+  }
+
+  /**
+   * Remove a contact from a marketing campaign.
+   */
+  async removeContactFromCampaign(contactId: string, campaignId: string): Promise<GHLResponse<{ success: boolean }>> {
+    return this.request('DELETE', `/contacts/${contactId}/campaigns/${campaignId}`);
+  }
+
   // ==========================================================================
   // OPPORTUNITIES
   // ==========================================================================

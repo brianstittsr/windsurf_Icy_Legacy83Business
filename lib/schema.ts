@@ -1246,6 +1246,35 @@ export interface GHLIntegrationDoc {
   updatedAt: Timestamp;
 }
 
+/** GoHighLevel Contact (synced copy stored locally for display) */
+export interface GHLContactDoc {
+  id: string;
+  integrationId: string;
+  ghlContactId: string;
+  locationId: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  address1?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  companyName?: string;
+  website?: string;
+  tags?: string[];
+  source?: string;
+  dnd?: boolean;
+  dateOfBirth?: string;
+  customFields?: Array<{ id: string; value: string }>;
+  campaignIds?: string[];
+  lastSyncedAt: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /** GoHighLevel Sync Log */
 export interface GHLSyncLogDoc {
   id: string;
@@ -2081,6 +2110,7 @@ export const COLLECTIONS = {
   GHL_SYNC_LOGS: "gohighlevelSyncLogs",
   GHL_WORKFLOWS: "ghlWorkflows",
   GHL_IMPORTED_WORKFLOWS: "ghlImportedWorkflows",
+  GHL_CONTACTS: "gohighlevelContacts",
   // Calendar Events (built-in calendar)
   CALENDAR_EVENTS: "calendarEvents",
   // 1-to-1 Scheduling Queue

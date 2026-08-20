@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { doc, getDoc, updateDoc, addDoc, collection, Timestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, addDoc, setDoc, collection, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { COLLECTIONS, GHLIntegrationDoc, GHLSyncLogDoc } from "@/lib/schema";
 import { GoHighLevelService } from "@/lib/gohighlevel-service";
@@ -96,6 +96,42 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           recordsProcessed += contactsResult.data.contacts.length;
           recordsSuccessful += contactsResult.data.contacts.length;
           contactsUpdated = contactsResult.data.contacts.length;
+
+          const syncedAt = Timestamp.now();
+          for (const contact of contactsResult.data.contacts) {
+            if (!contact.id) continue;
+            const contactDocRef = doc(db, COLLECTIONS.GHL_CONTACTS, `${id}_${contact.id}`);
+            const existingSnap = await getDoc(contactDocRef);
+            await setDoc(
+              contactDocRef,
+              {
+                integrationId: id,
+                ghlContactId: contact.id,
+                locationId: integration.locationId,
+                firstName: contact.firstName || "",
+                lastName: contact.lastName || "",
+                name: contact.name || `${contact.firstName || ""} ${contact.lastName || ""}`.trim(),
+                email: contact.email || "",
+                phone: contact.phone || "",
+                address1: contact.address1 || "",
+                city: contact.city || "",
+                state: contact.state || "",
+                postalCode: contact.postalCode || "",
+                country: contact.country || "",
+                companyName: contact.companyName || "",
+                website: contact.website || "",
+                tags: contact.tags || [],
+                source: contact.source || "",
+                dnd: contact.dnd || false,
+                dateOfBirth: contact.dateOfBirth || "",
+                customFields: contact.customFields || [],
+                lastSyncedAt: syncedAt,
+                createdAt: existingSnap.exists() ? existingSnap.data().createdAt : syncedAt,
+                updatedAt: syncedAt,
+              },
+              { merge: true }
+            );
+          }
         } else if (contactsResult.error) {
           errors.push({ error: `Contacts sync failed: ${contactsResult.error}` });
           recordsFailed++;

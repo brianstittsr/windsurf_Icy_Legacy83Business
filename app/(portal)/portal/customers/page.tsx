@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GhlContactsTab } from "@/components/portal/ghl-contacts-tab";
 import {
   Table,
   TableBody,
@@ -153,6 +155,13 @@ export default function CustomersPage() {
         </Button>
       </div>
 
+      <Tabs defaultValue="internal" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="internal">Internal Customers</TabsTrigger>
+          <TabsTrigger value="ghl">GHL Contacts</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="internal" className="space-y-6">
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -312,6 +321,12 @@ export default function CustomersPage() {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="ghl" className="space-y-6">
+          <GhlContactsTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
