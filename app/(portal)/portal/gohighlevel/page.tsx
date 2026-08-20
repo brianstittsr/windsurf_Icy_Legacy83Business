@@ -874,11 +874,11 @@ export default function GoHighLevelPage() {
                         <Button
                           key={template.id}
                           variant={selectedTemplate === template.id ? "default" : "outline"}
-                          className="h-auto py-3 px-4 flex flex-col items-start text-left"
+                          className="h-auto w-full py-3 px-4 flex flex-col items-start text-left whitespace-normal"
                           onClick={() => selectTemplate(template.id)}
                         >
-                          <span className="font-medium">{template.name}</span>
-                          <span className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          <span className="font-medium whitespace-normal">{template.name}</span>
+                          <span className="text-xs text-muted-foreground mt-1 whitespace-normal line-clamp-2">
                             {template.description}
                           </span>
                         </Button>
