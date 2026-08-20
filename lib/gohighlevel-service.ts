@@ -343,8 +343,8 @@ export class GoHighLevelService {
   // ==========================================================================
 
   async getOpportunities(pipelineId?: string): Promise<GHLResponse<{ opportunities: GHLOpportunity[] }>> {
-    const params: Record<string, string> = { locationId: this.locationId };
-    if (pipelineId) params.pipelineId = pipelineId;
+    const params: Record<string, string> = { location_id: this.locationId };
+    if (pipelineId) params.pipeline_id = pipelineId;
     return this.request('GET', '/opportunities/search', undefined, params);
   }
 
