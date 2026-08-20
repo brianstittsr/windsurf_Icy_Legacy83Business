@@ -287,12 +287,14 @@ export class GoHighLevelService {
   // CONTACTS
   // ==========================================================================
 
-  async getContacts(limit: number = 100, skip: number = 0): Promise<GHLResponse<{ contacts: GHLContact[] }>> {
-    return this.request('GET', '/contacts/', undefined, {
+  async getContacts(limit: number = 100, startAfterId?: string, startAfter?: string): Promise<GHLResponse<{ contacts: GHLContact[] }>> {
+    const params: Record<string, string> = {
       locationId: this.locationId,
       limit: limit.toString(),
-      skip: skip.toString(),
-    });
+    };
+    if (startAfterId) params.startAfterId = startAfterId;
+    if (startAfter) params.startAfter = startAfter;
+    return this.request('GET', '/contacts/', undefined, params);
   }
 
   async getContact(contactId: string): Promise<GHLResponse<{ contact: GHLContact }>> {
