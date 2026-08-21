@@ -80,8 +80,9 @@ async function getSettings(): Promise<any | null> {
 }
 
 /**
- * Get LLM configuration from environment variable (primary for API routes) or Firebase settings (fallback)
- * Returns full configuration including provider, API key, and base URL for OpenAI-compatible endpoints
+ * Get LLM configuration from Firebase settings (Settings > LLM Configuration, primary) or
+ * environment variables (fallback). Returns full configuration including provider, API key,
+ * and base URL for OpenAI-compatible endpoints.
  */
 export async function getLLMConfig(): Promise<{
   provider: string;
@@ -89,34 +90,15 @@ export async function getLLMConfig(): Promise<{
   baseUrl?: string;
   model?: string;
 } | null> {
-  console.log("[getLLMConfig] Checking environment variables...");
-  
-  // Primary for API routes: Environment variables (most reliable in server context)
-  const envKey = process.env.OPENAI_API_KEY;
-  const envProvider = process.env.LLM_PROVIDER || "openai";
-  const envBaseUrl = process.env.LLM_BASE_URL;
-  const envModel = process.env.LLM_MODEL || "gpt-4o";
-  
-  console.log("[getLLMConfig] Env vars - provider:", envProvider, "apiKey exists:", !!envKey, "baseUrl:", envBaseUrl);
-  
-  if (envKey && envKey.trim().length > 0) {
-    console.log("[getLLMConfig] Using environment variables");
-    return {
-      provider: envProvider,
-      apiKey: envKey,
-      baseUrl: envBaseUrl,
-      model: envModel,
-    };
-  }
+  console.log("[getLLMConfig] Checking Firebase settings...");
 
-  console.log("[getLLMConfig] Env vars not found, checking Firebase...");
-  
-  // Fallback: Try Firebase settings
+  // Primary: Firebase settings (Settings > LLM Configuration), since this is what
+  // admins explicitly configure via the UI and expect to take effect immediately.
   try {
     const settings = await getSettings();
     console.log("[getLLMConfig] Settings fetched:", !!settings);
     console.log("[getLLMConfig] llmConfig exists:", !!settings?.llmConfig);
-    
+
     const llmConfig = settings?.llmConfig;
     if (llmConfig?.apiKey && llmConfig.apiKey.trim().length > 0) {
       console.log("[getLLMConfig] Using Firebase settings");
@@ -130,6 +112,26 @@ export async function getLLMConfig(): Promise<{
     console.log("[getLLMConfig] Firebase key is empty or not set");
   } catch (error) {
     console.error("[getLLMConfig] Error fetching from Firebase:", error);
+  }
+
+  console.log("[getLLMConfig] Firebase settings not found, checking environment variables...");
+
+  // Fallback: Environment variables (useful as a deployment-level default)
+  const envKey = process.env.OPENAI_API_KEY;
+  const envProvider = process.env.LLM_PROVIDER || "openai";
+  const envBaseUrl = process.env.LLM_BASE_URL;
+  const envModel = process.env.LLM_MODEL || "gpt-4o";
+
+  console.log("[getLLMConfig] Env vars - provider:", envProvider, "apiKey exists:", !!envKey, "baseUrl:", envBaseUrl);
+
+  if (envKey && envKey.trim().length > 0) {
+    console.log("[getLLMConfig] Using environment variables");
+    return {
+      provider: envProvider,
+      apiKey: envKey,
+      baseUrl: envBaseUrl,
+      model: envModel,
+    };
   }
 
   console.log("[getLLMConfig] No LLM configuration found anywhere");
