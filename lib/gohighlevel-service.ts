@@ -452,6 +452,33 @@ export class GoHighLevelService {
     });
   }
 
+  /**
+   * Add a contact to a workflow automation.
+   * https://services.leadconnectorhq.com/contacts/{contactId}/workflow/{workflowId}
+   */
+  async addContactToWorkflow(
+    contactId: string,
+    workflowId: string,
+    eventStartTime?: string
+  ): Promise<GHLResponse<{ succeded: boolean }>> {
+    return this.request('POST', `/contacts/${contactId}/workflow/${workflowId}`, {
+      ...(eventStartTime ? { eventStartTime } : {}),
+    });
+  }
+
+  /**
+   * Remove a contact from a workflow automation.
+   */
+  async removeContactFromWorkflow(
+    contactId: string,
+    workflowId: string,
+    eventStartTime?: string
+  ): Promise<GHLResponse<{ succeded: boolean }>> {
+    return this.request('DELETE', `/contacts/${contactId}/workflow/${workflowId}`, {
+      ...(eventStartTime ? { eventStartTime } : {}),
+    });
+  }
+
   // ==========================================================================
   // CAMPAIGNS
   // ==========================================================================

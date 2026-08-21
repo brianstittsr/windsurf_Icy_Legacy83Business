@@ -34,7 +34,7 @@ import {
   Calendar,
   Ban,
   Loader2,
-  Megaphone,
+  Workflow,
   RefreshCw,
   Info,
   ExternalLink,
@@ -62,13 +62,13 @@ interface GHLContactDetail {
   dnd?: boolean;
   dateOfBirth?: string;
   customFields?: Array<{ id: string; value: string }>;
-  campaignIds?: string[];
+  workflowIds?: string[];
   lastSyncedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-interface GHLCampaignOption {
+interface GHLWorkflowOption {
   id: string;
   name: string;
   status?: string;
@@ -95,11 +95,11 @@ export default function GhlContactDetailPage() {
   const [contact, setContact] = useState<GHLContactDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
-  const [campaigns, setCampaigns] = useState<GHLCampaignOption[]>([]);
-  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
-  const [submittingCampaign, setSubmittingCampaign] = useState(false);
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [workflows, setWorkflows] = useState<GHLWorkflowOption[]>([]);
+  const [loadingWorkflows, setLoadingWorkflows] = useState(false);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>("");
+  const [submittingWorkflow, setSubmittingWorkflow] = useState(false);
 
   const fetchContact = useCallback(async () => {
     setLoading(true);
@@ -123,56 +123,56 @@ export default function GhlContactDetailPage() {
     if (id) fetchContact();
   }, [id, fetchContact]);
 
-  const openCampaignDialog = async () => {
+  const openWorkflowDialog = async () => {
     if (!contact) return;
-    setCampaignDialogOpen(true);
-    setLoadingCampaigns(true);
+    setWorkflowDialogOpen(true);
+    setLoadingWorkflows(true);
     try {
-      const response = await fetch(`/api/gohighlevel/campaigns?integrationId=${contact.integrationId}`);
+      const response = await fetch(`/api/gohighlevel/workflows?integrationId=${contact.integrationId}`);
       const data = await response.json();
       if (data.success) {
-        setCampaigns(data.campaigns || []);
+        setWorkflows(data.workflows || []);
       } else {
-        toast.error(data.error || "Failed to load campaigns");
+        toast.error(data.error || "Failed to load workflow automations");
       }
     } catch (error) {
-      console.error("Error fetching campaigns:", error);
-      toast.error("Failed to load campaigns");
+      console.error("Error fetching workflows:", error);
+      toast.error("Failed to load workflow automations");
     } finally {
-      setLoadingCampaigns(false);
+      setLoadingWorkflows(false);
     }
   };
 
-  const handleAddToCampaign = async () => {
-    if (!contact || !selectedCampaignId) {
-      toast.error("Select a campaign");
+  const handleAddToWorkflow = async () => {
+    if (!contact || !selectedWorkflowId) {
+      toast.error("Select a workflow automation");
       return;
     }
-    setSubmittingCampaign(true);
+    setSubmittingWorkflow(true);
     try {
-      const response = await fetch("/api/gohighlevel/contacts/add-to-campaign", {
+      const response = await fetch("/api/gohighlevel/contacts/add-to-workflow", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           integrationId: contact.integrationId,
-          campaignId: selectedCampaignId,
+          workflowId: selectedWorkflowId,
           contactIds: [contact.id],
         }),
       });
       const data = await response.json();
       if (data.success) {
-        toast.success("Contact added to campaign");
-        setCampaignDialogOpen(false);
-        setSelectedCampaignId("");
+        toast.success("Contact added to workflow");
+        setWorkflowDialogOpen(false);
+        setSelectedWorkflowId("");
         await fetchContact();
       } else {
-        toast.error(data.results?.[0]?.error || "Failed to add contact to campaign");
+        toast.error(data.results?.[0]?.error || "Failed to add contact to workflow");
       }
     } catch (error) {
-      console.error("Error adding contact to campaign:", error);
-      toast.error("Failed to add contact to campaign");
+      console.error("Error adding contact to workflow:", error);
+      toast.error("Failed to add contact to workflow");
     } finally {
-      setSubmittingCampaign(false);
+      setSubmittingWorkflow(false);
     }
   };
 
@@ -213,9 +213,9 @@ export default function GhlContactDetailPage() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          <Button onClick={openCampaignDialog}>
-            <Megaphone className="mr-2 h-4 w-4" />
-            Add to Campaign
+          <Button onClick={openWorkflowDialog}>
+            <Workflow className="mr-2 h-4 w-4" />
+            Add to Workflow
           </Button>
         </div>
       </div>
@@ -279,16 +279,16 @@ export default function GhlContactDetailPage() {
             </>
           )}
 
-          {(contact.campaignIds?.length || 0) > 0 && (
+          {(contact.workflowIds?.length || 0) > 0 && (
             <>
               <Separator />
               <div>
-                <p className="text-xs text-muted-foreground mb-2">Active Campaigns</p>
+                <p className="text-xs text-muted-foreground mb-2">Active Workflows</p>
                 <div className="flex flex-wrap gap-2">
-                  {contact.campaignIds!.map((campaignId) => (
-                    <Badge key={campaignId} variant="secondary">
-                      <Megaphone className="mr-1 h-3 w-3" />
-                      {campaignId}
+                  {contact.workflowIds!.map((workflowId) => (
+                    <Badge key={workflowId} variant="secondary">
+                      <Workflow className="mr-1 h-3 w-3" />
+                      {workflowId}
                     </Badge>
                   ))}
                 </div>
@@ -312,40 +312,37 @@ export default function GhlContactDetailPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={campaignDialogOpen} onOpenChange={setCampaignDialogOpen}>
+      <Dialog open={workflowDialogOpen} onOpenChange={setWorkflowDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add to Marketing Campaign</DialogTitle>
+            <DialogTitle>Add to Workflow Automation</DialogTitle>
             <DialogDescription>
-              Add {displayName} to a GoHighLevel marketing campaign.
+              Add {displayName} to a GoHighLevel workflow automation.
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
-            {loadingCampaigns ? (
+            {loadingWorkflows ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
-            ) : campaigns.length === 0 ? (
+            ) : workflows.length === 0 ? (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  No campaigns found for this location. Create one in GoHighLevel, then reopen this dialog.
+                  No workflow automations found for this location. Create one in GoHighLevel, then reopen this dialog.
                 </p>
                 <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-2">
                   <p className="font-medium flex items-center gap-1.5">
                     <Info className="h-4 w-4" />
-                    How to create a campaign in GoHighLevel
+                    How to create a workflow automation in GoHighLevel
                   </p>
                   <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
                     <li>Log in to your GoHighLevel account for this sub-account/location.</li>
-                    <li>In the left sidebar, go to <strong>Marketing → Campaigns</strong>.</li>
-                    <li>Click <strong>+ Create Campaign</strong>, give it a name, and add your email/SMS steps.</li>
-                    <li>Click <strong>Save</strong> and set the campaign status to <strong>Published</strong>.</li>
-                    <li>Come back here and reopen &quot;Add to Campaign&quot; — it will appear in the list.</li>
+                    <li>In the left sidebar, go to <strong>Automation → Workflows</strong>.</li>
+                    <li>Click <strong>+ Create Workflow</strong>, give it a name, and choose a trigger (e.g. &quot;Manual&quot;, &quot;Contact Tag&quot;).</li>
+                    <li>Add your action steps (email, SMS, tags, etc.).</li>
+                    <li>Click <strong>Publish</strong> to activate it.</li>
+                    <li>Come back here and reopen &quot;Add to Workflow&quot; — it will appear in the list.</li>
                   </ol>
-                  <p className="text-xs text-muted-foreground pt-1">
-                    Note: GoHighLevel is deprecating standalone Campaigns in favor of Workflows. If you don&apos;t see
-                    a Campaigns option in your sidebar, create a Workflow instead and use that as your automation.
-                  </p>
                   <a
                     href="https://app.gohighlevel.com/"
                     target="_blank"
@@ -357,14 +354,14 @@ export default function GhlContactDetailPage() {
                 </div>
               </div>
             ) : (
-              <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+              <Select value={selectedWorkflowId} onValueChange={setSelectedWorkflowId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a campaign" />
+                  <SelectValue placeholder="Select a workflow" />
                 </SelectTrigger>
                 <SelectContent>
-                  {campaigns.map((c) => (
-                    <SelectItem key={c.id} value={c.id!}>
-                      {c.name} {c.status ? `(${c.status})` : ""}
+                  {workflows.map((w) => (
+                    <SelectItem key={w.id} value={w.id!}>
+                      {w.name} {w.status ? `(${w.status})` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -372,15 +369,15 @@ export default function GhlContactDetailPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCampaignDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setWorkflowDialogOpen(false)}>
               Cancel
             </Button>
             <Button
-              onClick={handleAddToCampaign}
-              disabled={submittingCampaign || !selectedCampaignId || campaigns.length === 0}
+              onClick={handleAddToWorkflow}
+              disabled={submittingWorkflow || !selectedWorkflowId || workflows.length === 0}
             >
-              {submittingCampaign && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Add to Campaign
+              {submittingWorkflow && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Add to Workflow
             </Button>
           </DialogFooter>
         </DialogContent>

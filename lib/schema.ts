@@ -1270,6 +1270,7 @@ export interface GHLContactDoc {
   dateOfBirth?: string;
   customFields?: Array<{ id: string; value: string }>;
   campaignIds?: string[];
+  workflowIds?: string[];
   lastSyncedAt: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
