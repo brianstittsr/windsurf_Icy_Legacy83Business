@@ -31,7 +31,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Search, RefreshCw, Eye, Loader2, Megaphone, Plug } from "lucide-react";
+import { Search, RefreshCw, Eye, Loader2, Megaphone, Plug, Info, ExternalLink } from "lucide-react";
 
 interface GHLIntegrationOption {
   id: string;
@@ -406,9 +406,36 @@ export function GhlContactsTab() {
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : campaigns.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No campaigns found for this location. Create a campaign in GoHighLevel first.
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  No campaigns found for this location. Create one in GoHighLevel, then reopen this dialog.
+                </p>
+                <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-2">
+                  <p className="font-medium flex items-center gap-1.5">
+                    <Info className="h-4 w-4" />
+                    How to create a campaign in GoHighLevel
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                    <li>Log in to your GoHighLevel account for this sub-account/location.</li>
+                    <li>In the left sidebar, go to <strong>Marketing → Campaigns</strong>.</li>
+                    <li>Click <strong>+ Create Campaign</strong>, give it a name, and add your email/SMS steps.</li>
+                    <li>Click <strong>Save</strong> and set the campaign status to <strong>Published</strong>.</li>
+                    <li>Come back here and reopen &quot;Add to Campaign&quot; — it will appear in the list.</li>
+                  </ol>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Note: GoHighLevel is deprecating standalone Campaigns in favor of Workflows. If you don&apos;t see
+                    a Campaigns option in your sidebar, create a Workflow instead and use that as your automation.
+                  </p>
+                  <a
+                    href="https://app.gohighlevel.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline text-xs font-medium"
+                  >
+                    Open GoHighLevel <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
             ) : (
               <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
                 <SelectTrigger>
