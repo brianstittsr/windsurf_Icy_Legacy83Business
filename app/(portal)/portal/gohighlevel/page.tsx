@@ -210,6 +210,12 @@ export default function GoHighLevelPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showWorkflowPreview, setShowWorkflowPreview] = useState(false);
   const [selectedIntegration, setSelectedIntegration] = useState<GHLIntegration | null>(null);
+  const [previewingSavedWorkflow, setPreviewingSavedWorkflow] = useState<SavedWorkflow | null>(null);
+  const [showSavedWorkflowPreview, setShowSavedWorkflowPreview] = useState(false);
+  const [deployingWorkflow, setDeployingWorkflow] = useState<SavedWorkflow | null>(null);
+  const [showDeployDialog, setShowDeployDialog] = useState(false);
+  const [markingDeployed, setMarkingDeployed] = useState(false);
+  const [deletingWorkflowId, setDeletingWorkflowId] = useState<string | null>(null);
   
   // Form state for integrations
   const [formData, setFormData] = useState({
@@ -553,18 +559,79 @@ export default function GoHighLevelPage() {
   // Delete workflow
   const deleteWorkflow = async (id: string) => {
     if (!confirm("Are you sure you want to delete this workflow?")) return;
+    setDeletingWorkflowId(id);
     try {
       const response = await fetch(`/api/ghl/workflows?id=${id}`, {
         method: "DELETE",
       });
       const data = await response.json();
       if (data.success) {
+        setSavedWorkflows((prev) => prev.filter((w) => w.id !== id));
+        showSuccess("Workflow deleted");
+        // Re-sync with server in case of any drift
         fetchWorkflows();
       } else {
-        toast.error(`Error: ${data.error}`);
+        showError("Failed to delete workflow", { description: data.error || "Unknown error" });
       }
     } catch (error) {
-      toast.error(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      showError("Error deleting workflow", { description: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setDeletingWorkflowId(null);
+    }
+  };
+
+  // Open preview dialog for a saved workflow
+  const openSavedWorkflowPreview = (workflow: SavedWorkflow) => {
+    setPreviewingSavedWorkflow(workflow);
+    setShowSavedWorkflowPreview(true);
+  };
+
+  // Open the deploy dialog for a saved workflow
+  const openDeployDialog = (workflow: SavedWorkflow) => {
+    setDeployingWorkflow(workflow);
+    setShowDeployDialog(true);
+  };
+
+  // Build a plain-language, copy/paste-friendly summary of a workflow's steps
+  const buildPlainLanguageSteps = (workflow: GeneratedWorkflow): string => {
+    const lines = [
+      `Workflow: ${workflow.name}`,
+      workflow.description,
+      "",
+      `Trigger: ${workflow.trigger.type.replace(/_/g, " ")}`,
+      "",
+      "Steps:",
+      ...workflow.steps.map((step, index) => {
+        const delayText = step.delay ? ` (wait ${step.delay} ${step.delayUnit || "hours"} before this step)` : "";
+        const subjectText = step.subject ? ` — Subject: "${step.subject}"` : "";
+        return `${index + 1}. [${step.type.toUpperCase()}]${delayText}${subjectText}\n   ${step.content}`;
+      }),
+    ];
+    return lines.join("\n");
+  };
+
+  // Mark a workflow as deployed after it has been manually imported into GoHighLevel
+  const markWorkflowDeployed = async (id: string) => {
+    setMarkingDeployed(true);
+    try {
+      const response = await fetch(`/api/ghl/workflows`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "deployed" }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        showSuccess("Workflow marked as deployed");
+        setShowDeployDialog(false);
+        setDeployingWorkflow(null);
+        fetchWorkflows();
+      } else {
+        showError("Failed to update workflow", { description: data.error || "Unknown error" });
+      }
+    } catch (error) {
+      showError("Error updating workflow", { description: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setMarkingDeployed(false);
     }
   };
 
@@ -1010,20 +1077,25 @@ export default function GoHighLevelPage() {
                               <CardDescription>{workflow.description}</CardDescription>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" onClick={() => openSavedWorkflowPreview(workflow)}>
                                 <Eye className="h-4 w-4 mr-1" />
                                 Preview
                               </Button>
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" onClick={() => openDeployDialog(workflow)}>
                                 <Upload className="h-4 w-4 mr-1" />
                                 Deploy
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
+                                disabled={deletingWorkflowId === workflow.id}
                                 onClick={() => deleteWorkflow(workflow.id)}
                               >
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                {deletingWorkflowId === workflow.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                )}
                               </Button>
                             </div>
                           </div>
@@ -1464,6 +1536,176 @@ export default function GoHighLevelPage() {
             <Button onClick={saveWorkflow}>
               <FileText className="h-4 w-4 mr-2" />
               Save Workflow
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Saved Workflow Preview Dialog */}
+      <Dialog open={showSavedWorkflowPreview} onOpenChange={setShowSavedWorkflowPreview}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Workflow Preview</DialogTitle>
+            <DialogDescription>
+              {previewingSavedWorkflow && getStatusBadge(previewingSavedWorkflow.status)}
+            </DialogDescription>
+          </DialogHeader>
+          {previewingSavedWorkflow && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg">{previewingSavedWorkflow.workflow.name}</h3>
+                <p className="text-sm text-muted-foreground">{previewingSavedWorkflow.workflow.description}</p>
+              </div>
+
+              <div className="bg-muted p-3 rounded-lg">
+                <span className="text-sm font-medium">Trigger:</span>
+                <p className="text-sm">{previewingSavedWorkflow.workflow.trigger.type.replace(/_/g, ' ')}</p>
+              </div>
+
+              <div>
+                <span className="text-sm font-medium">Workflow Steps:</span>
+                <div className="mt-2 space-y-2">
+                  {previewingSavedWorkflow.workflow.steps.map((step, index) => (
+                    <div key={index} className="flex items-start gap-3 p-3 border rounded-lg">
+                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-orange-100 text-orange-600">
+                        {getStepIcon(step.type)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="capitalize">{step.type}</Badge>
+                          {step.delay && (
+                            <span className="text-xs text-muted-foreground">
+                              Wait {step.delay} {step.delayUnit || 'hours'}
+                            </span>
+                          )}
+                        </div>
+                        {step.subject && (
+                          <p className="text-sm font-medium mt-1">{step.subject}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+                          {step.content}
+                        </p>
+                      </div>
+                      {index < previewingSavedWorkflow.workflow.steps.length - 1 && (
+                        <ArrowRight className="h-4 w-4 text-muted-foreground mt-2" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {previewingSavedWorkflow.workflow.estimatedDuration && (
+                <div className="text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4 inline mr-1" />
+                  Estimated duration: {previewingSavedWorkflow.workflow.estimatedDuration}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSavedWorkflowPreview(false)}>
+              Close
+            </Button>
+            <Button variant="outline" onClick={() => {
+              if (previewingSavedWorkflow) {
+                navigator.clipboard.writeText(JSON.stringify(previewingSavedWorkflow.workflow, null, 2));
+                toast.success("Workflow JSON copied to clipboard!");
+              }
+            }}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy JSON
+            </Button>
+            <Button onClick={() => {
+              if (previewingSavedWorkflow) {
+                setShowSavedWorkflowPreview(false);
+                openDeployDialog(previewingSavedWorkflow);
+              }
+            }}>
+              <Upload className="h-4 w-4 mr-2" />
+              Deploy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deploy to GoHighLevel Dialog */}
+      <Dialog open={showDeployDialog} onOpenChange={setShowDeployDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Deploy to GoHighLevel</DialogTitle>
+            <DialogDescription>
+              {deployingWorkflow?.workflow.name}
+            </DialogDescription>
+          </DialogHeader>
+          {deployingWorkflow && (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-3 border border-amber-300 bg-amber-50 rounded-lg text-sm text-amber-900">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">GoHighLevel does not yet support creating workflows via API</p>
+                  <p className="mt-1">
+                    HighLevel&apos;s public API is currently read-only for Workflows/Automations — there is no
+                    endpoint to programmatically create or enable one. To deploy this workflow, copy the steps
+                    below and recreate them in the GoHighLevel Automations builder, then mark it as deployed here.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-sm font-medium">Plain-Language Steps:</span>
+                <Textarea
+                  readOnly
+                  value={buildPlainLanguageSteps(deployingWorkflow.workflow)}
+                  className="mt-2 font-mono text-xs h-64"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(buildPlainLanguageSteps(deployingWorkflow.workflow));
+                    toast.success("Plain-language steps copied to clipboard!");
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Plain-Language Steps
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(deployingWorkflow.workflow, null, 2));
+                    toast.success("Workflow JSON copied to clipboard!");
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy JSON
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <a href="https://app.gohighlevel.com/" target="_blank" rel="noopener noreferrer">
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    Open GoHighLevel
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeployDialog(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={() => deployingWorkflow && markWorkflowDeployed(deployingWorkflow.id)}
+              disabled={markingDeployed}
+            >
+              {markingDeployed ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-2" />
+              )}
+              I've Imported It — Mark as Deployed
             </Button>
           </DialogFooter>
         </DialogContent>

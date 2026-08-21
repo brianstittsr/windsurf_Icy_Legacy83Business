@@ -4,11 +4,12 @@
  * Endpoints for managing AI-generated workflows:
  * - GET: List saved workflows
  * - POST: Save new workflow
+ * - PATCH: Update workflow status (e.g. mark as deployed after manual import into GoHighLevel)
  * - DELETE: Delete workflow
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { collection, getDocs, addDoc, deleteDoc, doc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { COLLECTIONS, GHLWorkflowDoc } from "@/lib/schema";
 
@@ -84,6 +85,59 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error saving workflow:", error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    if (!db) {
+      return NextResponse.json(
+        { success: false, error: "Database not configured" },
+        { status: 503 }
+      );
+    }
+
+    const body = await request.json();
+    const { id, status, ghlWorkflowId } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "Workflow ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const allowedStatuses = ["draft", "deployed", "archived"];
+    if (status && !allowedStatuses.includes(status)) {
+      return NextResponse.json(
+        { success: false, error: `Status must be one of: ${allowedStatuses.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    const updates: Record<string, unknown> = { updatedAt: Timestamp.now() };
+    if (status) {
+      updates.status = status;
+      if (status === "deployed") {
+        updates.deployedAt = Timestamp.now();
+      }
+    }
+    if (ghlWorkflowId) {
+      updates.ghlWorkflowId = ghlWorkflowId;
+    }
+
+    await updateDoc(doc(db, COLLECTIONS.GHL_WORKFLOWS, id), updates);
+
+    return NextResponse.json({
+      success: true,
+      message: "Workflow updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating workflow:", error);
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
