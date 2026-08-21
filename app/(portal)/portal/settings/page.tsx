@@ -183,7 +183,7 @@ const apiConfigs: ApiKeyConfig[] = [
 ];
 
 const llmProviders = [
-  { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"], supportsCustomUrl: false },
+  { id: "openai", name: "OpenAI", models: ["gpt-5.5", "gpt-5", "gpt-5-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4o", "gpt-4o-mini", "o3", "o4-mini", "gpt-4-turbo", "gpt-3.5-turbo"], supportsCustomUrl: false },
   { id: "anthropic", name: "Anthropic", models: ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"], supportsCustomUrl: false },
   { id: "google", name: "Google AI", models: ["gemini-pro", "gemini-ultra"], supportsCustomUrl: false },
   { id: "mistral", name: "Mistral AI", models: ["mistral-large", "mistral-medium", "mistral-small"], supportsCustomUrl: false },
