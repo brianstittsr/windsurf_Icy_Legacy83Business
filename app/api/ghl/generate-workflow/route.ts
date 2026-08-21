@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { AIWorkflowGenerator, WORKFLOW_TEMPLATES } from "@/lib/ai-workflow-generator";
+import { getLLMConfig } from "@/lib/openai-config";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +21,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const generator = new AIWorkflowGenerator();
+    const config = await getLLMConfig();
+    if (!config?.apiKey) {
+      return NextResponse.json(
+        { success: false, error: "No LLM API key is configured. Add an OpenAI API key in Settings > LLM Configuration, or set OPENAI_API_KEY in your environment." },
+        { status: 503 }
+      );
+    }
+    const generator = new AIWorkflowGenerator(config.apiKey, config.model);
 
     let workflow;
     if (templateId) {
