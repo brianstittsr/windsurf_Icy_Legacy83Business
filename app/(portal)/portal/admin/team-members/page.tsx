@@ -541,7 +541,7 @@ export default function TeamMembersPage() {
           </div>
           <h1 className="text-3xl font-bold">Team Members</h1>
           <p className="text-muted-foreground">
-            Manage SVP team members, affiliates, and consultants
+            Manage Legacy 83 Busines team members, affiliates, and consultants
           </p>
         </div>
         <div className="flex gap-2">
