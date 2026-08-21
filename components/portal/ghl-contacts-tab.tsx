@@ -257,6 +257,15 @@ export function GhlContactsTab() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-medium text-muted-foreground">Total GHL Contacts</h3>
+        <Badge variant="secondary">{contacts.length}</Badge>
+        {searchQuery && (
+          <span className="text-xs text-muted-foreground">
+            ({filteredContacts.length} matching &quot;{searchQuery}&quot;)
+          </span>
+        )}
+      </div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-1 flex-wrap">
           {integrations.length > 1 && (
