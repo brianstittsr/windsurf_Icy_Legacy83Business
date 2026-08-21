@@ -486,14 +486,32 @@ async function searchRealSuppliersWithAI(query: string): Promise<AIRealSearchRes
     return { success: false, error: "No LLM API key is configured. Set OPENAI_API_KEY in your environment or add an LLM configuration in platform settings." };
   }
 
+  // This feature relies on OpenAI's proprietary Responses API `web_search` tool, which is
+  // only available on api.openai.com. If the platform's configured LLM provider is anything
+  // else (Anthropic, Google, Ollama, or a generic OpenAI-compatible endpoint), the configured
+  // API key/base URL will not work against OpenAI's endpoint and every search will silently fail.
+  const provider = (config.provider || "openai").toLowerCase();
+  if (provider !== "openai") {
+    return {
+      success: false,
+      error: `Supplier search requires an OpenAI provider (uses OpenAI's web search tool). Your platform LLM provider is currently set to "${config.provider}". Go to Settings > Integrations and set the LLM provider to OpenAI with a valid API key to use Supplier Search.`,
+    };
+  }
+
   try {
     const openai = new OpenAI({
       apiKey: config.apiKey,
       baseURL: config.baseUrl || undefined,
     });
 
+    // Web search via the Responses API requires GPT-4 class models or later.
+    // Fall back to gpt-4o if an older/unsupported model (e.g. gpt-3.5-turbo) is configured.
+    const configuredModel = config.model || "gpt-4o";
+    const supportsWebSearch = /^gpt-(4|5)/i.test(configuredModel);
+    const model = supportsWebSearch ? configuredModel : "gpt-4o";
+
     const response = await openai.responses.create({
-      model: config.model || "gpt-4o",
+      model,
       tools: [{ type: "web_search" }],
       input: `Find real manufacturing suppliers for this query: "${query}". Return ONLY a JSON array of supplier objects. Each object must include: companyName (string), description (string), location (string), phone (string), website (string), categories (array of strings), certifications (array of strings), employeeCount (string). Do not include markdown, code blocks, or any other text.`,
     });
