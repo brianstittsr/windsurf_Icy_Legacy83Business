@@ -137,12 +137,12 @@ interface SavedWorkflow {
 
 interface ImportedWorkflow {
   id: string;
-  ghlWorkflowId: string;
   name: string;
-  description: string;
   status: string;
+  version?: number;
+  createdAt?: string;
+  updatedAt?: string;
   plainLanguagePrompt?: string;
-  importedAt: string;
 }
 
 // Workflow Templates for Legacy 83 Business
@@ -568,20 +568,11 @@ export default function GoHighLevelPage() {
     }
   };
 
-  // Import workflows from GHL
+  // Refresh the list of existing automations/workflows directly from GoHighLevel
   const importWorkflows = async () => {
     setImporting(true);
     try {
-      const response = await fetch("/api/ghl/import-workflows", {
-        method: "POST",
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast.success(`Imported ${data.imported || 0} workflows from GoHighLevel`);
-        fetchImportedWorkflows();
-      } else {
-        toast.error(`Error: ${data.error}`);
-      }
+      await fetchImportedWorkflows();
     } catch (error) {
       toast.error(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
@@ -590,18 +581,20 @@ export default function GoHighLevelPage() {
   };
 
   // Convert workflow to plain language
-  const convertWorkflow = async (workflowId: string) => {
-    setConverting(workflowId);
+  const convertWorkflow = async (workflow: ImportedWorkflow) => {
+    setConverting(workflow.id);
     try {
       const response = await fetch("/api/ghl/convert-workflow", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workflowId }),
+        body: JSON.stringify({ workflow }),
       });
       const data = await response.json();
       if (data.success) {
         toast.success("Workflow converted successfully!");
-        fetchImportedWorkflows();
+        setImportedWorkflows((prev) =>
+          prev.map((w) => (w.id === workflow.id ? { ...w, plainLanguagePrompt: data.plainLanguage } : w))
+        );
       } else {
         toast.error(`Error: ${data.error}`);
       }
@@ -713,7 +706,7 @@ export default function GoHighLevelPage() {
               </TabsTrigger>
               <TabsTrigger value="import" className="gap-2">
                 <Download className="h-4 w-4" />
-                Import from GHL
+                GHL Automations
               </TabsTrigger>
               <TabsTrigger value="sync-logs" className="gap-2">
                 <FileText className="h-4 w-4" />
@@ -1051,25 +1044,28 @@ export default function GoHighLevelPage() {
             </ScrollArea>
           </TabsContent>
 
-          {/* Import from GHL Tab */}
+          {/* GHL Automations Tab */}
           <TabsContent value="import" className="flex-1 m-0 overflow-hidden">
             <ScrollArea className="h-full">
               <div className="p-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-lg font-semibold">Import Workflows from GoHighLevel</h2>
-                    <p className="text-sm text-muted-foreground">Import existing workflows and convert them to plain language descriptions</p>
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      Existing Automations in GoHighLevel
+                      <Badge variant="secondary">{importedWorkflows.length}</Badge>
+                    </h2>
+                    <p className="text-sm text-muted-foreground">Live list of workflow automations already set up in your GoHighLevel account</p>
                   </div>
                   <Button onClick={importWorkflows} disabled={importing}>
                     {importing ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Importing...
+                        Refreshing...
                       </>
                     ) : (
                       <>
                         <Download className="h-4 w-4 mr-2" />
-                        Import from GHL
+                        Refresh from GHL
                       </>
                     )}
                   </Button>
@@ -1079,13 +1075,13 @@ export default function GoHighLevelPage() {
                   <Card>
                     <CardContent className="p-8 text-center">
                       <Download className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No Imported Workflows</h3>
+                      <h3 className="text-lg font-medium mb-2">No Automations Found</h3>
                       <p className="text-muted-foreground mb-4">
-                        Import workflows from your GoHighLevel account to view and convert them
+                        No workflow automations were found in your connected GoHighLevel account. Create one in GHL, then refresh.
                       </p>
                       <Button onClick={importWorkflows} disabled={importing}>
                         <Download className="h-4 w-4 mr-2" />
-                        Import Workflows
+                        Refresh from GHL
                       </Button>
                     </CardContent>
                   </Card>
@@ -1098,17 +1094,18 @@ export default function GoHighLevelPage() {
                             <div>
                               <CardTitle className="flex items-center gap-2">
                                 {workflow.name}
-                                <Badge variant="outline">{workflow.status}</Badge>
+                                <Badge variant={workflow.status === "published" ? "default" : "outline"}>{workflow.status}</Badge>
                               </CardTitle>
                               <CardDescription>
-                                GHL ID: {workflow.ghlWorkflowId}
+                                ID: {workflow.id}
+                                {workflow.updatedAt && ` • Updated: ${new Date(workflow.updatedAt).toLocaleDateString()}`}
                               </CardDescription>
                             </div>
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => convertWorkflow(workflow.id)}
+                                onClick={() => convertWorkflow(workflow)}
                                 disabled={converting === workflow.id}
                               >
                                 {converting === workflow.id ? (
