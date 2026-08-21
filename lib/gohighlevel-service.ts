@@ -287,7 +287,11 @@ export class GoHighLevelService {
   // CONTACTS
   // ==========================================================================
 
-  async getContacts(limit: number = 100, startAfterId?: string, startAfter?: string): Promise<GHLResponse<{ contacts: GHLContact[] }>> {
+  async getContacts(
+    limit: number = 100,
+    startAfterId?: string,
+    startAfter?: string
+  ): Promise<GHLResponse<{ contacts: GHLContact[]; meta?: { total?: number; startAfterId?: string; startAfter?: number } }>> {
     const params: Record<string, string> = {
       locationId: this.locationId,
       limit: limit.toString(),
@@ -295,6 +299,45 @@ export class GoHighLevelService {
     if (startAfterId) params.startAfterId = startAfterId;
     if (startAfter) params.startAfter = startAfter;
     return this.request('GET', '/contacts/', undefined, params);
+  }
+
+  /**
+   * Fetch all contacts across all pages, following GHL's cursor-based pagination
+   * (meta.startAfterId / meta.startAfter) until no more pages remain.
+   */
+  async getAllContacts(pageSize: number = 100): Promise<GHLResponse<{ contacts: GHLContact[] }>> {
+    const allContacts: GHLContact[] = [];
+    let startAfterId: string | undefined;
+    let startAfter: string | undefined;
+
+    // Safety cap to avoid runaway loops against a misbehaving API
+    const maxPages = 200;
+    for (let page = 0; page < maxPages; page++) {
+      const result = await this.getContacts(pageSize, startAfterId, startAfter);
+      if (!result.success) {
+        if (allContacts.length > 0) {
+          // Return what we successfully fetched so far alongside the error
+          return { success: true, data: { contacts: allContacts } };
+        }
+        return { success: false, error: result.error };
+      }
+
+      const contacts = result.data?.contacts || [];
+      allContacts.push(...contacts);
+
+      const meta = result.data?.meta;
+      const nextStartAfterId = meta?.startAfterId;
+      const nextStartAfter = meta?.startAfter?.toString();
+
+      if (contacts.length < pageSize || !nextStartAfterId) {
+        break;
+      }
+
+      startAfterId = nextStartAfterId;
+      startAfter = nextStartAfter;
+    }
+
+    return { success: true, data: { contacts: allContacts } };
   }
 
   async getContact(contactId: string): Promise<GHLResponse<{ contact: GHLContact }>> {

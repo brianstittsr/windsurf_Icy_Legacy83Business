@@ -91,7 +91,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
       // Sync contacts if enabled
       if ((syncType === 'full' || syncType === 'contacts') && integration.syncContacts) {
-        const contactsResult = await ghlService.getContacts(100);
+        const contactsResult = await ghlService.getAllContacts(100);
         if (contactsResult.success && contactsResult.data?.contacts) {
           recordsProcessed += contactsResult.data.contacts.length;
           recordsSuccessful += contactsResult.data.contacts.length;
