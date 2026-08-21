@@ -499,9 +499,11 @@ async function searchRealSuppliersWithAI(query: string): Promise<AIRealSearchRes
   }
 
   try {
+    // Only use a custom baseURL for non-OpenAI-compatible setups. Since we've already verified
+    // provider === "openai" above, always hit the real OpenAI endpoint here, ignoring any
+    // leftover baseUrl from a previously configured Ollama/OpenAI-compatible provider.
     const openai = new OpenAI({
       apiKey: config.apiKey,
-      baseURL: config.baseUrl || undefined,
     });
 
     // Web search via the Responses API requires GPT-4 class models or later.
