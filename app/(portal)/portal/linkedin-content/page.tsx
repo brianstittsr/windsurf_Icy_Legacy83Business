@@ -83,7 +83,7 @@ interface GeneratedContent {
 }
 
 // Default prompt template
-const DEFAULT_ARTICLE_PROMPT = `Please write a friendly, detailed, comprehensive, thoughtful, balanced, engaging, compelling, fact-checked, conversational, long-form seo-optimized article for U.S. manufacturing executives about [TOPIC]. Do not use favicons or emoticons. Include verifiable examples, data, and statistics. At end of the article, cite true references with clean links that support the points made and include only clean links (no tracking). Expand paragraphs. Appropriately promote Strategic Value Plus Solutions (V+) Supplier Success Workshops whose website is at https://strategicvalueplus.com/supplier-success-workshops as well as the V+ alliance of experts who help small and mid-sized manufacturers modernize and become antifragile, thriving in the face of disruptions. Also, mention V+ offers CMMC readiness and certification services. The call to action is to schedule a supplier success workshop to learn (1) what is required to become a preferred provider to specific reshored OEMs and (2) how to satisfy those requirements to come out on top, and (3) to get CMMC ready, especially if the company is in the supply chain of any Defense Agency. At the end, give a glossary of unfamiliar words and acronyms, a list of resources with clean links for further research, and hash-tagged keywords in a row.`;
+const DEFAULT_ARTICLE_PROMPT = `Please write a friendly, detailed, comprehensive, thoughtful, balanced, engaging, compelling, fact-checked, conversational, long-form SEO-optimized LinkedIn article for business owners and executives about [TOPIC]. Do not use favicons or emoticons. The article should align with Legacy 83 Business Inc's mission: empowering business leaders to build wealth, inspire teams, and leave lasting legacies. Include verifiable examples, data, and statistics where possible. At the end of the article, cite true references with clean links (no tracking). Expand paragraphs. Appropriately promote Legacy 83 Business coaching, strategic planning, leadership development, and operational excellence services. The call to action is to schedule a discovery call or strategic planning session at https://legacy83business.com/schedule-a-call to learn how Legacy 83 helps leaders (1) clarify their vision, (2) build high-performing teams, and (3) create a lasting legacy for their families and communities. At the end, give a glossary of unfamiliar words and acronyms, a list of resources with clean links for further research, and hash-tagged keywords in a row that are directly relevant to the article topic and Legacy 83's legacy planning and business coaching services.`;
 
 export default function LinkedInContentPage() {
   const [activeTab, setActiveTab] = useState("create");
@@ -330,17 +330,17 @@ I'd love to hear your thoughts and experiences with ${topic}. What strategies ha
 
     // Generate mock content based on topic
     const generatedGlossary: GlossaryItem[] = [
-      { term: "Reshoring", definition: "The practice of bringing manufacturing and production back to the company's home country from overseas locations." },
-      { term: "OEM", definition: "Original Equipment Manufacturer - a company that produces parts or equipment that may be marketed by another manufacturer." },
-      { term: "CMMC", definition: "Cybersecurity Maturity Model Certification - a unified standard for implementing cybersecurity across the defense industrial base." },
-      { term: "Antifragile", definition: "A property of systems that increase in capability or resilience as a result of stressors, shocks, or failures." },
-      { term: "Supply Chain Resilience", definition: "The ability of a supply chain to prepare for, respond to, and recover from disruptions." },
+      { term: "Legacy Planning", definition: "The process of intentionally designing how a business, wealth, and values will transition and endure across generations." },
+      { term: "Strategic Planning", definition: "A structured process for defining an organization's direction and making decisions on allocating resources to pursue that strategy." },
+      { term: "Leadership Development", definition: "The practice of expanding the capacity of individuals to perform in leadership roles within organizations." },
+      { term: "Operational Excellence", definition: "A philosophy of leadership, teamwork, and problem solving that results in continuous improvement throughout an organization." },
+      { term: "Wealth Building", definition: "The process of generating long-term financial value through business growth, investments, and disciplined stewardship." },
     ];
     
     const generatedReferences: ReferenceLink[] = [
-      { id: "ref-1", title: "Strategic Value+ Supplier Success Workshops", url: "https://strategicvalueplus.com/supplier-success-workshops", status: "valid" },
-      { id: "ref-2", title: "CMMC Accreditation Body", url: "https://cyberab.org", status: "valid" },
-      { id: "ref-3", title: "Reshoring Initiative", url: "https://reshorenow.org", status: "valid" },
+      { id: "ref-1", title: "Legacy 83 Business - Strategic Planning & Coaching", url: "https://legacy83business.com/services/strategic-planning", status: "valid" },
+      { id: "ref-2", title: "Schedule a Discovery Call", url: "https://legacy83business.com/schedule-a-call", status: "valid" },
+      { id: "ref-3", title: "The Legacy Journal", url: "https://legacy83business.com/legacy-journal", status: "valid" },
     ];
     
     const generated: GeneratedContent = {
@@ -348,14 +348,14 @@ I'd love to hear your thoughts and experiences with ${topic}. What strategies ha
       content: generateContentByLength(articleLength),
       hashtags: [
         articleTopic.replace(/\s+/g, ""),
-        "USManufacturing",
-        "Reshoring",
-        "SupplyChain",
-        "CMMC",
-        "StrategicValuePlus",
-        "SupplierSuccess",
-        "DefenseManufacturing",
-        "Antifragile",
+        "LegacyPlanning",
+        "BusinessCoaching",
+        "StrategicPlanning",
+        "LeadershipDevelopment",
+        "Legacy83Business",
+        "WealthBuilding",
+        "FamilyBusiness",
+        "OperationalExcellence",
       ],
       glossary: generatedGlossary,
       references: generatedReferences,
@@ -769,7 +769,7 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
                         value={editedHashtags}
                         onChange={(e) => setEditedHashtags(e.target.value)}
                         rows={2}
-                        placeholder="#USManufacturing #Reshoring #SupplyChain #CMMC..."
+                        placeholder="#LegacyPlanning #BusinessCoaching #StrategicPlanning #Legacy83Business..."
                         className="text-sm"
                       />
                     </CardContent>
