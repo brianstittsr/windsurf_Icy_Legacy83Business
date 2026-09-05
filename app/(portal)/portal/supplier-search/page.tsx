@@ -121,7 +121,10 @@ export default function SupplierSearchPage() {
 
   // Search type state (All Suppliers, By Name, By Brand, Product Catalogs)
   const [searchType, setSearchType] = useState<"all" | "name" | "brand" | "catalogs">("all");
-  const [directSearchQuery, setDirectSearchQuery] = useState("");
+  const [allSuppliersQuery, setAllSuppliersQuery] = useState("");
+  const [byNameQuery, setByNameQuery] = useState("");
+  const [byBrandQuery, setByBrandQuery] = useState("");
+  const [catalogsQuery, setCatalogsQuery] = useState("");
   const [regionFilter, setRegionFilter] = useState("all");
 
   // Category search state
@@ -237,11 +240,8 @@ export default function SupplierSearchPage() {
       setMessages((prev) => [...prev, responseMessage]);
       setActiveTab("results"); // Switch to results tab to show results
       if (data.results?.length > 0) {
-        setAllResults((prev) => {
-          const existingIds = new Set(prev.map((r) => r.id));
-          const newResults = data.results.filter((r: SupplierResult) => !existingIds.has(r.id));
-          return [...prev, ...newResults];
-        });
+        setAllResults(data.results);
+        setSelectedSuppliers(new Set());
       }
     } catch (error) {
       console.error("Category search error:", error);
@@ -257,7 +257,16 @@ export default function SupplierSearchPage() {
     }
   };
 
-  // Handle direct search with query parameter (for All Suppliers tab)
+  // Normalize a website URL so links always work
+  const normalizeWebsiteUrl = (url: string): string => {
+    if (!url) return "";
+    const trimmed = url.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
+
+  // Handle direct search with query parameter (for All Suppliers, By Name, By Brand, Catalogs tabs)
+  // Each tab passes its own query; results REPLACE the previous set instead of accumulating.
   const handleDirectSearch = async (query: string) => {
     if (!query.trim() || isLoading) return;
 
@@ -269,7 +278,6 @@ export default function SupplierSearchPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setDirectSearchQuery("");
     setIsLoading(true);
 
     try {
@@ -289,13 +297,10 @@ export default function SupplierSearchPage() {
       setMessages((prev) => [...prev, responseMessage]);
       setActiveTab("results"); // Switch to results tab
 
-      // Add to all results
+      // Replace results with the new set (clear old results)
       if (results.length > 0) {
-        setAllResults((prev) => {
-          const existingIds = new Set(prev.map((r) => r.id));
-          const newResults = results.filter((r) => !existingIds.has(r.id));
-          return [...prev, ...newResults];
-        });
+        setAllResults(results);
+        setSelectedSuppliers(new Set());
       }
     } catch (error) {
       console.error("Direct search error:", error);
@@ -342,13 +347,10 @@ export default function SupplierSearchPage() {
 
       setMessages((prev) => [...prev, responseMessage]);
 
-      // Add to all results
+      // Replace results with the new set
       if (results.length > 0) {
-        setAllResults((prev) => {
-          const existingIds = new Set(prev.map((r) => r.id));
-          const newResults = results.filter((r) => !existingIds.has(r.id));
-          return [...prev, ...newResults];
-        });
+        setAllResults(results);
+        setSelectedSuppliers(new Set());
       }
     } catch (error) {
       console.error("Message handling error:", error);
@@ -811,11 +813,11 @@ export default function SupplierSearchPage() {
                     <label className="text-sm font-medium">Search Query</label>
                     <Input
                       placeholder="e.g., CNC machining suppliers with ISO certification"
-                      value={directSearchQuery}
-                      onChange={(e) => setDirectSearchQuery(e.target.value)}
+                      value={allSuppliersQuery}
+                      onChange={(e) => setAllSuppliersQuery(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && directSearchQuery.trim()) {
-                          handleDirectSearch(directSearchQuery);
+                        if (e.key === "Enter" && allSuppliersQuery.trim()) {
+                          handleDirectSearch(allSuppliersQuery);
                         }
                       }}
                     />
@@ -837,8 +839,8 @@ export default function SupplierSearchPage() {
                     </Select>
                   </div>
                   <Button
-                    onClick={() => handleDirectSearch(directSearchQuery)}
-                    disabled={!directSearchQuery.trim() || isLoading}
+                    onClick={() => handleDirectSearch(allSuppliersQuery)}
+                    disabled={!allSuppliersQuery.trim() || isLoading}
                     className="w-full"
                   >
                     {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
@@ -867,18 +869,18 @@ export default function SupplierSearchPage() {
                     <label className="text-sm font-medium">Company Name</label>
                     <Input
                       placeholder="Enter supplier company name..."
-                      value={directSearchQuery}
-                      onChange={(e) => setDirectSearchQuery(e.target.value)}
+                      value={byNameQuery}
+                      onChange={(e) => setByNameQuery(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && directSearchQuery.trim()) {
-                          handleDirectSearch(directSearchQuery);
+                        if (e.key === "Enter" && byNameQuery.trim()) {
+                          handleDirectSearch(byNameQuery);
                         }
                       }}
                     />
                   </div>
                   <Button
-                    onClick={() => handleDirectSearch(directSearchQuery)}
-                    disabled={!directSearchQuery.trim() || isLoading}
+                    onClick={() => handleDirectSearch(byNameQuery)}
+                    disabled={!byNameQuery.trim() || isLoading}
                     className="w-full"
                   >
                     {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
@@ -907,18 +909,18 @@ export default function SupplierSearchPage() {
                     <label className="text-sm font-medium">Brand Name</label>
                     <Input
                       placeholder="Enter brand name..."
-                      value={directSearchQuery}
-                      onChange={(e) => setDirectSearchQuery(e.target.value)}
+                      value={byBrandQuery}
+                      onChange={(e) => setByBrandQuery(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && directSearchQuery.trim()) {
-                          handleDirectSearch(`${directSearchQuery} brand suppliers`);
+                        if (e.key === "Enter" && byBrandQuery.trim()) {
+                          handleDirectSearch(`${byBrandQuery} brand suppliers`);
                         }
                       }}
                     />
                   </div>
                   <Button
-                    onClick={() => handleDirectSearch(`${directSearchQuery} brand suppliers`)}
-                    disabled={!directSearchQuery.trim() || isLoading}
+                    onClick={() => handleDirectSearch(`${byBrandQuery} brand suppliers`)}
+                    disabled={!byBrandQuery.trim() || isLoading}
                     className="w-full"
                   >
                     {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
@@ -947,24 +949,22 @@ export default function SupplierSearchPage() {
                     <label className="text-sm font-medium">Product or Catalog Search</label>
                     <Input
                       placeholder="Search product catalogs..."
-                      value={directSearchQuery}
-                      onChange={(e) => setDirectSearchQuery(e.target.value)}
+                      value={catalogsQuery}
+                      onChange={(e) => setCatalogsQuery(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && directSearchQuery.trim()) {
-                          setInputValue(`${directSearchQuery} product catalog`);
-                          handleSendMessage();
+                        if (e.key === "Enter" && catalogsQuery.trim()) {
+                          handleDirectSearch(`${catalogsQuery} product catalog`);
                         }
                       }}
                     />
                   </div>
                   <Button
                     onClick={() => {
-                      if (directSearchQuery.trim()) {
-                        setInputValue(`${directSearchQuery} product catalog`);
-                        handleSendMessage();
+                      if (catalogsQuery.trim()) {
+                        handleDirectSearch(`${catalogsQuery} product catalog`);
                       }
                     }}
-                    disabled={!directSearchQuery.trim() || isLoading}
+                    disabled={!catalogsQuery.trim() || isLoading}
                     className="w-full"
                   >
                     {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
@@ -1067,7 +1067,7 @@ export default function SupplierSearchPage() {
                                 )}
                                 {supplier.website && (
                                   <a
-                                    href={`https://${supplier.website}`}
+                                    href={normalizeWebsiteUrl(supplier.website)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-sm text-blue-600 flex items-center gap-1 hover:underline"
@@ -1211,7 +1211,7 @@ export default function SupplierSearchPage() {
                                     )}
                                     {supplier.website && (
                                       <a
-                                        href={`https://${supplier.website}`}
+                                        href={normalizeWebsiteUrl(supplier.website)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
@@ -1366,7 +1366,7 @@ export default function SupplierSearchPage() {
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-blue-600" />
                       <a
-                        href={`https://${selectedSupplierDetail.website}`}
+                        href={normalizeWebsiteUrl(selectedSupplierDetail.website)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:underline"
