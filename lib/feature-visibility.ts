@@ -255,6 +255,27 @@ export interface FeatureVisibilitySettings {
 
 const SETTINGS_DOC_ID = "feature-visibility";
 
+// Merge stored role visibility with defaults so newly-added features/sections/tools
+// adopt their code-defined default values instead of disappearing for roles with saved settings.
+function mergeRoleVisibility(
+  stored: FeatureVisibilitySettings["roleVisibility"]
+): FeatureVisibilitySettings["roleVisibility"] {
+  const merged: FeatureVisibilitySettings["roleVisibility"] = { ...DEFAULT_ROLE_VISIBILITY };
+
+  for (const role of Object.keys(DEFAULT_ROLE_VISIBILITY) as UserRole[]) {
+    const storedRole = stored[role];
+    if (!storedRole) continue;
+
+    merged[role] = {
+      features: { ...DEFAULT_ROLE_VISIBILITY[role].features, ...storedRole.features },
+      sections: { ...DEFAULT_ROLE_VISIBILITY[role].sections, ...storedRole.sections },
+      l83Tools: { ...DEFAULT_ROLE_VISIBILITY[role].l83Tools, ...storedRole.l83Tools },
+    };
+  }
+
+  return merged;
+}
+
 // Get feature visibility settings from Firestore
 export async function getFeatureVisibilitySettings(): Promise<FeatureVisibilitySettings> {
   if (!db) {
@@ -268,7 +289,7 @@ export async function getFeatureVisibilitySettings(): Promise<FeatureVisibilityS
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
-        roleVisibility: data.roleVisibility || DEFAULT_ROLE_VISIBILITY,
+        roleVisibility: mergeRoleVisibility(data.roleVisibility || {}),
         updatedAt: data.updatedAt?.toDate(),
         updatedBy: data.updatedBy,
       };
@@ -319,7 +340,7 @@ export function subscribeToFeatureVisibility(
     if (docSnap.exists()) {
       const data = docSnap.data();
       callback({
-        roleVisibility: data.roleVisibility || DEFAULT_ROLE_VISIBILITY,
+        roleVisibility: mergeRoleVisibility(data.roleVisibility || {}),
         updatedAt: data.updatedAt?.toDate(),
         updatedBy: data.updatedBy,
       });

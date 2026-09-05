@@ -24,6 +24,7 @@ import {
   Shield,
   Rocket,
   Wrench,
+  Snowflake,
   Eye,
   EyeOff,
   RotateCcw,
@@ -58,6 +59,7 @@ const ROLE_INFO: Record<UserRole, { label: string; icon: React.ElementType; desc
 };
 
 const SECTION_ICONS: Record<SectionKey, React.ElementType> = {
+  icyFocused: Snowflake,
   navigation: LayoutDashboard,
   work: Briefcase,
   intelligence: Brain,
