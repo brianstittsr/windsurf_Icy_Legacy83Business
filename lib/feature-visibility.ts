@@ -84,6 +84,7 @@ export type L83ToolKey = keyof typeof L83_TOOLS;
 
 // Sections that can be toggled
 export const SECTIONS = {
+  icyFocused: { label: "Icy Focused" },
   navigation: { label: "Navigation" },
   work: { label: "Work" },
   intelligence: { label: "Intelligence" },
@@ -167,6 +168,7 @@ export const DEFAULT_ROLE_VISIBILITY: Record<UserRole, {
       tbmncSuppliers: false,
     },
     sections: {
+      icyFocused: false,
       navigation: true,
       work: true,
       intelligence: true,
@@ -230,6 +232,7 @@ export const DEFAULT_ROLE_VISIBILITY: Record<UserRole, {
       tbmncSuppliers: false,
     },
     sections: {
+      icyFocused: false,
       navigation: true,
       work: true,
       intelligence: true,

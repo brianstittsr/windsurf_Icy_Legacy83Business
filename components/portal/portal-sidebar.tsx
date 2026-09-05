@@ -88,8 +88,45 @@ import {
   Presentation,
   Quote,
   ArrowRightLeft,
+  Snowflake,
+  Megaphone,
+  BarChart3,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Icy Focused — Platform Management
+const icyPlatformManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  { title: "Bug Tracker", href: "/portal/bug-tracker", icon: Bug, featureKey: "bugTracker" },
+  { title: "Command Center", href: "/portal/command-center", icon: Rocket, featureKey: "commandCenter" },
+  { title: "Academy Admin", href: "/portal/admin/academy", icon: GraduationCap, featureKey: "academyAdmin" },
+  { title: "Documentation", href: "/portal/system-docs", icon: BookOpen, featureKey: "systemDocs" },
+  { title: "Hero Carousel", href: "/portal/admin/hero", icon: Presentation, featureKey: "heroManagement" },
+];
+
+// Icy Focused — Deal Management
+const icyDealManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  { title: "Proposal Creator", href: "/portal/proposals", icon: FileText, badge: "AI", featureKey: "proposals" },
+  { title: "Opportunities", href: "/portal/opportunities", icon: Target, featureKey: "opportunities" },
+  { title: "Team Members", href: "/portal/admin/team-members", icon: UserCog, featureKey: "teamMembers" },
+  { title: "Customers / GHL Contacts", href: "/portal/customers", icon: Building, featureKey: "customers" },
+];
+
+// Icy Focused — Project Management
+const icyProjectManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  { title: "Supplier Search", href: "/portal/supplier-search", icon: Factory, badge: "AI", featureKey: "supplierSearch" },
+  { title: "Projects", href: "/portal/projects", icon: FolderKanban, featureKey: "projects" },
+  { title: "Calendar", href: "/portal/calendar", icon: Calendar, featureKey: "calendar" },
+  { title: "Meetings", href: "/portal/meetings", icon: Users, featureKey: "meetings" },
+  { title: "Availability", href: "/portal/availability", icon: CalendarDays, featureKey: "availability" },
+];
+
+// Icy Focused — Marketing
+const icyMarketingItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [
+  { title: "Alignable", href: "/portal/admin/alignable", icon: Network, featureKey: "alignable" },
+  { title: "Deal Tracking", href: "/portal/deals", icon: DollarSign, featureKey: "deals" },
+  { title: "LinkedIn Posting", href: "/portal/linkedin-content", icon: Linkedin, featureKey: "linkedinContent" },
+];
 
 // System Management
 const systemManagementItems: { title: string; href: string; icon: React.ElementType; badge?: string; featureKey: FeatureKey }[] = [];
@@ -416,6 +453,7 @@ export function PortalSidebar() {
   
   // Collapsible state for each section
   const [openSections, setOpenSections] = useState({
+    icyFocused: true,
     systemManagement: true,
     projectManagement: true,
     data: false,
@@ -520,6 +558,71 @@ export function PortalSidebar() {
               👁️ Preview Mode Active
             </p>
           </div>
+        )}
+
+        {/* Icy Focused */}
+        {canSeeSection("icyFocused" as SectionKey) && (
+          <Collapsible open={openSections.icyFocused} onOpenChange={() => toggleSection("icyFocused")}>
+            <SidebarGroup>
+              <CollapsibleTrigger asChild>
+                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md flex items-center justify-between pr-2">
+                  <span className="flex items-center gap-1.5">
+                    <Snowflake className="h-3.5 w-3.5 text-cyan-500" />
+                    Icy Focused
+                  </span>
+                  {openSections.icyFocused ? (
+                    <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-sidebar-foreground/60" />
+                  )}
+                </SidebarGroupLabel>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  {/* Platform Management */}
+                  {icyPlatformManagementItems.filter(item => canSeeFeature(item.featureKey)).length > 0 && (
+                    <div className="mb-1">
+                      <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 flex items-center gap-1">
+                        <Wrench className="h-3 w-3" />
+                        Platform Management
+                      </p>
+                      {renderMenuItems(icyPlatformManagementItems.filter(item => canSeeFeature(item.featureKey)))}
+                    </div>
+                  )}
+                  {/* Deal Management */}
+                  {icyDealManagementItems.filter(item => canSeeFeature(item.featureKey)).length > 0 && (
+                    <div className="mb-1">
+                      <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 flex items-center gap-1">
+                        <BarChart3 className="h-3 w-3" />
+                        Deal Management
+                      </p>
+                      {renderMenuItems(icyDealManagementItems.filter(item => canSeeFeature(item.featureKey)))}
+                    </div>
+                  )}
+                  {/* Project Management */}
+                  {icyProjectManagementItems.filter(item => canSeeFeature(item.featureKey)).length > 0 && (
+                    <div className="mb-1">
+                      <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 flex items-center gap-1">
+                        <FolderKanban className="h-3 w-3" />
+                        Project Management
+                      </p>
+                      {renderMenuItems(icyProjectManagementItems.filter(item => canSeeFeature(item.featureKey)))}
+                    </div>
+                  )}
+                  {/* Marketing */}
+                  {icyMarketingItems.filter(item => canSeeFeature(item.featureKey)).length > 0 && (
+                    <div className="mb-1">
+                      <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 flex items-center gap-1">
+                        <Megaphone className="h-3 w-3" />
+                        Marketing
+                      </p>
+                      {renderMenuItems(icyMarketingItems.filter(item => canSeeFeature(item.featureKey)))}
+                    </div>
+                  )}
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
         )}
 
         {/* Legacy 83 Business */}
