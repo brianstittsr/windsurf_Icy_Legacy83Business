@@ -2156,7 +2156,58 @@ export const COLLECTIONS = {
   HERO_SLIDES: "heroSlides",
   // Success Stories (Testimonials)
   SUCCESS_STORIES: "successStories",
+  // LinkedIn Content & Publishing
+  LINKEDIN_ARTICLES: "linkedinArticles",
+  LINKEDIN_CONNECTIONS: "linkedinConnections",
 } as const;
+
+/** Reference link stored with a LinkedIn article */
+export interface LinkedInReferenceLink {
+  id: string;
+  url: string;
+  title: string;
+  status: "pending" | "valid" | "invalid" | "checking";
+  description?: string;
+}
+
+/** LinkedIn article draft / scheduled / published post */
+export interface LinkedInArticleDoc {
+  id: string;
+  title: string;
+  content: string;
+  hashtags?: string;
+  images: string[];
+  referenceLinks: LinkedInReferenceLink[];
+  glossary: { term: string; definition: string }[];
+  status: "draft" | "scheduled" | "published" | "failed";
+  scheduledFor?: Timestamp;
+  publishedAt?: Timestamp;
+  linkedinPostId?: string; // URN from LinkedIn after publish
+  linkedinError?: string;
+  createdById: string;
+  createdByName: string;
+  ghlFormUrl?: string;
+  ghlFormId?: string;
+  ghlTags?: string[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** LinkedIn OAuth connection per user */
+export interface LinkedInConnectionDoc {
+  id: string;
+  userId: string;
+  profileId?: string;
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: Timestamp;
+  profileName?: string;
+  profileEmail?: string;
+  profilePicture?: string;
+  isActive: boolean;
+  connectedAt: Timestamp;
+  updatedAt: Timestamp;
+}
 
 // ============================================================================
 // Collection References
@@ -2219,6 +2270,10 @@ export const bugTrackerItemsCollection = () => getCollection<BugTrackerItemDoc>(
 
 // Success Stories collection reference
 export const successStoriesCollection = () => getCollection<SuccessStoryDoc>(COLLECTIONS.SUCCESS_STORIES);
+
+// LinkedIn Content & Publishing collection references
+export const linkedinArticlesCollection = () => getCollection<LinkedInArticleDoc>(COLLECTIONS.LINKEDIN_ARTICLES);
+export const linkedinConnectionsCollection = () => getCollection<LinkedInConnectionDoc>(COLLECTIONS.LINKEDIN_CONNECTIONS);
 
 // ============================================================================
 // Subcollection Helpers

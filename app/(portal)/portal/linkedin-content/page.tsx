@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
+import { useUserProfile } from "@/contexts/user-profile-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -86,10 +88,27 @@ interface GeneratedContent {
 const DEFAULT_ARTICLE_PROMPT = `Please write a friendly, detailed, comprehensive, thoughtful, balanced, engaging, compelling, fact-checked, conversational, long-form SEO-optimized LinkedIn article for business owners and executives about [TOPIC]. Do not use favicons or emoticons. The article should align with Legacy 83 Business Inc's mission: empowering business leaders to build wealth, inspire teams, and leave lasting legacies. Include verifiable examples, data, and statistics where possible. At the end of the article, cite true references with clean links (no tracking). Expand paragraphs. Appropriately promote Legacy 83 Business coaching, strategic planning, leadership development, and operational excellence services. The call to action is to schedule a discovery call or strategic planning session at https://legacy83business.com/schedule-a-call to learn how Legacy 83 helps leaders (1) clarify their vision, (2) build high-performing teams, and (3) create a lasting legacy for their families and communities. At the end, give a glossary of unfamiliar words and acronyms, a list of resources with clean links for further research, and hash-tagged keywords in a row that are directly relevant to the article topic and Legacy 83's legacy planning and business coaching services.`;
 
 export default function LinkedInContentPage() {
+  const { linkedTeamMember } = useUserProfile();
+  const userId = linkedTeamMember?.id || "";
+  const userName = linkedTeamMember
+    ? `${linkedTeamMember.firstName || ""} ${linkedTeamMember.lastName || ""}`.trim()
+    : "";
+
   const [activeTab, setActiveTab] = useState("create");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isVerifyingLinks, setIsVerifyingLinks] = useState(false);
-  
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
+  const [linkedinConnected, setLinkedinConnected] = useState(false);
+  const [linkedinProfileName, setLinkedinProfileName] = useState<string | null>(null);
+
+  // Schedule dialog state
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("09:00");
+
   // Article creation state
   const [articleTopic, setArticleTopic] = useState("");
   const [articlePrompt, setArticlePrompt] = useState(DEFAULT_ARTICLE_PROMPT);
@@ -97,26 +116,76 @@ export default function LinkedInContentPage() {
   const [articleTone, setArticleTone] = useState("professional");
   const [articleLength, setArticleLength] = useState("long");
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedContent, setEditedContent] = useState("");
-  
+
   // Separate fields for structured content
   const [editedHashtags, setEditedHashtags] = useState("");
   const [editedGlossary, setEditedGlossary] = useState<GlossaryItem[]>([]);
   const [editedReferences, setEditedReferences] = useState<ReferenceLink[]>([]);
-  
+
   // Image upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Reference links state
   const [referenceLinks, setReferenceLinks] = useState<ReferenceLink[]>([]);
   const [newLinkUrl, setNewLinkUrl] = useState("");
-  
+
   // Drafts state
   const [drafts, setDrafts] = useState<ArticleDraft[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [showWordCount, setShowWordCount] = useState(false);
+
+  // Load LinkedIn connection and drafts on mount
+  useEffect(() => {
+    if (!userId) return;
+
+    const checkConnection = async () => {
+      try {
+        const res = await fetch(`/api/linkedin/connection?userId=${encodeURIComponent(userId)}`);
+        const result = await res.json();
+        if (result.data?.connected) {
+          setLinkedinConnected(true);
+          setLinkedinProfileName(result.data.profileName);
+        }
+      } catch (error) {
+        console.error("Error checking LinkedIn connection:", error);
+      }
+    };
+
+    const loadDrafts = async () => {
+      setIsLoadingDrafts(true);
+      try {
+        const res = await fetch(`/api/linkedin/drafts?userId=${encodeURIComponent(userId)}`);
+        const result = await res.json();
+        if (result.data) {
+          const mapped = result.data.map((article: Record<string, unknown>) => ({
+            id: article.id as string,
+            title: (article.title as string) || "",
+            content: (article.content as string) || "",
+            images: (article.images as string[]) || [],
+            referenceLinks: (article.referenceLinks as ReferenceLink[]) || [],
+            status: (article.status as "draft" | "scheduled" | "published") || "draft",
+            createdAt: article.createdAt ? new Date((article.createdAt as { seconds: number }).seconds * 1000) : new Date(),
+            scheduledFor: article.scheduledFor
+              ? new Date((article.scheduledFor as { seconds: number }).seconds * 1000)
+              : undefined,
+          }));
+          setDrafts(mapped);
+        }
+      } catch (error) {
+        console.error("Error loading LinkedIn drafts:", error);
+        toast.error("Failed to load drafts");
+      } finally {
+        setIsLoadingDrafts(false);
+      }
+    };
+
+    checkConnection();
+    loadDrafts();
+  }, [userId]);
 
   // Calculate word count statistics
   const getWordCountStats = () => {
@@ -471,19 +540,66 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
     setIsVerifyingLinks(false);
   };
 
-  // Save as draft
-  const saveDraft = () => {
-    const draft: ArticleDraft = {
-      id: `draft-${Date.now()}`,
-      title: editedTitle,
-      content: editedContent,
-      images: uploadedImages,
-      referenceLinks,
-      status: "draft",
-      createdAt: new Date(),
-    };
-    
-    setDrafts(prev => [...prev, draft]);
+  // Save as draft to Firestore
+  const saveDraft = async () => {
+    if (!userId) {
+      toast.error("User not loaded. Please wait and try again.");
+      return;
+    }
+    if (!editedTitle.trim() || !editedContent.trim()) {
+      toast.error("Please enter a title and content before saving.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/linkedin/drafts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: currentDraftId,
+          title: editedTitle,
+          content: editedContent,
+          hashtags: editedHashtags,
+          images: uploadedImages,
+          referenceLinks: editedReferences,
+          glossary: editedGlossary,
+          status: "draft",
+          createdById: userId,
+          createdByName: userName,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Save failed");
+
+      setCurrentDraftId(result.data.id);
+      toast.success("Draft saved");
+
+      // Refresh drafts list
+      const listRes = await fetch(`/api/linkedin/drafts?userId=${encodeURIComponent(userId)}`);
+      const listResult = await listRes.json();
+      if (listResult.data) {
+        const mapped = listResult.data.map((article: Record<string, unknown>) => ({
+          id: article.id as string,
+          title: (article.title as string) || "",
+          content: (article.content as string) || "",
+          images: (article.images as string[]) || [],
+          referenceLinks: (article.referenceLinks as ReferenceLink[]) || [],
+          status: (article.status as "draft" | "scheduled" | "published") || "draft",
+          createdAt: article.createdAt ? new Date((article.createdAt as { seconds: number }).seconds * 1000) : new Date(),
+          scheduledFor: article.scheduledFor
+            ? new Date((article.scheduledFor as { seconds: number }).seconds * 1000)
+            : undefined,
+        }));
+        setDrafts(mapped);
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to save draft");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Build the full article content for publishing
@@ -524,6 +640,152 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
     navigator.clipboard.writeText(fullContent);
   };
 
+  // Publish immediately to LinkedIn
+  const handlePublish = async () => {
+    if (!userId) {
+      toast.error("User not loaded.");
+      return;
+    }
+    if (!linkedinConnected) {
+      toast.error("Please connect your LinkedIn account first.");
+      return;
+    }
+    if (!editedTitle.trim() || !editedContent.trim()) {
+      toast.error("Please generate or enter content before publishing.");
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const res = await fetch("/api/linkedin/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: currentDraftId,
+          title: editedTitle,
+          content: buildFullArticle(),
+          hashtags: editedHashtags,
+          images: uploadedImages,
+          referenceLinks: editedReferences,
+          glossary: editedGlossary,
+          createdById: userId,
+          createdByName: userName,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Publish failed");
+
+      setCurrentDraftId(result.data.id);
+      toast.success("Published to LinkedIn");
+      setActiveTab("published");
+      refreshDrafts();
+    } catch (error) {
+      console.error("Error publishing:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to publish");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  // Schedule a post
+  const handleSchedule = async () => {
+    if (!userId) {
+      toast.error("User not loaded.");
+      return;
+    }
+    if (!scheduleDate || !scheduleTime) {
+      toast.error("Please select a date and time.");
+      return;
+    }
+    if (!editedTitle.trim() || !editedContent.trim()) {
+      toast.error("Please generate or enter content before scheduling.");
+      return;
+    }
+
+    const scheduledFor = new Date(`${scheduleDate}T${scheduleTime}`);
+    if (isNaN(scheduledFor.getTime())) {
+      toast.error("Invalid schedule date/time.");
+      return;
+    }
+
+    setIsScheduling(true);
+    try {
+      const res = await fetch("/api/linkedin/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: currentDraftId,
+          title: editedTitle,
+          content: editedContent,
+          hashtags: editedHashtags,
+          images: uploadedImages,
+          referenceLinks: editedReferences,
+          glossary: editedGlossary,
+          scheduledFor: scheduledFor.toISOString(),
+          createdById: userId,
+          createdByName: userName,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Schedule failed");
+
+      setCurrentDraftId(result.data.id);
+      setShowScheduleDialog(false);
+      toast.success(`Scheduled for ${scheduledFor.toLocaleString()}`);
+      setActiveTab("scheduled");
+      refreshDrafts();
+    } catch (error) {
+      console.error("Error scheduling:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to schedule");
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
+  const refreshDrafts = async () => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`/api/linkedin/drafts?userId=${encodeURIComponent(userId)}`);
+      const result = await res.json();
+      if (result.data) {
+        const mapped = result.data.map((article: Record<string, unknown>) => ({
+          id: article.id as string,
+          title: (article.title as string) || "",
+          content: (article.content as string) || "",
+          images: (article.images as string[]) || [],
+          referenceLinks: (article.referenceLinks as ReferenceLink[]) || [],
+          status: (article.status as "draft" | "scheduled" | "published") || "draft",
+          createdAt: article.createdAt ? new Date((article.createdAt as { seconds: number }).seconds * 1000) : new Date(),
+          scheduledFor: article.scheduledFor
+            ? new Date((article.scheduledFor as { seconds: number }).seconds * 1000)
+            : undefined,
+        }));
+        setDrafts(mapped);
+      }
+    } catch (error) {
+      console.error("Error refreshing drafts:", error);
+    }
+  };
+
+  // Connect LinkedIn via OAuth
+  const connectLinkedIn = async () => {
+    if (!userId) {
+      toast.error("User not loaded.");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/linkedin/oauth/initiate?userId=${encodeURIComponent(userId)}`);
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to start LinkedIn OAuth");
+      window.location.href = result.data.authUrl;
+    } catch (error) {
+      console.error("Error starting LinkedIn OAuth:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to start LinkedIn OAuth");
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] flex">
       {/* Main Content */}
@@ -549,10 +811,16 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-orange-600 border-orange-300">
-                Not Connected
-              </Badge>
-              <Button variant="outline" size="sm">
+              {linkedinConnected ? (
+                <Badge variant="outline" className="text-green-600 border-green-300">
+                  {linkedinProfileName ? `Connected as ${linkedinProfileName}` : "Connected"}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-orange-600 border-orange-300">
+                  Not Connected
+                </Badge>
+              )}
+              <Button variant="outline" size="sm" onClick={connectLinkedIn}>
                 Connect LinkedIn
               </Button>
             </div>
@@ -1078,16 +1346,16 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
                 {/* Action Buttons */}
                 {editedContent && (
                   <div className="flex gap-3 justify-end">
-                    <Button variant="outline" onClick={saveDraft}>
-                      <Save className="h-4 w-4 mr-2" />
+                    <Button variant="outline" onClick={saveDraft} disabled={isSaving}>
+                      {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                       Save Draft
                     </Button>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={() => setShowScheduleDialog(true)}>
                       <Clock className="h-4 w-4 mr-2" />
                       Schedule
                     </Button>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      <Send className="h-4 w-4 mr-2" />
+                    <Button className="bg-blue-600 hover:bg-blue-700" onClick={handlePublish} disabled={isPublishing}>
+                      {isPublishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                       Publish to LinkedIn
                     </Button>
                   </div>
@@ -1314,6 +1582,46 @@ What's your take on ${articleTopic.toLowerCase()}? I'd love to start a conversat
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowWordCount(false)} className="w-full">
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Post Dialog */}
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule LinkedIn Post</DialogTitle>
+            <DialogDescription>
+              Pick a date and time to publish this article.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="schedule-date">Date</Label>
+              <Input
+                id="schedule-date"
+                type="date"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="schedule-time">Time</Label>
+              <Input
+                id="schedule-time"
+                type="time"
+                value={scheduleTime}
+                onChange={(e) => setScheduleTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>Cancel</Button>
+            <Button onClick={handleSchedule} disabled={isScheduling}>
+              {isScheduling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Clock className="h-4 w-4 mr-2" />}
+              Confirm Schedule
             </Button>
           </DialogFooter>
         </DialogContent>
