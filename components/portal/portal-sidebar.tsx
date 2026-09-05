@@ -561,7 +561,7 @@ export function PortalSidebar() {
         )}
 
         {/* Icy Focused */}
-        {canSeeSection("icyFocused" as SectionKey) && (
+        {canSeeSection("icyFocused") && (
           <Collapsible open={openSections.icyFocused} onOpenChange={() => toggleSection("icyFocused")}>
             <SidebarGroup>
               <CollapsibleTrigger asChild>
