@@ -36,9 +36,11 @@ import {
   Circle,
   Pause,
   Timer,
+  MessageSquare,
+  Bell,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, deleteDoc, addDoc, collection, Timestamp } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/schema";
 import { toast } from "sonner";
 
@@ -216,6 +218,100 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const sendMilestoneSmsReminder = async (milestone: MilestoneDetail) => {
+    if (!milestone.dueDate) {
+      toast.error("Milestone has no due date");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/notifications/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: ["+15133351978", "+19196083415"],
+          body: `Legacy 83 milestone reminder: "${milestone.name}" in project "${project?.name || "Unknown"}" is due ${milestone.dueDate.toLocaleDateString("en-US")}. Status: ${getMilestoneStatusLabel(milestone.status)}.`,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "SMS failed");
+      toast.success("Milestone SMS reminder sent");
+    } catch (error) {
+      console.error("Error sending milestone SMS:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to send SMS");
+    }
+  };
+
+  const addMilestoneToCalendar = async (milestone: MilestoneDetail) => {
+    if (!db || !milestone.dueDate || !project) {
+      toast.error("Milestone must have a due date");
+      return;
+    }
+
+    try {
+      const start = Timestamp.fromDate(milestone.dueDate);
+      const end = Timestamp.fromDate(new Date(milestone.dueDate.getTime() + 60 * 60 * 1000));
+
+      await addDoc(collection(db, COLLECTIONS.CALENDAR_EVENTS), {
+        title: `Milestone Due: ${milestone.name}`,
+        description: `Project: ${project.name}\nMilestone: ${milestone.name}\n${milestone.description || ""}`,
+        startDate: start,
+        endDate: end,
+        type: "milestone",
+        color: "#C8A951",
+        attendees: [],
+        projectId: project.id,
+        milestoneId: milestone.id,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      toast.success("Milestone added to calendar");
+    } catch (error) {
+      console.error("Error adding milestone to calendar:", error);
+      toast.error("Failed to add milestone to calendar");
+    }
+  };
+
+  const sendUpcomingMilestoneReminders = async () => {
+    if (!project) return;
+
+    const now = new Date();
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const upcoming = project.milestones.filter(
+      (m) => m.dueDate && m.dueDate >= now && m.dueDate <= in7Days && m.status !== "completed"
+    );
+
+    if (upcoming.length === 0) {
+      toast.info("No upcoming milestones due in the next 7 days");
+      return;
+    }
+
+    try {
+      const body = upcoming
+        .map(
+          (m) =>
+            `• ${m.name} (${project.name}) due ${m.dueDate!.toLocaleDateString("en-US")} - ${getMilestoneStatusLabel(m.status)}`
+        )
+        .join("\n");
+
+      const res = await fetch("/api/notifications/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: ["+15133351978", "+19196083415"],
+          body: `Legacy 83 upcoming milestone reminders for "${project.name}":\n${body}`,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "SMS failed");
+      toast.success(`SMS sent for ${upcoming.length} upcoming milestone(s)`);
+    } catch (error) {
+      console.error("Error sending upcoming milestone SMS:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to send SMS");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -351,9 +447,15 @@ export default function ProjectDetailPage() {
                   <Flag className="h-5 w-5" />
                   Milestones
                 </CardTitle>
-                <Badge variant="secondary">
-                  {project.milestones.filter((m) => m.status === "completed").length}/{project.milestones.length} completed
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={sendUpcomingMilestoneReminders}>
+                    <Bell className="h-4 w-4 mr-1" />
+                    Send Upcoming SMS
+                  </Button>
+                  <Badge variant="secondary">
+                    {project.milestones.filter((m) => m.status === "completed").length}/{project.milestones.length} completed
+                  </Badge>
+                </div>
               </div>
               <CardDescription>Track project deliverables and key dates</CardDescription>
             </CardHeader>
@@ -407,6 +509,30 @@ export default function ProjectDetailPage() {
                               <CheckCircle className="h-3 w-3" />
                               Completed: {milestone.completedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at {milestone.completedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
                             </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          {milestone.dueDate && milestone.status !== "completed" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => sendMilestoneSmsReminder(milestone)}
+                            >
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              Send SMS
+                            </Button>
+                          )}
+                          {milestone.dueDate && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => addMilestoneToCalendar(milestone)}
+                            >
+                              <Calendar className="h-3 w-3 mr-1" />
+                              Add to Calendar
+                            </Button>
                           )}
                         </div>
                       </div>

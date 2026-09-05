@@ -420,6 +420,20 @@ function NewOpportunityContent() {
       const docRef = await addDoc(collection(db, COLLECTIONS.OPPORTUNITIES), opportunityData);
       await logOpportunityCreated(docRef.id, form.name);
 
+      // Send SMS notifications to internal team
+      try {
+        await fetch("/api/notifications/sms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: ["+15133351978", "+19196083415"],
+            body: `New Legacy 83 opportunity created: ${form.name} (${form.value ? `$${form.value}` : "Value TBD"}) by ${form.organizationName || "Unknown"}. Open: https://legacy83business.com/portal/opportunities/${docRef.id}`,
+          }),
+        });
+      } catch (smsError) {
+        console.error("Error sending opportunity SMS notifications:", smsError);
+      }
+
       router.push("/portal/opportunities");
     } catch (error) {
       console.error("Error creating opportunity:", error);
